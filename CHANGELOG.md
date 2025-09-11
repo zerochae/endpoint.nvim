@@ -1,5 +1,15 @@
 # Changelog
 
+## [1.0.1](https://github.com/zerochae/endpoint.nvim/compare/v1.0.0...v1.0.1) (2025-09-11)
+
+
+### Bug Fixes
+
+* enable preview data and ensure temp tables clear in cache_mode = 'none' ([44ca4b9](https://github.com/zerochae/endpoint.nvim/commit/44ca4b90a53d4427ac2ff2e8033d13b732f58e8d))
+* enable telescope finder to show results in cache_mode = 'none' ([b85641a](https://github.com/zerochae/endpoint.nvim/commit/b85641a55863ead92dc446fbe533cb4663c2e6a8))
+* prevent cache operations when cache_mode is 'none' ([554ccb9](https://github.com/zerochae/endpoint.nvim/commit/554ccb9cd83261e413f52f720168c9e94e313e6c))
+* prevent nil temp_find_table errors in cache functions ([ac4b143](https://github.com/zerochae/endpoint.nvim/commit/ac4b143dc06a69fc1955f4504f6e387619caf7cf))
+
 ## 1.0.0 (2025-09-11)
 
 
