@@ -10,14 +10,8 @@ function M:get_patterns(method)
 end
 
 function M:get_file_types()
-  local file_extensions = {}
-  for _, pattern in ipairs(rails_config.file_patterns) do
-    local ext = pattern:match "%.(%w+)$"
-    if ext then
-      table.insert(file_extensions, ext)
-    end
-  end
-  return file_extensions
+  -- Return the ripgrep file type for Ruby instead of file extension
+  return { "ruby" }
 end
 
 function M:get_exclude_patterns()
