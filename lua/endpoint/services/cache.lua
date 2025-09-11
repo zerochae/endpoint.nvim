@@ -137,6 +137,13 @@ M.clear_tables = function()
 end
 
 M.get_find_table = function()
+  -- Check cache mode - if "none", return empty table
+  local cache_config = get_cache_config()
+  if cache_config.mode == "none" then
+    debug_log("get_find_table: cache_mode is none, returning empty table")
+    return {}
+  end
+  
   ensure_cache_initialized()
   -- Track access for potential cleanup
   track_access("find_table", "global_access")
@@ -145,6 +152,13 @@ M.get_find_table = function()
 end
 
 M.get_preview_table = function()
+  -- Check cache mode - if "none", return empty table
+  local cache_config = get_cache_config()
+  if cache_config.mode == "none" then
+    debug_log("get_preview_table: cache_mode is none, returning empty table")
+    return {}
+  end
+  
   -- Track access for potential cleanup
   track_access("preview_table", "global_access")
   return preview_table
@@ -208,6 +222,13 @@ M.should_use_cache = function(key)
 end
 
 M.create_find_table_entry = function(path, annotation)
+  -- Don't create entries if cache mode is "none"
+  local cache_config = get_cache_config()
+  if cache_config.mode == "none" then
+    debug_log("create_find_table_entry: cache_mode is none, skipping")
+    return
+  end
+  
   if not find_table[path] then
     find_table[path] = {}
   end
@@ -221,6 +242,13 @@ M.create_find_table_entry = function(path, annotation)
 end
 
 M.insert_to_find_table = function(opts)
+  -- Don't insert if cache mode is "none"
+  local cache_config = get_cache_config()
+  if cache_config.mode == "none" then
+    debug_log("insert_to_find_table: cache_mode is none, skipping")
+    return
+  end
+  
   table.insert(
     find_table[opts.path][opts.annotation],
     { value = opts.value, line_number = opts.line_number, column = opts.column }
@@ -228,10 +256,24 @@ M.insert_to_find_table = function(opts)
 end
 
 M.insert_to_find_request_table = function(opts)
+  -- Don't insert if cache mode is "none"
+  local cache_config = get_cache_config()
+  if cache_config.mode == "none" then
+    debug_log("insert_to_find_request_table: cache_mode is none, skipping")
+    return
+  end
+  
   find_table[opts.path][opts.annotation] = { value = opts.value, line_number = opts.line_number, column = opts.column }
 end
 
 M.create_preview_entry = function(endpoint, path, line_number, column)
+  -- Don't create entries if cache mode is "none"
+  local cache_config = get_cache_config()
+  if cache_config.mode == "none" then
+    debug_log("create_preview_entry: cache_mode is none, skipping")
+    return
+  end
+  
   preview_table[endpoint] = {
     path = path,
     line_number = line_number,
