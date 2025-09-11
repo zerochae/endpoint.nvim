@@ -15,7 +15,7 @@ A powerful Telescope picker for quickly finding and navigating web framework API
 
 - 🔍 **Multi-Framework Support**: Automatically detects and supports Spring Boot, NestJS, Symfony, FastAPI, and more
 - 🎨 **Customizable UI**: Configurable icons, colors, and display options
-- ⚡ **Smart Caching**: Multiple cache modes including persistent disk storage
+- ⚡ **Smart Caching**: Multiple cache modes including real-time search, session, and persistent disk storage
 - 🔗 **Path Variable Support**: Handles complex path variables and routing patterns
 - 📍 **Precise Navigation**: Jump directly to the exact line with annotation highlighting
 - 🌈 **Syntax Highlighting**: Preview window with framework-specific syntax highlighting
@@ -80,7 +80,7 @@ A powerful Telescope picker for quickly finding and navigating web framework API
       },
       
       -- Cache configuration
-      cache_mode = "persistent", -- Cache mode: "session" or "persistent"
+      cache_mode = "none", -- Cache mode: "none" (real-time), "session", or "persistent"
       debug = false, -- Enable debug logging
       
       -- Picker configuration (optional)
@@ -150,8 +150,8 @@ Configure all settings via setup():
 
 ```lua
 require("endpoint").setup({
-  -- Cache mode: "session" (temporary) or "persistent" (saved to disk)
-  cache_mode = "persistent", -- or "session" for temporary cache
+  -- Cache mode: "none" (real-time), "session" (temporary), or "persistent" (saved to disk)  
+  cache_mode = "none", -- Default: real-time search for most up-to-date results
   
   -- Framework detection: "auto" or specific framework
   framework = "auto", -- "spring", "nestjs", "symfony", "fastapi", "django", "rails", "express"
@@ -225,7 +225,7 @@ require("endpoint").setup({
   cmd = { "Endpoint" },
   config = function()
     require("endpoint").setup({
-      cache_mode = "persistent", -- Save cache between sessions
+      cache_mode = "session", -- Use session cache for better performance
       ui = { use_nerd_font = true } -- Use nerd font icons
     })
   end,
@@ -255,7 +255,7 @@ require("endpoint").setup({
   framework_paths = {},                     -- Path-based framework overrides
   
   -- Cache configuration
-  cache_mode = "persistent",                -- Cache mode: "session" or "persistent" (default)
+  cache_mode = "none",                      -- Cache mode: "none" (real-time), "session", or "persistent"
   debug = false,                            -- Enable debug logging
   
   ui = {
@@ -375,18 +375,24 @@ require("endpoint").setup({
 
 ### Caching System
 
-The plugin includes an intelligent caching system with two modes:
+The plugin includes an intelligent caching system with three modes:
 
 ```lua
 {
-  cache_mode = "session", -- Cache mode: "session" or "persistent"
-  debug = false,          -- Enable debug logging for troubleshooting
+  cache_mode = "none", -- Cache mode: "none", "session", or "persistent"
+  debug = false,       -- Enable debug logging for troubleshooting
 }
 ```
 
 **Cache Modes:**
-- `"session"`: Cache remains valid until nvim is closed
-- `"persistent"`: Cache is saved to disk and persists across nvim sessions (default)
+- `"none"`: Real-time search with no caching - always returns the most up-to-date results (default)
+- `"session"`: Cache remains valid until nvim is closed - good balance of performance and freshness
+- `"persistent"`: Cache is saved to disk and persists across nvim sessions - best performance for large projects
+
+**Recommended Usage:**
+- **Use `"none"`** (default) if you frequently add/modify endpoints during development
+- **Use `"session"`** for moderate-sized projects where you want some performance benefits
+- **Use `"persistent"`** for large, stable projects where endpoint changes are infrequent
 
 ### Persistent Cache Mode
 
@@ -464,8 +470,8 @@ Configure different settings for different projects:
 
 ```lua
 require("endpoint").setup({
-  framework = "auto",         -- Default framework detection
-  cache_mode = "persistent",  -- Default cache mode for all projects
+  framework = "auto",    -- Default framework detection
+  cache_mode = "none",   -- Default: real-time search for all projects
   
   -- Project-specific framework overrides
   framework_paths = {
@@ -477,25 +483,25 @@ require("endpoint").setup({
   
   -- Project-specific cache mode overrides
   cache_mode_paths = {
-    ["/path/to/large-project"] = "persistent",  -- Use persistent cache for large projects
-    ["/path/to/small-project"] = "session",     -- Use session cache for small projects
-    ["/path/to/dev-project"] = "session",      -- Use session cache for actively developed projects
+    ["/path/to/large-stable-project"] = "persistent",  -- Use persistent cache for large, stable projects
+    ["/path/to/medium-project"] = "session",           -- Use session cache for moderate projects
+    ["/path/to/dev-project"] = "none",                 -- Use real-time for actively developed projects (default)
   },
 })
 ```
 
 **Benefits:**
 - 🎯 **Per-project optimization**: Different frameworks and cache strategies per project
-- 🔄 **Development flexibility**: Use `session` cache for active development, `persistent` for stable projects  
+- 🔄 **Development flexibility**: Use `"none"` for active development, `"session"` for moderate projects, `"persistent"` for stable projects
 - 📁 **Path matching**: Supports both exact paths and parent directory matching
 - ⚙️ **Easy management**: Configure once, works across all your projects
 
 **Path Matching Examples:**
 ```lua
 cache_mode_paths = {
-  ["/Users/me/work"] = "persistent",        -- All projects under /Users/me/work
-  ["/Users/me/work/special"] = "session",   -- Override for specific project
-  [vim.fn.expand("~/personal")] = "session", -- Use tilde expansion
+  ["/Users/me/work"] = "session",           -- All work projects use session cache
+  ["/Users/me/work/large-api"] = "persistent", -- Large project uses persistent cache
+  [vim.fn.expand("~/personal")] = "none",   -- Personal projects use real-time search
 }
 ```
 
