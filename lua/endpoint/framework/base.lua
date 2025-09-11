@@ -82,6 +82,9 @@ end
 -- Default path combiner
 function M:combine_paths(base, endpoint)
   if not base or base == "" then
+    if not endpoint or endpoint == "" then
+      return "/"  -- Both empty, return root
+    end
     return endpoint
   end
   if not endpoint or endpoint == "" then
