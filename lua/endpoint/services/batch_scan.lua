@@ -13,6 +13,11 @@ function M.scan_all_methods()
     return
   end
 
+  -- Clear temp table for real-time mode
+  if config.cache_mode == "none" then
+    cache.clear_temp_table()
+  end
+
   local framework_name = framework_manager.get_current_framework_name(config)
 
   if not framework_name then

@@ -48,6 +48,13 @@ M.get_find_table = function()
 end
 
 M.create_endpoint_preview_table = function(method)
+  -- Clear temp table for real-time mode
+  local session = require "endpoint.core.session"
+  local config = session.get_config()
+  if config and config.cache_mode == "none" then
+    cache.clear_temp_table()
+  end
+  
   -- Get existing find_table (avoid rescanning)
   local find_table = cache.get_find_table()
 

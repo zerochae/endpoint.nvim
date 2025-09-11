@@ -135,12 +135,14 @@ M.clear_tables = function()
   access_order = {}
   endpoint_cache = {}
   temp_find_table = {}
+  temp_preview_table = {}
 end
 
 -- Clear temp table for real-time mode
 M.clear_temp_table = function()
   temp_find_table = {}
-  debug_log("clear_temp_table: temp_find_table cleared")
+  temp_preview_table = {}
+  debug_log("clear_temp_table: temp tables cleared")
 end
 
 -- Ensure temp_find_table is initialized
@@ -170,11 +172,15 @@ M.get_find_table = function()
 end
 
 M.get_preview_table = function()
-  -- Check cache mode - if "none", return empty table
+  -- Check cache mode - if "none", return temp preview table
   local cache_config = get_cache_config()
   if cache_config.mode == "none" then
-    debug_log("get_preview_table: cache_mode is none, returning empty table")
-    return {}
+    -- Ensure temp_preview_table is initialized
+    if not temp_preview_table then
+      temp_preview_table = {}
+    end
+    debug_log("get_preview_table: cache_mode is none, returning temp preview table with entries: " .. tostring(vim.tbl_count(temp_preview_table)))
+    return temp_preview_table
   end
   
   -- Track access for potential cleanup
@@ -311,10 +317,20 @@ M.insert_to_find_request_table = function(opts)
 end
 
 M.create_preview_entry = function(endpoint, path, line_number, column)
-  -- Don't create entries if cache mode is "none"
   local cache_config = get_cache_config()
+  
   if cache_config.mode == "none" then
-    debug_log("create_preview_entry: cache_mode is none, skipping")
+    debug_log("create_preview_entry: cache_mode is none, using temp preview table")
+    -- Ensure temp_preview_table is initialized
+    if not temp_preview_table then
+      temp_preview_table = {}
+    end
+    -- Use temp table for real-time mode
+    temp_preview_table[endpoint] = {
+      path = path,
+      line_number = line_number,
+      column = column,
+    }
     return
   end
   
@@ -535,6 +551,7 @@ local endpoint_cache = {}
 
 -- Temporary storage for real-time mode
 local temp_find_table = {}
+local temp_preview_table = {}
 
 M.get_cached_results = function(cache_key, config)
   -- If cache mode is "none", never return cached results
