@@ -202,11 +202,8 @@ function M:get_grep_cmd(method, config)
     cmd = cmd .. " " .. config.rg_additional_args
   end
 
-  -- Use multiple -e flags for each pattern to support Rails multi-pattern detection
-  for _, pattern in ipairs(patterns) do
-    cmd = cmd .. " -e '" .. pattern .. "'"
-  end
-
+  -- Use single pattern (first/most specific) like Spring framework
+  cmd = cmd .. " '" .. patterns[1] .. "'"
   return cmd
 end
 

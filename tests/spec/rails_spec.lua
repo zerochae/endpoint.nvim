@@ -140,6 +140,18 @@ describe(" Rails framework", function()
       assert.is_true(cmd:match("--type ruby") ~= nil)
     end)
 
+    it("should prioritize controller methods over routes patterns", function()
+      local cmd = rails:get_grep_cmd("get", {})
+      -- Should use only the first pattern (controller methods)
+      assert.is_true(cmd:match("def\\s%+%(show|index|new|edit%)") ~= nil)
+      -- Should NOT include multiple -e flags (single pattern mode)
+      local e_count = 0
+      for _ in cmd:gmatch(" %-e ") do
+        e_count = e_count + 1
+      end
+      assert.are.equal(0, e_count, "Should use single pattern without -e flags")
+    end)
+
     it("should include exclude patterns", function()
       local cmd = rails:get_grep_cmd("get", {})
       assert.is_true(cmd:match("--glob '!%*%*/tmp/%*%*'") ~= nil)

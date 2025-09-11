@@ -4,23 +4,23 @@ return {
   detection_files = { "Gemfile", "config/routes.rb", "config/application.rb" },
   patterns = {
     get = { 
+      "def\\s+(show|index|new|edit)",
+      "# GET\\s+/",
       "get\\s+['\"]",
-      "def\\s+(show|index|new|edit)", 
       "resources\\s+:", 
       "resource\\s+:",
-      "# GET\\s+/",
       "@route.*GET",
       "@method.*GET",
       "@summary.*Get",
       "@summary.*Show"
     },
     post = { 
+      "def\\s+create",
+      "# POST\\s+/",
       "post\\s+['\"]",
-      "def\\s+create", 
       "resources\\s+:", 
       "@route.*POST", 
       "@method.*POST",
-      "# POST\\s+/",
       "@request_body",
       "@summary.*Create"
     },
