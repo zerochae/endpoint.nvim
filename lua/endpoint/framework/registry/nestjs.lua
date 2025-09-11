@@ -167,7 +167,7 @@ function M:get_grep_cmd(method, config)
 end
 
 -- Parse ripgrep line and combine base path with endpoint path
-function M:parse_line(line, method, config)
+function M:parse_line(line, method)
   local file_path, line_number, column, content = line:match "([^:]+):(%d+):(%d+):(.*)"
   if not file_path then
     return nil

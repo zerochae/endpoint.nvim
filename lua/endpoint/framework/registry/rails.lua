@@ -186,14 +186,16 @@ function M:get_grep_cmd(method, config)
     cmd = cmd .. " " .. config.rg_additional_args
   end
 
-  local pattern_group = "(" .. table.concat(patterns, "|") .. ")"
-  cmd = cmd .. " '" .. pattern_group .. "'"
+  -- Use multiple -e flags for each pattern to support Rails multi-pattern detection
+  for _, pattern in ipairs(patterns) do
+    cmd = cmd .. " -e '" .. pattern .. "'"
+  end
 
   return cmd
 end
 
 -- Parse ripgrep output line
-function M:parse_line(line, method, config)
+function M:parse_line(line, method)
   local file_path, line_number, column, content = line:match "([^:]+):(%d+):(%d+):(.*)"
   if not file_path then
     return nil

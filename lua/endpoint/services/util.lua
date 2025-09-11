@@ -179,7 +179,7 @@ M.create_endpoint_table = function(method)
     for line in vim.gsplit(grep_results, "\n") do
       if line ~= "" then
         debug.info("Processing ripgrep line: " .. line)
-        local parsed = fw:parse_line(line, method, config)
+        local parsed = fw:parse_line(line, method)
         debug.info("Parse result: " .. (parsed and vim.inspect(parsed) or "nil"))
         
         if parsed and parsed.endpoint_path and parsed.endpoint_path ~= "" and parsed.endpoint_path:match "%S" then

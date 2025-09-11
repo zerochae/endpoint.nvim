@@ -39,16 +39,24 @@ function M.create_endpoint_table(method, config)
   end
 
   local results = {}
+  local seen = {}  -- Track unique combinations
+  
   for line in output:gmatch "[^\r\n]+" do
-    local parsed = framework_manager.parse_line(line, method, config)
+    local parsed = framework_manager.parse_line(line, method)
     if parsed then
-      table.insert(results, {
-        value = method .. " " .. parsed.endpoint_path,
-        method = parsed.method,
-        path = parsed.endpoint_path,
-        file_path = parsed.file_path,
-        line_number = parsed.line_number,
-      })
+      -- Create unique key based on method and endpoint path
+      local unique_key = parsed.method .. " " .. parsed.endpoint_path
+      
+      if not seen[unique_key] then
+        seen[unique_key] = true
+        table.insert(results, {
+          value = unique_key,
+          method = parsed.method,
+          path = parsed.endpoint_path,
+          file_path = parsed.file_path,
+          line_number = parsed.line_number,
+        })
+      end
     end
   end
 

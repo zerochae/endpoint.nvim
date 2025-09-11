@@ -262,7 +262,7 @@ function M:get_grep_cmd(method, config)
 end
 
 -- ripgrep 한 줄 "path:line:col:content" → 구조로 파싱
-function M:parse_line(line, method, _config)
+function M:parse_line(line, method)
   -- Debug: parse_line 호출 확인
   local debug = require("endpoint.utils.debug")
   debug.info("Spring parse_line called with line: " .. line)

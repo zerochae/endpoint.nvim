@@ -25,7 +25,7 @@ describe(" Rails framework", function()
   describe("file type detection", function()
     it("should return Ruby file types", function()
       local file_types = rails:get_file_types()
-      assert.is_true(vim.tbl_contains(file_types, "rb"))
+      assert.is_true(vim.tbl_contains(file_types, "ruby"))
     end)
   end)
 
