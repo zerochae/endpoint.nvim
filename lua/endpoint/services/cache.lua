@@ -143,10 +143,21 @@ M.clear_temp_table = function()
   debug_log("clear_temp_table: temp_find_table cleared")
 end
 
+-- Ensure temp_find_table is initialized
+local function ensure_temp_table_initialized()
+  if not temp_find_table then
+    temp_find_table = {}
+  end
+end
+
 M.get_find_table = function()
   -- Check cache mode - if "none", return temp table
   local cache_config = get_cache_config()
   if cache_config.mode == "none" then
+    -- Ensure temp_find_table is initialized
+    if not temp_find_table then
+      temp_find_table = {}
+    end
     debug_log("get_find_table: cache_mode is none, returning temp table with entries: " .. tostring(vim.tbl_count(temp_find_table)))
     return temp_find_table
   end
@@ -233,6 +244,10 @@ M.create_find_table_entry = function(path, annotation)
   
   if cache_config.mode == "none" then
     debug_log("create_find_table_entry: cache_mode is none, using temp table")
+    -- Ensure temp_find_table is initialized
+    if not temp_find_table then
+      temp_find_table = {}
+    end
     -- Use temp table for real-time mode
     if not temp_find_table[path] then
       temp_find_table[path] = {}
@@ -260,6 +275,10 @@ M.insert_to_find_table = function(opts)
   
   if cache_config.mode == "none" then
     debug_log("insert_to_find_table: cache_mode is none, using temp table")
+    -- Ensure temp_find_table is initialized
+    if not temp_find_table then
+      temp_find_table = {}
+    end
     -- Use temp table for real-time mode
     table.insert(
       temp_find_table[opts.path][opts.annotation],
@@ -279,6 +298,10 @@ M.insert_to_find_request_table = function(opts)
   
   if cache_config.mode == "none" then
     debug_log("insert_to_find_request_table: cache_mode is none, using temp table")
+    -- Ensure temp_find_table is initialized
+    if not temp_find_table then
+      temp_find_table = {}
+    end
     -- Use temp table for real-time mode
     temp_find_table[opts.path][opts.annotation] = { value = opts.value, line_number = opts.line_number, column = opts.column }
     return
