@@ -4,17 +4,6 @@ local find_table = {}
 local preview_table = {}
 local cache_timestamp = {}
 
--- Debug logging helper
-local function debug_log(message, level)
-  local session = require "endpoint.core.session"
-  local config = session.get_config()
-
-  if config and config.debug then
-    vim.notify("DEBUG: " .. message, level or vim.log.levels.INFO)
-  end
-end
-
-
 -- Cache configuration helper
 local get_cache_config = function()
   local session = require "endpoint.core.session"
@@ -38,20 +27,15 @@ local cache_initialized = false
 
 -- Initialize cache when first accessed
 local function ensure_cache_initialized()
-  debug_log("ensure_cache_initialized called, already initialized: " .. tostring(cache_initialized))
   if cache_initialized then
     return
   end
   
   cache_initialized = true
-  debug_log("Cache module initializing")
   local cache_config = get_cache_config()
-  debug_log("Cache config: " .. vim.inspect(cache_config))
   if cache_config.mode == "persistent" then
-    debug_log("Attempting to load persistent cache")
     M.load_from_file()
   else
-    debug_log("Cache mode is " .. cache_config.mode .. ", not loading persistent cache")
   end
 end
 
@@ -142,7 +126,6 @@ end
 M.clear_temp_table = function()
   temp_find_table = {}
   temp_preview_table = {}
-  debug_log("clear_temp_table: temp tables cleared")
 end
 
 -- Ensure temp_find_table is initialized
@@ -160,14 +143,12 @@ M.get_find_table = function()
     if not temp_find_table then
       temp_find_table = {}
     end
-    debug_log("get_find_table: cache_mode is none, returning temp table with entries: " .. tostring(vim.tbl_count(temp_find_table)))
     return temp_find_table
   end
   
   ensure_cache_initialized()
   -- Track access for potential cleanup
   track_access("find_table", "global_access")
-  debug_log("get_find_table called, returning table with entries: " .. tostring(vim.tbl_count(find_table)))
   return find_table
 end
 
@@ -179,7 +160,6 @@ M.get_preview_table = function()
     if not temp_preview_table then
       temp_preview_table = {}
     end
-    debug_log("get_preview_table: cache_mode is none, returning temp preview table with entries: " .. tostring(vim.tbl_count(temp_preview_table)))
     return temp_preview_table
   end
   
@@ -203,31 +183,23 @@ M.is_cache_valid = function(key)
   local cache_config = get_cache_config()
   local cached_time = cache_timestamp[key]
 
-  debug_log("Cache validation for key: " .. key)
-  debug_log("Cache mode: " .. cache_config.mode)
-  debug_log("Cached time exists: " .. tostring(cached_time ~= nil))
-  debug_log("Find table has data: " .. tostring(next(find_table) ~= nil))
 
   if cache_config.mode == "persistent" then
     local cache_files = get_cache_files()
     local file_exists_result = file_exists(cache_files.find_cache_file)
-    debug_log("Cache file exists: " .. tostring(file_exists_result))
     
     -- In persistent mode, check if cache file exists and has been loaded
     -- If timestamp exists for this key, cache is valid
     -- If no timestamp but find_table has data and cache file exists, also valid
     if cached_time ~= nil then
       local result = file_exists_result
-      debug_log("Cache validation result (with timestamp): " .. tostring(result))
       return result
     else
       local result = next(find_table) ~= nil and file_exists_result
-      debug_log("Cache validation result (without timestamp): " .. tostring(result))
       return result
     end
   else -- session mode
     local result = cached_time ~= nil
-    debug_log("Cache validation result (session mode): " .. tostring(result))
     return result
   end
 end
@@ -238,10 +210,8 @@ M.update_cache_timestamp = function(annotation)
 end
 
 M.should_use_cache = function(key)
-  debug_log("should_use_cache called with key: " .. key)
   ensure_cache_initialized()
   local result = M.is_cache_valid(key)
-  debug_log("should_use_cache result: " .. tostring(result))
   return result
 end
 
@@ -249,7 +219,6 @@ M.create_find_table_entry = function(path, annotation)
   local cache_config = get_cache_config()
   
   if cache_config.mode == "none" then
-    debug_log("create_find_table_entry: cache_mode is none, using temp table")
     -- Ensure temp_find_table is initialized
     if not temp_find_table then
       temp_find_table = {}
@@ -280,7 +249,6 @@ M.insert_to_find_table = function(opts)
   local cache_config = get_cache_config()
   
   if cache_config.mode == "none" then
-    debug_log("insert_to_find_table: cache_mode is none, using temp table")
     -- Ensure temp_find_table is initialized
     if not temp_find_table then
       temp_find_table = {}
@@ -303,7 +271,6 @@ M.insert_to_find_request_table = function(opts)
   local cache_config = get_cache_config()
   
   if cache_config.mode == "none" then
-    debug_log("insert_to_find_request_table: cache_mode is none, using temp table")
     -- Ensure temp_find_table is initialized
     if not temp_find_table then
       temp_find_table = {}
@@ -320,7 +287,6 @@ M.create_preview_entry = function(endpoint, path, line_number, column)
   local cache_config = get_cache_config()
   
   if cache_config.mode == "none" then
-    debug_log("create_preview_entry: cache_mode is none, using temp preview table")
     -- Ensure temp_preview_table is initialized
     if not temp_preview_table then
       temp_preview_table = {}
@@ -360,7 +326,6 @@ M.save_to_file = function()
   if find_file then
     find_file:write("return " .. vim.inspect(find_table))
     find_file:close()
-    debug_log("Find table saved to: " .. cache_files.find_cache_file)
   end
 
   -- Save metadata
@@ -373,7 +338,6 @@ M.save_to_file = function()
   if meta_file then
     meta_file:write("return " .. vim.inspect(metadata))
     meta_file:close()
-    debug_log("Metadata saved to: " .. cache_files.metadata_file)
   end
 end
 
@@ -394,7 +358,6 @@ local function migrate_framework_keys(timestamp_data)
       for _, method in ipairs(methods) do
         if framework_method == method then
           migrated[method] = value
-          debug_log("Migrated framework key: " .. key .. " -> " .. method)
           break
         end
       end
@@ -413,22 +376,16 @@ M.load_from_file = function()
     return
   end
 
-  debug_log("Loading cache from file")
   local cache_files = get_cache_files()
-  debug_log("Cache file path: " .. cache_files.find_cache_file)
 
   -- Load find table
   if file_exists(cache_files.find_cache_file) then
-    debug_log("Cache file exists, attempting to load")
     local ok, data = pcall(dofile, cache_files.find_cache_file)
     if ok and data then
       find_table = data
-      debug_log("Find table loaded successfully, entries: " .. tostring(vim.tbl_count(find_table)))
     else
-      debug_log("Failed to load find table")
     end
   else
-    debug_log("No find cache file found: " .. cache_files.find_cache_file)
   end
 
   -- Load metadata with migration support
@@ -442,15 +399,11 @@ M.load_from_file = function()
 
       -- Legacy support: migrate from old scanned_annotations structure
       if data.scanned_annotations and not next(cache_timestamp) then
-        debug_log "Migrating from legacy scanned_annotations structure"
         cache_timestamp = data.scanned_annotations
       end
-      debug_log("Metadata loaded from: " .. cache_files.metadata_file)
     else
-      debug_log("Failed to load metadata", vim.log.levels.WARN)
     end
   else
-    debug_log("No metadata file found: " .. cache_files.metadata_file)
   end
 end
 
@@ -487,10 +440,6 @@ M.get_missing_methods = function(required_methods)
   
   local scanned_methods = M.get_scanned_methods()
 
-  debug_log("get_missing_methods called")
-  debug_log("Required methods: " .. vim.inspect(required_methods))
-  debug_log("Scanned methods from cache_timestamp: " .. vim.inspect(scanned_methods))
-  debug_log("cache_timestamp contents: " .. vim.inspect(cache_timestamp))
 
   local scanned_set = {}
   for _, method in ipairs(scanned_methods) do
@@ -501,7 +450,6 @@ M.get_missing_methods = function(required_methods)
   -- we should consider all methods as already scanned
   local cache_config = get_cache_config()
   if cache_config.mode == "persistent" and next(find_table) ~= nil and next(cache_timestamp) == nil then
-    debug_log("Persistent mode: find_table has data but cache_timestamp empty - treating as all methods scanned")
     return {} -- No missing methods
   end
 
@@ -512,7 +460,6 @@ M.get_missing_methods = function(required_methods)
     end
   end
 
-  debug_log("Missing methods: " .. vim.inspect(missing_methods))
 
   return missing_methods
 end

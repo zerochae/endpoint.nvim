@@ -34,7 +34,6 @@ end
 local function get_framework()
   local config = session.get_config()
   if not config then
-    vim.notify("Session config not available", vim.log.levels.ERROR)
     return nil, nil
   end
 
