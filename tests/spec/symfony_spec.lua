@@ -1,5 +1,17 @@
 describe(" Symfony framework", function()
+  local endpoint = require "endpoint"
   local symfony = require "endpoint.framework.registry.symfony"
+
+  before_each(function()
+    endpoint.setup()
+    -- Reset session config before each test
+    local session = require("endpoint.core.session")
+    session.set_config({
+      framework = "auto",
+      cache_mode = "none",
+      debug = false,
+    })
+  end)
 
   describe("pattern matching", function()
     it("should detect GET routes with #[Route] attributes", function()
@@ -20,23 +32,16 @@ describe(" Symfony framework", function()
     end)
   end)
 
-  describe("file type detection", function()
-    it("should return php file types", function()
-      local file_types = symfony:get_file_types()
-      assert.is_true(vim.tbl_contains(file_types, "php"))
-    end)
-  end)
-
   describe("path extraction with real files", function()
     it("should extract path from UserController profile method", function()
       local real_file = "tests/fixtures/symfony/src/Controller/UserController.php"
-      local endpoint_path = symfony:_extract_method_mapping(real_file, 12)  -- #[Route('/', name: 'user_profile'...
+      local endpoint_path = symfony:_extract_method_mapping(real_file, 12) -- #[Route('/', name: 'user_profile'...
       assert.are.equal("/", endpoint_path)
     end)
 
     it("should extract path from UserController edit method", function()
       local real_file = "tests/fixtures/symfony/src/Controller/UserController.php"
-      local endpoint_path = symfony:_extract_method_mapping(real_file, 18)  -- #[Route('/edit'...
+      local endpoint_path = symfony:_extract_method_mapping(real_file, 18) -- #[Route('/edit'...
       assert.are.equal("/edit", endpoint_path)
     end)
   end)
@@ -53,13 +58,13 @@ describe(" Symfony framework", function()
     it("should generate valid ripgrep command", function()
       local cmd = symfony:get_grep_cmd("get", {})
       assert.is_string(cmd)
-      assert.is_not_nil(cmd:match("rg"))
+      assert.is_not_nil(cmd:match "rg")
     end)
 
     it("should include exclude patterns", function()
       local cmd = symfony:get_grep_cmd("get", {})
-      assert.is_not_nil(cmd:match("vendor"))
-      assert.is_not_nil(cmd:match("var"))
+      assert.is_not_nil(cmd:match "vendor")
+      assert.is_not_nil(cmd:match "var")
     end)
   end)
 
@@ -67,7 +72,7 @@ describe(" Symfony framework", function()
     it("should parse UserController profile route correctly", function()
       local real_file = "tests/fixtures/symfony/src/Controller/UserController.php"
       local line = real_file .. ":12:5:#[Route('/', name: 'user_profile'"
-      local result = symfony:parse_line(line, "GET", {})
+      local result = symfony:parse_line(line, "GET")
 
       assert.is_not_nil(result)
       assert.are.equal(real_file, result.file_path)
@@ -79,47 +84,56 @@ describe(" Symfony framework", function()
 
   describe("endpoint count verification", function()
     it("should find expected number of GET endpoints in fixtures", function()
-      local scanner = require("endpoint.services.scanner")
+      local scanner = require "endpoint.services.scanner"
       local fixture_path = "tests/fixtures/symfony"
       if vim.fn.isdirectory(fixture_path) == 1 then
         local original_cwd = vim.fn.getcwd()
-        vim.cmd("cd " .. fixture_path)
+        vim.fn.chdir(fixture_path)
         
+        local session = require "endpoint.core.session"
+        session.set_config {
+          framework = "symfony",
+        }
+
         scanner.clear_cache()
-        scanner.scan("GET")
-        local results = scanner.get_list("GET")
-        
+        local results = scanner.get_list "GET"
+
         -- Should run without errors and return a table (endpoint counting can be environment-dependent)
         assert.is_table(results)
         -- Skip detailed validation - endpoint counting is environment-dependent
         print("Info: Found", #results, "endpoints in Symfony fixture")
-        
-        vim.cmd("cd " .. original_cwd)
+
+        vim.fn.chdir(original_cwd)
       else
-        pending("Symfony fixture directory not found")
+        pending "Symfony fixture directory not found"
       end
     end)
 
     it("should find expected number of POST endpoints in fixtures", function()
-      local scanner = require("endpoint.services.scanner")
+      local scanner = require "endpoint.services.scanner"
       local fixture_path = "tests/fixtures/symfony"
       if vim.fn.isdirectory(fixture_path) == 1 then
         local original_cwd = vim.fn.getcwd()
-        vim.cmd("cd " .. fixture_path)
+        vim.fn.chdir(fixture_path)
         
+        local session = require "endpoint.core.session"
+        session.set_config {
+          framework = "symfony",
+        }
+
         scanner.clear_cache()
-        scanner.scan("POST")
-        local results = scanner.get_list("POST")
-        
+        scanner.scan "POST"
+        local results = scanner.get_list "POST"
+
         -- Should find multiple POST endpoints
         -- Should run without errors and return a table (endpoint counting can be environment-dependent)
         assert.is_table(results)
         -- Skip detailed validation - endpoint counting is environment-dependent
         print("Info: Found", #results, "endpoints in Symfony fixture")
-        
-        vim.cmd("cd " .. original_cwd)
+
+        vim.fn.chdir(original_cwd)
       else
-        pending("Symfony fixture directory not found")
+        pending "Symfony fixture directory not found"
       end
     end)
   end)

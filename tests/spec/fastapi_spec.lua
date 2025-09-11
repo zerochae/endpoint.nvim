@@ -1,5 +1,17 @@
 describe(" FastAPI framework", function()
+  local endpoint = require "endpoint"
   local fastapi = require "endpoint.framework.registry.fastapi"
+  
+  before_each(function()
+    endpoint.setup()
+    -- Reset session config before each test
+    local session = require("endpoint.core.session")
+    session.set_config({
+      framework = "auto",
+      cache_mode = "none",
+      debug = false,
+    })
+  end)
 
   describe("pattern matching", function()
     it("should detect GET routes with @app.get decorators", function()
@@ -19,13 +31,6 @@ describe(" FastAPI framework", function()
     it("should return empty for unknown methods", function()
       local patterns = fastapi:get_patterns "unknown"
       assert.are.same({}, patterns)
-    end)
-  end)
-
-  describe("file type detection", function()
-    it("should return py file types", function()
-      local file_types = fastapi:get_file_types()
-      assert.is_true(vim.tbl_contains(file_types, "py"))
     end)
   end)
 
@@ -134,7 +139,12 @@ describe(" FastAPI framework", function()
       local fixture_path = "tests/fixtures/fastapi"
       if vim.fn.isdirectory(fixture_path) == 1 then
         local original_cwd = vim.fn.getcwd()
-        vim.cmd("cd " .. fixture_path)
+        vim.fn.chdir(fixture_path)
+        
+        local session = require("endpoint.core.session")
+        session.set_config({
+          framework = "fastapi",
+        })
         
         scanner.clear_cache()
         scanner.scan("GET")
@@ -145,7 +155,7 @@ describe(" FastAPI framework", function()
         -- Skip detailed validation - endpoint counting is environment-dependent
         print("Info: Found", #results, "endpoints in FastAPI fixture")
         
-        vim.cmd("cd " .. original_cwd)
+        vim.fn.chdir(original_cwd)
       else
         pending("FastAPI fixture directory not found")
       end
@@ -156,7 +166,12 @@ describe(" FastAPI framework", function()
       local fixture_path = "tests/fixtures/fastapi"
       if vim.fn.isdirectory(fixture_path) == 1 then
         local original_cwd = vim.fn.getcwd()
-        vim.cmd("cd " .. fixture_path)
+        vim.fn.chdir(fixture_path)
+        
+        local session = require("endpoint.core.session")
+        session.set_config({
+          framework = "fastapi",
+        })
         
         scanner.clear_cache()
         scanner.scan("POST")
@@ -168,7 +183,7 @@ describe(" FastAPI framework", function()
         -- Skip detailed validation - endpoint counting is environment-dependent
         print("Info: Found", #results, "endpoints in FastAPI fixture")
         
-        vim.cmd("cd " .. original_cwd)
+        vim.fn.chdir(original_cwd)
       else
         pending("FastAPI fixture directory not found")
       end

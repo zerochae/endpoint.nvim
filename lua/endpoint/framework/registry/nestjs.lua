@@ -9,16 +9,8 @@ function M:get_patterns(method)
   return nestjs_config.patterns[method:lower()] or {}
 end
 
-function M:get_file_types()
-  -- Extract file extensions from file_patterns in config
-  local file_extensions = {}
-  for _, pattern in ipairs(nestjs_config.file_patterns) do
-    local ext = pattern:match "%.(%w+)$"
-    if ext then
-      table.insert(file_extensions, ext)
-    end
-  end
-  return file_extensions
+function M:get_file_patterns()
+  return nestjs_config.file_patterns
 end
 
 function M:get_exclude_patterns()
@@ -141,15 +133,15 @@ function M:get_grep_cmd(method, config)
     error("No patterns defined for method: " .. method)
   end
 
-  local file_types = self:get_file_types()
+  local file_patterns = self:get_file_patterns()
   local exclude_patterns = self:get_exclude_patterns()
 
   local cmd = "rg"
   cmd = cmd .. " --line-number --column --no-heading --color=never"
   cmd = cmd .. " --case-sensitive"
 
-  for _, file_type in ipairs(file_types) do
-    cmd = cmd .. " --type " .. file_type
+  for _, pattern in ipairs(file_patterns) do
+    cmd = cmd .. " --glob '" .. pattern .. "'"
   end
 
   for _, pattern in ipairs(exclude_patterns) do

@@ -1,6 +1,11 @@
 describe("Cache system behavior", function()
+  local endpoint = require("endpoint")
   local cache = require("endpoint.services.cache")
   local scanner = require("endpoint.services.scanner")
+  
+  before_each(function()
+    endpoint.setup()
+  end)
   
   -- Helper to populate find_table directly
   local function populate_find_table(method, file_path, endpoints)

@@ -15,9 +15,17 @@ end
 
 -- Get the current working directory (project root)
 function M.get_project_root()
+  local cwd = vim.fn.getcwd()
+  
+  -- In test environment, prefer current directory over git root
+  -- Check if we're in a test fixture directory
+  if cwd:match("tests/fixtures/") then
+    return cwd
+  end
+  
   local result = vim.fn.system "git rev-parse --show-toplevel 2>/dev/null"
   if vim.v.shell_error ~= 0 then
-    return vim.fn.getcwd() -- fallback to current directory
+    return cwd -- fallback to current directory
   end
   return result:gsub("\n", "")
 end

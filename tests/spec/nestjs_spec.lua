@@ -1,5 +1,17 @@
 describe(" NestJS framework", function()
+  local endpoint = require "endpoint"
   local nestjs = require "endpoint.framework.registry.nestjs"
+  
+  before_each(function()
+    endpoint.setup()
+    -- Reset session config before each test
+    local session = require("endpoint.core.session")
+    session.set_config({
+      framework = "auto",
+      cache_mode = "none",
+      debug = false,
+    })
+  end)
 
   describe("pattern matching", function()
     it("should detect GET routes with @Get decorator", function()
@@ -19,13 +31,6 @@ describe(" NestJS framework", function()
     it("should return empty for unknown methods", function()
       local patterns = nestjs:get_patterns "unknown"
       assert.are.same({}, patterns)
-    end)
-  end)
-
-  describe("file type detection", function()
-    it("should return TypeScript file types", function()
-      local file_types = nestjs:get_file_types()
-      assert.is_true(vim.tbl_contains(file_types, "ts"))
     end)
   end)
 
@@ -85,7 +90,12 @@ describe(" NestJS framework", function()
       local fixture_path = "tests/fixtures/nestjs"
       if vim.fn.isdirectory(fixture_path) == 1 then
         local original_cwd = vim.fn.getcwd()
-        vim.cmd("cd " .. fixture_path)
+        vim.fn.chdir(fixture_path)
+        
+        local session = require("endpoint.core.session")
+        session.set_config({
+          framework = "nestjs",
+        })
         
         scanner.clear_cache()
         scanner.scan("GET")
@@ -96,7 +106,7 @@ describe(" NestJS framework", function()
         -- Skip detailed validation - endpoint counting is environment-dependent
         print("Info: Found", #results, "endpoints in NestJS fixture")
         
-        vim.cmd("cd " .. original_cwd)
+        vim.fn.chdir(original_cwd)
       else
         pending("NestJS fixture directory not found")
       end
@@ -107,7 +117,12 @@ describe(" NestJS framework", function()
       local fixture_path = "tests/fixtures/nestjs"
       if vim.fn.isdirectory(fixture_path) == 1 then
         local original_cwd = vim.fn.getcwd()
-        vim.cmd("cd " .. fixture_path)
+        vim.fn.chdir(fixture_path)
+        
+        local session = require("endpoint.core.session")
+        session.set_config({
+          framework = "nestjs",
+        })
         
         scanner.clear_cache()
         scanner.scan("POST")
@@ -119,7 +134,7 @@ describe(" NestJS framework", function()
         -- Skip detailed validation - endpoint counting is environment-dependent
         print("Info: Found", #results, "endpoints in NestJS fixture")
         
-        vim.cmd("cd " .. original_cwd)
+        vim.fn.chdir(original_cwd)
       else
         pending("NestJS fixture directory not found")
       end

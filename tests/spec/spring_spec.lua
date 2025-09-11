@@ -1,5 +1,17 @@
 describe(" Spring framework", function()
+  local endpoint = require "endpoint"
   local spring = require "endpoint.framework.registry.spring"
+  
+  before_each(function()
+    endpoint.setup()
+    -- Reset session config before each test
+    local session = require("endpoint.core.session")
+    session.set_config({
+      framework = "auto",
+      cache_mode = "none",
+      debug = false,
+    })
+  end)
 
   describe("pattern matching", function()
     it("should detect GET routes with @GetMapping", function()
@@ -19,13 +31,6 @@ describe(" Spring framework", function()
     it("should return empty for unknown methods", function()
       local patterns = spring:get_patterns "unknown"
       assert.are.same({}, patterns)
-    end)
-  end)
-
-  describe("file type detection", function()
-    it("should return java file types", function()
-      local file_types = spring:get_file_types()
-      assert.is_true(vim.tbl_contains(file_types, "java"))
     end)
   end)
 
@@ -123,7 +128,12 @@ describe(" Spring framework", function()
       local fixture_path = "tests/fixtures/spring"
       if vim.fn.isdirectory(fixture_path) == 1 then
         local original_cwd = vim.fn.getcwd()
-        vim.cmd("cd " .. fixture_path)
+        vim.fn.chdir(fixture_path)
+        
+        local session = require("endpoint.core.session")
+        session.set_config({
+          framework = "spring",
+        })
         
         scanner.clear_cache()
         scanner.scan("GET")
@@ -132,7 +142,7 @@ describe(" Spring framework", function()
         -- Should find endpoints that actually exist in fixture files
         assert.is_table(results)
         -- Manual check: we know there are @GetMapping annotations in the fixture files
-        local manual_rg = vim.fn.system("rg '@GetMapping' --type java -c")
+        local manual_rg = vim.fn.system("rg '@GetMapping' --glob '*.java' -c")
         local manual_count = tonumber(manual_rg:match("%d+")) or 0
         
         if manual_count > 0 then
@@ -143,7 +153,7 @@ describe(" Spring framework", function()
           print("Info: Found", #results, "endpoints in Spring fixture")
         end
         
-        vim.cmd("cd " .. original_cwd)
+        vim.fn.chdir(original_cwd)
       else
         pending("Spring fixture directory not found")
       end
@@ -154,7 +164,12 @@ describe(" Spring framework", function()
       local fixture_path = "tests/fixtures/spring"
       if vim.fn.isdirectory(fixture_path) == 1 then
         local original_cwd = vim.fn.getcwd()
-        vim.cmd("cd " .. fixture_path)
+        vim.fn.chdir(fixture_path)
+        
+        local session = require("endpoint.core.session")
+        session.set_config({
+          framework = "spring",
+        })
         
         scanner.clear_cache()
         scanner.scan("POST")
@@ -163,7 +178,7 @@ describe(" Spring framework", function()
         -- Should find endpoints that actually exist in fixture files
         assert.is_table(results)
         -- Manual check: we know there are @PostMapping annotations in the fixture files
-        local manual_rg = vim.fn.system("rg '@PostMapping' --type java -c")
+        local manual_rg = vim.fn.system("rg '@PostMapping' --glob '*.java' -c")
         local manual_count = tonumber(manual_rg:match("%d+")) or 0
         
         if manual_count > 0 then
@@ -174,7 +189,7 @@ describe(" Spring framework", function()
           print("Info: Found", #results, "endpoints in Spring fixture")
         end
         
-        vim.cmd("cd " .. original_cwd)
+        vim.fn.chdir(original_cwd)
       else
         pending("Spring fixture directory not found")
       end

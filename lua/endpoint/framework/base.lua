@@ -22,16 +22,16 @@ function M:get_grep_cmd(method, config)
     error("No patterns defined for method: " .. method)
   end
 
-  local file_types = self:get_file_types()
   local exclude_patterns = self:get_exclude_patterns()
 
   local cmd = "rg"
   cmd = cmd .. " --line-number --column --no-heading --color=never"
   cmd = cmd .. " --case-sensitive"
 
-  -- Add file type constraints
-  for _, file_type in ipairs(file_types) do
-    cmd = cmd .. " --type " .. file_type
+  -- Add file pattern constraints using glob
+  local file_patterns = self:get_file_patterns()
+  for _, pattern in ipairs(file_patterns) do
+    cmd = cmd .. " --glob '" .. pattern .. "'"
   end
 
   -- Add exclude patterns
@@ -109,8 +109,8 @@ function M:get_patterns(method)
   error "get_patterns(method) must be implemented by the framework"
 end
 
-function M:get_file_types()
-  error "get_file_types() must be implemented by the framework"
+function M:get_file_patterns()
+  error "get_file_patterns() must be implemented by the framework"
 end
 
 function M:get_exclude_patterns()

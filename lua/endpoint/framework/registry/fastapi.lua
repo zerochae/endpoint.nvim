@@ -25,20 +25,8 @@ function M:get_patterns(method)
   return fastapi_config.patterns[method:lower()] or {}
 end
 
-function M:get_file_types()
-  -- Extract file extensions from file_patterns in config
-  local file_extensions = {}
-  for _, pattern in ipairs(fastapi_config.file_patterns) do
-    local ext = pattern:match "%.(%w+)$"
-    if ext then
-      table.insert(file_extensions, ext)
-    end
-  end
-  -- Default to py if no extensions found
-  if #file_extensions == 0 then
-    file_extensions = {"py"}
-  end
-  return file_extensions
+function M:get_file_patterns()
+  return fastapi_config.file_patterns
 end
 
 function M:get_exclude_patterns()
@@ -125,13 +113,14 @@ function M:get_grep_cmd(method, config)
     error("No patterns defined for method: " .. method)
   end
 
-  local file_types = self:get_file_types()
+  local file_patterns = self:get_file_patterns()
   local exclude_patterns = self:get_exclude_patterns()
 
   local cmd = "rg --line-number --column --no-heading --color=never --case-sensitive"
 
-  -- Use glob pattern for .py files
-  cmd = cmd .. " --glob '*.py'"
+  for _, pattern in ipairs(file_patterns) do
+    cmd = cmd .. " --glob '" .. pattern .. "'"
+  end
   
   for _, ex in ipairs(exclude_patterns) do
     cmd = cmd .. " --glob '!" .. ex .. "'"
