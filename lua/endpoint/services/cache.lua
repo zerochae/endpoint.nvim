@@ -134,14 +134,21 @@ M.clear_tables = function()
   cache_timestamp = {}
   access_order = {}
   endpoint_cache = {}
+  temp_find_table = {}
+end
+
+-- Clear temp table for real-time mode
+M.clear_temp_table = function()
+  temp_find_table = {}
+  debug_log("clear_temp_table: temp_find_table cleared")
 end
 
 M.get_find_table = function()
-  -- Check cache mode - if "none", return empty table
+  -- Check cache mode - if "none", return temp table
   local cache_config = get_cache_config()
   if cache_config.mode == "none" then
-    debug_log("get_find_table: cache_mode is none, returning empty table")
-    return {}
+    debug_log("get_find_table: cache_mode is none, returning temp table with entries: " .. tostring(vim.tbl_count(temp_find_table)))
+    return temp_find_table
   end
   
   ensure_cache_initialized()
@@ -222,10 +229,17 @@ M.should_use_cache = function(key)
 end
 
 M.create_find_table_entry = function(path, annotation)
-  -- Don't create entries if cache mode is "none"
   local cache_config = get_cache_config()
+  
   if cache_config.mode == "none" then
-    debug_log("create_find_table_entry: cache_mode is none, skipping")
+    debug_log("create_find_table_entry: cache_mode is none, using temp table")
+    -- Use temp table for real-time mode
+    if not temp_find_table[path] then
+      temp_find_table[path] = {}
+    end
+    if not temp_find_table[path][annotation] then
+      temp_find_table[path][annotation] = {}
+    end
     return
   end
   
@@ -242,10 +256,15 @@ M.create_find_table_entry = function(path, annotation)
 end
 
 M.insert_to_find_table = function(opts)
-  -- Don't insert if cache mode is "none"
   local cache_config = get_cache_config()
+  
   if cache_config.mode == "none" then
-    debug_log("insert_to_find_table: cache_mode is none, skipping")
+    debug_log("insert_to_find_table: cache_mode is none, using temp table")
+    -- Use temp table for real-time mode
+    table.insert(
+      temp_find_table[opts.path][opts.annotation],
+      { value = opts.value, line_number = opts.line_number, column = opts.column }
+    )
     return
   end
   
@@ -256,10 +275,12 @@ M.insert_to_find_table = function(opts)
 end
 
 M.insert_to_find_request_table = function(opts)
-  -- Don't insert if cache mode is "none"
   local cache_config = get_cache_config()
+  
   if cache_config.mode == "none" then
-    debug_log("insert_to_find_request_table: cache_mode is none, skipping")
+    debug_log("insert_to_find_request_table: cache_mode is none, using temp table")
+    -- Use temp table for real-time mode
+    temp_find_table[opts.path][opts.annotation] = { value = opts.value, line_number = opts.line_number, column = opts.column }
     return
   end
   
@@ -488,6 +509,9 @@ end
 
 -- New unified cache interface for endpoint results
 local endpoint_cache = {}
+
+-- Temporary storage for real-time mode
+local temp_find_table = {}
 
 M.get_cached_results = function(cache_key, config)
   -- If cache mode is "none", never return cached results
