@@ -137,7 +137,7 @@ describe(" Rails framework", function()
       local cmd = rails:get_grep_cmd("get", {})
       assert.is_string(cmd)
       assert.is_true(cmd:match("rg") ~= nil)
-      assert.is_true(cmd:match("--type rb") ~= nil)
+      assert.is_true(cmd:match("--type ruby") ~= nil)
     end)
 
     it("should include exclude patterns", function()

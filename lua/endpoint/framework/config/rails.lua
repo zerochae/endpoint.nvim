@@ -1,22 +1,28 @@
 return {
   file_patterns = { "**/*.rb" },
-  exclude_patterns = {},
+  exclude_patterns = {"**/tmp/**", "**/log/**", "**/vendor/**"},
   detection_files = { "Gemfile", "config/routes.rb", "config/application.rb" },
   patterns = {
     get = { 
+      "get\\s+['\"]",
       "def\\s+(show|index|new|edit)", 
       "resources\\s+:", 
       "resource\\s+:",
       "# GET\\s+/",
       "@route.*GET",
-      "@method.*GET"
+      "@method.*GET",
+      "@summary.*Get",
+      "@summary.*Show"
     },
     post = { 
+      "post\\s+['\"]",
       "def\\s+create", 
       "resources\\s+:", 
       "@route.*POST", 
       "@method.*POST",
-      "# POST\\s+/"
+      "# POST\\s+/",
+      "@request_body",
+      "@summary.*Create"
     },
     put = { 
       "def\\s+update", 
