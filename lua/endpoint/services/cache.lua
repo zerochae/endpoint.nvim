@@ -24,12 +24,12 @@ local get_cache_config = function()
     -- Fallback to default config if session is not initialized
     local default_config = require "endpoint.core.config"
     return {
-      mode = default_config.cache_mode or "session",
+      mode = default_config.cache_mode or "none",
     }
   end
 
   return {
-    mode = config.cache_mode or "session", -- Default session-based cache
+    mode = config.cache_mode or "none", -- Default real-time (no cache)
   }
 end
 
@@ -133,6 +133,7 @@ M.clear_tables = function()
   preview_table = {}
   cache_timestamp = {}
   access_order = {}
+  endpoint_cache = {}
 end
 
 M.get_find_table = function()
@@ -443,5 +444,50 @@ M.show_cache_status = function()
   return cache_status_ui.show_cache_status()
 end
 
+-- New unified cache interface for endpoint results
+local endpoint_cache = {}
+
+M.get_cached_results = function(cache_key, config)
+  -- If cache mode is "none", never return cached results
+  if config and config.cache_mode == "none" then
+    return nil
+  end
+
+  ensure_cache_initialized()
+  
+  local cache_config = get_cache_config()
+  if config and config.cache_mode then
+    cache_config.mode = config.cache_mode
+  end
+
+  -- Check if we should use cache based on mode and validity
+  if not M.is_cache_valid(cache_key) then
+    return nil
+  end
+
+  return endpoint_cache[cache_key]
+end
+
+M.set_cached_results = function(cache_key, results, config)
+  -- If cache mode is "none", never cache results
+  if config and config.cache_mode == "none" then
+    return
+  end
+
+  ensure_cache_initialized()
+  
+  endpoint_cache[cache_key] = results
+  M.update_cache_timestamp(cache_key)
+
+  -- Save to file if in persistent mode
+  local cache_config = get_cache_config()
+  if config and config.cache_mode then
+    cache_config.mode = config.cache_mode
+  end
+
+  if cache_config.mode == "persistent" then
+    M.save_to_file()
+  end
+end
 
 return M

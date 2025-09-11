@@ -12,7 +12,7 @@ end
 -- Get project-specific cache mode
 local function get_project_cache_mode(config)
   if not config or not config.cache_mode_paths then
-    return config and config.cache_mode or "persistent"
+    return config and config.cache_mode or "none"
   end
 
   local cwd = get_cwd()
@@ -30,7 +30,7 @@ local function get_project_cache_mode(config)
   end
 
   -- Return default cache mode
-  return config.cache_mode or "persistent"
+  return config.cache_mode or "none"
 end
 
 -- Get current config with project-specific overrides

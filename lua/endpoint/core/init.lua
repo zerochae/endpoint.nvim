@@ -84,8 +84,8 @@ function M.validate_config(opts)
     vim.notify("Warning: cache_ttl must be a number", vim.log.levels.WARN)
   end
 
-  if opts.cache_mode and not vim.tbl_contains({ "session", "persistent" }, opts.cache_mode) then
-    vim.notify("Warning: cache_mode must be 'session' or 'persistent'", vim.log.levels.WARN)
+  if opts.cache_mode and not vim.tbl_contains({ "none", "session", "persistent" }, opts.cache_mode) then
+    vim.notify("Warning: cache_mode must be 'none', 'session', or 'persistent'", vim.log.levels.WARN)
   end
 
   -- UI validation
