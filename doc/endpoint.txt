@@ -38,6 +38,8 @@ discovery with customizable UI and smart caching capabilities.
 Supported Frameworks:~
   • Spring Boot (Java) - @GetMapping, @PostMapping, etc.
   • NestJS (TypeScript) - @Get(), @Post(), etc.
+  • Symfony (PHP) - @Route annotations and attributes
+  • FastAPI (Python) - @app.get(), @app.post(), etc.
   • Express (JavaScript/TypeScript) - app.get(), router.post(), etc.
 
 Features:~
@@ -47,6 +49,7 @@ Features:~
   • 🌳 Interactive cache browser with direct navigation
   • 📍 Precise navigation to exact annotation line with highlighting
   • 🌈 Syntax highlighting in preview window
+  • 🎯 Flexible UI options: Telescope or native vim.ui.select
   • 🔧 Easy setup with automatic framework detection
 
 ==============================================================================
@@ -175,7 +178,8 @@ Default Configuration:~
     require("endpoint").setup({
       cache_mode = "persistent",                -- Cache mode: "session" or "persistent" (default)
       debug = false,                            -- Enable debug logging
-      framework = "auto",                       -- Auto-detect or specify: "spring", "nestjs", "express"
+      framework = "auto",                       -- Auto-detect or specify: "spring", "nestjs", "symfony", "fastapi", "express"
+      picker = "auto",                          -- UI picker: "auto", "telescope", "vim_ui_select"
       
       ui = {
         show_icons = false,                     -- Show method icons
@@ -348,6 +352,46 @@ The cache automatically invalidates when:
   • Neovim is restarted (in "session" mode)
   • Annotations are modified (in "persistent" mode)
   • Plugin is reloaded
+
+==============================================================================
+10. PICKER OPTIONS                               *endpoint-picker-options*
+
+The plugin supports multiple UI interfaces for endpoint selection:
+
+Picker Types:~
+    "auto"           Automatically choose best available option (default)
+    "telescope"      Use Telescope interface (rich fuzzy search)
+    "vim_ui_select"  Use native vim.ui.select (lightweight)
+
+Configuration:~
+>lua
+    require("endpoint").setup({
+      picker = "telescope",     -- Force Telescope interface
+      -- or
+      picker = "vim_ui_select", -- Use native vim.ui.select
+      -- or  
+      picker = "auto",          -- Auto-detect (default)
+    })
+<
+
+Telescope Picker:~
+  • Rich fuzzy search interface with preview
+  • Full Telescope keybinding support
+  • Syntax highlighting in preview window
+  • Requires telescope.nvim dependency
+  • Best for power users
+
+Vim UI Select:~
+  • Native Neovim interface
+  • Works without external dependencies
+  • Integrates with vim.ui.select overrides (dressing.nvim, etc.)
+  • Lightweight and simple
+  • Good for minimal setups
+
+Auto Detection:~
+  • Uses Telescope if available, falls back to vim.ui.select
+  • Recommended for most users
+  • Zero configuration required
 
 ==============================================================================
 11. ADVANCED FEATURES                            *endpoint-advanced*

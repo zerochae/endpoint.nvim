@@ -6,19 +6,21 @@ A powerful Telescope picker for quickly finding and navigating web framework API
 - 🍃 Spring Boot (Java)
 - 🐦 NestJS (TypeScript/JavaScript)
 - 🎼 Symfony (PHP)
+- ⚡ FastAPI (Python)
 - 🐍 Django (Python) - Coming soon
 - 💎 Rails (Ruby) - Coming soon
 - ⚡ Express (Node.js) - Coming soon
 
 ## ✨ Features
 
-- 🔍 **Multi-Framework Support**: Automatically detects and supports Spring Boot, NestJS, Symfony, and more
+- 🔍 **Multi-Framework Support**: Automatically detects and supports Spring Boot, NestJS, Symfony, FastAPI, and more
 - 🎨 **Customizable UI**: Configurable icons, colors, and display options
 - ⚡ **Smart Caching**: Multiple cache modes including persistent disk storage
 - 🔗 **Path Variable Support**: Handles complex path variables and routing patterns
 - 📍 **Precise Navigation**: Jump directly to the exact line with annotation highlighting
 - 🌈 **Syntax Highlighting**: Preview window with framework-specific syntax highlighting
 - 🤖 **Auto-Detection**: Automatically detects your project's framework
+- 🎯 **Flexible UI Options**: Choose between Telescope or native vim.ui.select interface
 - 🔧 **Easy Setup**: Just call `require("endpoint").setup()` to get started
 
 ## 🚀 Usage
@@ -67,18 +69,22 @@ A powerful Telescope picker for quickly finding and navigating web framework API
   config = function()
     require("endpoint").setup({
       -- Framework configuration
-      framework = "auto", -- "auto", "spring", "nestjs", "symfony", "django", "rails", "express"
+      framework = "auto", -- "auto", "spring", "nestjs", "symfony", "fastapi", "django", "rails", "express"
       
       -- Optional: Path-based framework overrides
       framework_paths = {
         ["/path/to/spring/project"] = "spring",
         ["/path/to/nestjs/project"] = "nestjs",
         ["/path/to/symfony/project"] = "symfony",
+        ["/path/to/fastapi/project"] = "fastapi",
       },
       
       -- Cache configuration
       cache_mode = "persistent", -- Cache mode: "session" or "persistent"
       debug = false, -- Enable debug logging
+      
+      -- Picker configuration (optional)
+      picker = "auto", -- "auto", "telescope", "vim_ui_select"
       
       ui = {
         show_icons = true,     -- Show method icons
@@ -148,10 +154,13 @@ require("endpoint").setup({
   cache_mode = "persistent", -- or "session" for temporary cache
   
   -- Framework detection: "auto" or specific framework
-  framework = "auto", -- "spring", "nestjs", "symfony", "django", "rails", "express"
+  framework = "auto", -- "spring", "nestjs", "symfony", "fastapi", "django", "rails", "express"
   
   -- Debug logging
   debug = false,
+  
+  -- Picker selection
+  picker = "auto", -- "auto", "telescope", "vim_ui_select"
   
   -- File patterns and exclusions (overrides framework defaults)
   file_patterns = { "**/*.ts", "**/*.js", "**/*.java" },
@@ -326,6 +335,41 @@ ui = {
 }
 -- Result: /api/users
 ```
+
+## 🎯 Picker Options
+
+The plugin supports two different UI interfaces for endpoint selection:
+
+### Telescope Picker (Default)
+```lua
+require("endpoint").setup({
+  picker = "telescope", -- Use Telescope interface (requires telescope.nvim)
+})
+```
+- Rich fuzzy search interface
+- Preview window with syntax highlighting
+- Full Telescope keybinding support
+- Best for power users who use Telescope
+
+### Vim UI Select
+```lua
+require("endpoint").setup({
+  picker = "vim_ui_select", -- Use native vim.ui.select
+})
+```
+- Native Neovim interface
+- Works without external dependencies
+- Integrates with your vim.ui.select override (like dressing.nvim)
+- Lightweight and simple
+
+### Auto Detection
+```lua
+require("endpoint").setup({
+  picker = "auto", -- Automatically choose best available option (default)
+})
+```
+- Uses Telescope if available, falls back to vim.ui.select
+- Recommended for most users
 
 ## 🔧 Advanced Features
 
@@ -683,13 +727,14 @@ The plugin automatically detects your framework, but you can override detection:
 ```lua
 require("endpoint").setup({
   -- Explicit framework selection
-  framework = "spring", -- or "nestjs", "symfony", "django", "rails", "express"
+  framework = "spring", -- or "nestjs", "symfony", "fastapi", "django", "rails", "express"
   
   -- Path-based framework overrides (useful for monorepos)
   framework_paths = {
     ["/home/user/spring-project"] = "spring",
     ["/home/user/nestjs-api"] = "nestjs",
     ["/home/user/symfony-api"] = "symfony",
+    ["/home/user/fastapi-api"] = "fastapi",
     ["/home/user/django-app"] = "django",
   },
   
@@ -704,6 +749,7 @@ The plugin uses these files to detect your framework:
 - **Spring Boot**: `pom.xml`, `build.gradle`, `build.gradle.kts`
 - **NestJS**: `package.json` (with @nestjs dependencies)
 - **Symfony**: `composer.json`, `symfony.lock`, `config/services.yaml`
+- **FastAPI**: `main.py`, `requirements.txt` (with FastAPI)
 - **Django**: `manage.py`, `requirements.txt` (with Django)
 - **Rails**: `Gemfile` (with Rails gem)
 - **Express**: `package.json` (with Express dependencies)
