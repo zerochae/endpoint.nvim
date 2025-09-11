@@ -29,7 +29,23 @@ function M:extract_endpoint_path(content, method)
   -- Extract from resources
   local resource = content:match "resources%s+:(%w+)"
   if resource then
-    return "/" .. resource
+    local method_lower = method:lower()
+    if method_lower == "get" then
+      -- GET requests can be both collection (index) and member (show)
+      -- Default to collection route for resources
+      return "/" .. resource
+    elseif method_lower == "post" then
+      -- POST is typically for create (collection)
+      return "/" .. resource
+    elseif method_lower == "put" or method_lower == "patch" then
+      -- PUT/PATCH are typically for update (member)
+      return "/" .. resource .. "/:id"
+    elseif method_lower == "delete" then
+      -- DELETE is typically for destroy (member)
+      return "/" .. resource .. "/:id"
+    else
+      return "/" .. resource
+    end
   end
 
   -- Extract from documentation patterns like @api, @route, @method, or comments

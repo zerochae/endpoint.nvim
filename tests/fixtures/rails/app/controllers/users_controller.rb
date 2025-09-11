@@ -5,7 +5,7 @@ class UsersController < ApplicationController
     render json: @users
   end
 
-  # GET /users/1
+  # GET /users/:id
   def show
     @user = User.find(params[:id])
     render json: @user
@@ -21,7 +21,7 @@ class UsersController < ApplicationController
     end
   end
 
-  # PATCH/PUT /users/1
+  # PATCH/PUT /users/:id
   def update
     @user = User.find(params[:id])
     if @user.update(user_params)
@@ -31,7 +31,7 @@ class UsersController < ApplicationController
     end
   end
 
-  # DELETE /users/1
+  # DELETE /users/:id
   def destroy
     @user = User.find(params[:id])
     @user.destroy

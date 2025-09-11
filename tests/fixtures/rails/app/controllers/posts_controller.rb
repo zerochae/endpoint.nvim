@@ -5,7 +5,7 @@ class PostsController < ApplicationController
     render json: @posts
   end
 
-  # GET /posts/1  
+  # GET /posts/:id
   def show
     @post = Post.find(params[:id])
     render json: @post
@@ -21,7 +21,7 @@ class PostsController < ApplicationController
     end
   end
 
-  # PATCH/PUT /posts/1
+  # PATCH/PUT /posts/:id
   def update
     @post = Post.find(params[:id])
     if @post.update(post_params)
@@ -31,14 +31,14 @@ class PostsController < ApplicationController
     end
   end
 
-  # DELETE /posts/1
+  # DELETE /posts/:id
   def destroy
     @post = Post.find(params[:id])
     @post.destroy
     head :no_content
   end
 
-  # POST /posts/1/publish
+  # POST /posts/:id/publish
   def publish
     @post = Post.find(params[:id])
     @post.update!(published: true)
