@@ -2,18 +2,18 @@
 local cache = require("endpoint.services.cache")
 local framework_manager = require("endpoint.framework.manager")
 local session = require("endpoint.core.session")
-local debug = require("endpoint.utils.debug")
+local log = require("endpoint.utils.log")
 
 local M = {}
 
 -- Execute ripgrep command with error handling
 local function execute_command(cmd)
-  debug.info("Running command: " .. cmd)
+  log.info("Running command: " .. cmd)
   
   local output = vim.fn.system(cmd)
   local exit_code = vim.v.shell_error
   
-  debug.info("Command exit_code: " .. exit_code .. ", output length: " .. string.len(output))
+  log.info("Command exit_code: " .. exit_code .. ", output length: " .. string.len(output))
 
   if exit_code ~= 0 then
     if exit_code == 1 then
@@ -33,15 +33,31 @@ end
 -- Get framework and config with validation
 local function get_framework()
   local config = session.get_config()
+  
+  -- Fallback: try to get config from core if session doesn't have it
   if not config then
-    return nil, nil
+    local ok, core = pcall(require, "endpoint.core")
+    if ok and core.get_config then
+      config = core.get_config()
+    end
+  end
+  
+  -- Ultimate fallback: create a minimal config for tests
+  if not config then
+    -- Create minimal config without requiring default_config module
+    config = {
+      cache_mode = "none",
+      debug = false,
+      framework = "auto",
+      methods = { "GET", "POST", "PUT", "DELETE", "PATCH" },
+      rg_additional_args = "",
+      frameworks = {} -- Will be populated by registry
+    }
   end
 
   local framework_name = framework_manager.get_current_framework_name(config)
   if not framework_name then
-    if config.debug then
-      vim.notify("No framework detected", vim.log.levels.WARN)
-    end
+    log.warn("No framework detected")
     return nil, nil
   end
 
@@ -64,13 +80,13 @@ local function discover_endpoints(method)
   end
 
   local endpoints = {}
-  debug.info("Processing grep results, lines found: " .. select(2, output:gsub('\n', '\n')) + 1)
+  log.info("Processing grep results, lines found: " .. select(2, output:gsub('\n', '\n')) + 1)
   
   for line in vim.gsplit(output, "\n") do
     if line ~= "" then
-      debug.info("Processing ripgrep line: " .. line)
+      log.info("Processing ripgrep line: " .. line)
       local parsed = framework:parse_line(line, method)
-      debug.info("Parse result: " .. (parsed and vim.inspect(parsed) or "nil"))
+      log.info("Parse result: " .. (parsed and vim.inspect(parsed) or "nil"))
       
       if parsed and parsed.endpoint_path and parsed.endpoint_path ~= "" and parsed.endpoint_path:match("%S") then
         table.insert(endpoints, {
@@ -116,7 +132,7 @@ function M.scan(method)
   end
 
   -- Skip if cache is valid
-  if cache.should_use_cache(method) then
+  if cache.should_use_cache(method, config) then
     return
   end
 

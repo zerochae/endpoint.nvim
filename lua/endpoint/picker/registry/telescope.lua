@@ -106,7 +106,7 @@ function M:create_previewer(opts)
         -- Determine method from entry data
         local method = entry.item.method or "GET"
         scanner.prepare_preview(method)
-        preview_table = util.get_preview_table()
+        preview_table = scanner.get_cache_data().preview_table
       end
 
       local endpoint = entry.value
@@ -114,8 +114,8 @@ function M:create_previewer(opts)
         -- Try to create preview data for this specific endpoint
         local method_part, path_part = endpoint:match("^(%S+)%s+(.+)$")
         if method_part then
-          util.create_endpoint_preview_table(method_part)
-          preview_table = util.get_preview_table()
+          scanner.prepare_preview(method_part)
+          preview_table = scanner.get_cache_data().preview_table
         end
 
         if not preview_table[endpoint] then

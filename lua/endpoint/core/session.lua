@@ -1,7 +1,7 @@
 -- Session state management
 local M = {}
 
--- Global state
+-- Simple in-memory state that persists for the session
 local state = {}
 
 -- Get current working directory
@@ -41,7 +41,8 @@ function M.get_config()
 
   -- Create a copy of the config with project-specific cache mode
   local config = vim.deepcopy(state.config)
-  config.cache_mode = get_project_cache_mode(state.config)
+  local cache_mode = get_project_cache_mode(state.config)
+  config.cache_mode = cache_mode
 
   return config
 end

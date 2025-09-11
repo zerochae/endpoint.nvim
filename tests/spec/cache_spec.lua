@@ -2,11 +2,43 @@ describe("Cache system behavior", function()
   local cache = require("endpoint.services.cache")
   local scanner = require("endpoint.services.scanner")
   
-  -- Mock data for testing
-  local mock_results = {
-    { value = "GET /api/users", method = "GET", path = "/api/users", file_path = "test.rb", line_number = 1 },
-    { value = "POST /api/users", method = "POST", path = "/api/users", file_path = "test.rb", line_number = 5 }
-  }
+  -- Helper to populate find_table directly
+  local function populate_find_table(method, file_path, endpoints)
+    cache.create_find_table_entry(file_path, method)
+    for _, endpoint in ipairs(endpoints) do
+      cache.insert_to_find_table({
+        path = file_path,
+        annotation = method,
+        value = endpoint.path,
+        line_number = endpoint.line_number,
+        column = endpoint.column or 1,
+      })
+    end
+    cache.update_cache_timestamp(method)
+  end
+  
+  -- Helper to get results from find_table
+  local function get_find_table_results(method)
+    local find_table = cache.get_find_table()
+    local results = {}
+    for file_path, mapping_object in pairs(find_table) do
+      if mapping_object[method] then
+        local mappings = mapping_object[method]
+        if type(mappings) == "table" then
+          for _, item in ipairs(mappings) do
+            table.insert(results, {
+              method = method,
+              path = item.value or "",
+              file_path = file_path,
+              line_number = item.line_number,
+              column = item.column,
+            })
+          end
+        end
+      end
+    end
+    return results
+  end
   
   -- Helper function to reset cache state
   local function reset_cache()
@@ -20,185 +52,191 @@ describe("Cache system behavior", function()
   describe("cache mode: none", function()
     local none_config = { cache_mode = "none" }
     
-    it("should never return cached results", function()
-      local cache_key = "GET"
+    it("should never use cached data", function()
+      local method = "GET"
       
-      -- Manually set some data in internal cache (simulating previous cached data)
-      cache.set_cached_results(cache_key, mock_results, { cache_mode = "session" })
+      -- Populate find_table with session mode first
+      populate_find_table(method, "test.rb", {{ path = "/api/users", line_number = 1 }})
       
-      -- With "none" mode, should always return nil (no cache)
-      local cached = cache.get_cached_results(cache_key, none_config)
-      assert.is_nil(cached)
+      -- With "none" mode, cache should not be considered valid
+      local is_valid = cache.is_cache_valid(method, none_config)
+      assert.is_false(is_valid)
+      
+      local should_use = cache.should_use_cache(method, none_config)
+      assert.is_false(should_use)
     end)
     
-    it("should never store cached results", function()
-      local cache_key = "POST"
+    it("should use temp tables in none mode", function()
+      -- In "none" mode, get_find_table should return temp table
+      local find_table = cache.get_find_table()
       
-      -- Try to cache results with "none" mode
-      cache.set_cached_results(cache_key, mock_results, none_config)
+      -- Should be empty initially (temp table)
+      assert.are.same({}, find_table)
       
-      -- Should not be cached, even with session mode retrieval
-      local cached = cache.get_cached_results(cache_key, { cache_mode = "session" })
-      assert.is_nil(cached)
-    end)
-    
-    it("should bypass cache completely in endpoint service", function()
-      -- The scanner service doesn't directly use cache config in scan()
-      -- but should use cache mode "none" behavior
-      local cache_key = "GET"
+      -- Create entry in temp table mode
+      cache.create_find_table_entry("test.rb", "GET")
+      cache.insert_to_find_table({
+        path = "test.rb",
+        annotation = "GET",
+        value = "/api/users",
+        line_number = 1,
+        column = 1,
+      })
       
-      -- Test that cache mode "none" never returns cached data
-      cache.set_cached_results(cache_key, mock_results, { cache_mode = "session" })
-      local cached = cache.get_cached_results(cache_key, none_config)
-      assert.is_nil(cached)
-      
-      -- Test that cache mode "none" never stores data
-      cache.set_cached_results(cache_key, mock_results, none_config)
-      local stored = cache.get_cached_results(cache_key, none_config)
-      assert.is_nil(stored)
+      -- Should now have data in temp table
+      local results = get_find_table_results("GET")
+      assert.is_true(#results > 0)
     end)
   end)
   
   describe("cache mode: session", function()
     local session_config = { cache_mode = "session" }
     
-    it("should store and retrieve cached results", function()
-      local cache_key = "GET"
+    it("should store and retrieve find_table data", function()
+      local method = "GET"
       
-      -- Set cached results
-      cache.set_cached_results(cache_key, mock_results, session_config)
+      -- Populate find_table
+      populate_find_table(method, "test.rb", {{ path = "/api/users", line_number = 1 }})
       
-      -- Should retrieve cached results
-      local cached = cache.get_cached_results(cache_key, session_config)
-      assert.are.same(mock_results, cached)
+      -- Should be valid cache
+      local is_valid = cache.is_cache_valid(method, session_config)
+      assert.is_true(is_valid)
+      
+      -- Should retrieve data from find_table
+      local results = get_find_table_results(method)
+      assert.is_true(#results > 0)
+      assert.are.equal("/api/users", results[1].path)
     end)
     
-    it("should return nil when no cache exists", function()
-      local cache_key = "DELETE"
+    it("should return empty when no cache exists", function()
+      local method = "DELETE"
       
       -- No cached data exists
-      local cached = cache.get_cached_results(cache_key, session_config)
-      assert.is_nil(cached)
+      local is_valid = cache.is_cache_valid(method, session_config)
+      assert.is_false(is_valid)
+      
+      local results = get_find_table_results(method)
+      assert.are.same({}, results)
     end)
     
-    it("should use cache in endpoint service when available", function()
-      -- Test session cache behavior
-      local cache_key = "GET"
+    it("should persist cache across calls", function()
+      local method = "GET"
       
-      -- Store results in session cache
-      cache.set_cached_results(cache_key, mock_results, session_config)
+      -- Store results
+      populate_find_table(method, "test.rb", {{ path = "/api/users", line_number = 1 }})
       
-      -- Should retrieve cached results
-      local cached = cache.get_cached_results(cache_key, session_config)
-      assert.are.same(mock_results, cached)
+      -- Should be valid
+      local should_use = cache.should_use_cache(method, session_config)
+      assert.is_true(should_use)
       
-      -- Test that cache persists across calls
-      local cached_again = cache.get_cached_results(cache_key, session_config)
-      assert.are.same(mock_results, cached_again)
+      -- Should persist across multiple calls
+      local should_use_again = cache.should_use_cache(method, session_config)
+      assert.is_true(should_use_again)
     end)
   end)
   
   describe("cache mode: persistent", function()
     local persistent_config = { cache_mode = "persistent" }
     
-    it("should store and retrieve cached results", function()
-      local cache_key = "PUT"
+    it("should store and retrieve find_table data", function()
+      local method = "PUT"
       
-      -- Set cached results
-      cache.set_cached_results(cache_key, mock_results, persistent_config)
+      -- Populate find_table
+      populate_find_table(method, "test.rb", {{ path = "/api/users", line_number = 1 }})
       
-      -- Should retrieve cached results
-      local cached = cache.get_cached_results(cache_key, persistent_config)
-      assert.are.same(mock_results, cached)
+      -- Should retrieve data from find_table
+      local results = get_find_table_results(method)
+      assert.is_true(#results > 0)
+      assert.are.equal("/api/users", results[1].path)
     end)
     
     it("should handle cache validation correctly", function()
-      local cache_key = "PATCH"
+      local method = "PATCH"
       
-      -- Set cached results with timestamp
-      cache.set_cached_results(cache_key, mock_results, persistent_config)
-      cache.update_cache_timestamp(cache_key)
+      -- Populate find_table with timestamp
+      populate_find_table(method, "test.rb", {{ path = "/api/users", line_number = 1 }})
       
       -- Should be valid cache
-      local is_valid = cache.is_cache_valid(cache_key)
+      local is_valid = cache.is_cache_valid(method, persistent_config)
       assert.is_true(is_valid)
       
       -- Should use cache
-      local should_use = cache.should_use_cache(cache_key)
+      local should_use = cache.should_use_cache(method, persistent_config)
       assert.is_true(should_use)
     end)
   end)
   
   describe("cache mode transitions", function()
     it("should handle switching between different cache modes", function()
-      local cache_key = "GET"
+      local method = "GET"
       
       -- Start with session cache
-      cache.set_cached_results(cache_key, mock_results, { cache_mode = "session" })
-      local cached_session = cache.get_cached_results(cache_key, { cache_mode = "session" })
-      assert.are.same(mock_results, cached_session)
+      populate_find_table(method, "test.rb", {{ path = "/api/users", line_number = 1 }})
       
-      -- Switch to "none" mode - should return nil
-      local cached_none = cache.get_cached_results(cache_key, { cache_mode = "none" })
-      assert.is_nil(cached_none)
+      local should_use_session = cache.should_use_cache(method, { cache_mode = "session" })
+      assert.is_true(should_use_session)
+      
+      -- Switch to "none" mode - should not use cache
+      local should_use_none = cache.should_use_cache(method, { cache_mode = "none" })
+      assert.is_false(should_use_none)
       
       -- Switch to persistent mode - should still have data (if valid)
-      cache.update_cache_timestamp(cache_key)
-      local cached_persistent = cache.get_cached_results(cache_key, { cache_mode = "persistent" })
-      assert.are.same(mock_results, cached_persistent)
+      local should_use_persistent = cache.should_use_cache(method, { cache_mode = "persistent" })
+      assert.is_true(should_use_persistent)
     end)
   end)
   
   describe("cache interface", function()
-    it("should have consistent get_cached_results behavior", function()
-      local cache_key = "TEST"
+    it("should have consistent cache validation behavior", function()
+      local method = "TEST"
       
       -- Test with nil config (should use default)
-      local cached_nil = cache.get_cached_results(cache_key, nil)
-      assert.is_nil(cached_nil) -- No cache exists yet
+      local is_valid_nil = cache.is_cache_valid(method, nil)
+      assert.is_false(is_valid_nil) -- No cache exists yet
       
       -- Test with empty config
-      local cached_empty = cache.get_cached_results(cache_key, {})
-      assert.is_nil(cached_empty)
+      local is_valid_empty = cache.is_cache_valid(method, {})
+      assert.is_false(is_valid_empty)
     end)
     
-    it("should have consistent set_cached_results behavior", function()
-      local cache_key = "TEST"
+    it("should handle find_table operations without errors", function()
+      local method = "TEST"
       
-      -- Should not error with nil config
+      -- Should not error with basic operations
       assert.has_no_error(function()
-        cache.set_cached_results(cache_key, mock_results, nil)
-      end)
-      
-      -- Should not error with empty config
-      assert.has_no_error(function()
-        cache.set_cached_results(cache_key, mock_results, {})
+        cache.create_find_table_entry("test.rb", method)
+        cache.insert_to_find_table({
+          path = "test.rb",
+          annotation = method,
+          value = "/api/test",
+          line_number = 1,
+          column = 1,
+        })
+        cache.update_cache_timestamp(method)
       end)
     end)
   end)
   
   describe("cache clear operations", function()
     it("should clear all cache data correctly", function()
-      -- Populate cache with different modes
-      cache.set_cached_results("GET", mock_results, { cache_mode = "session" })
-      cache.set_cached_results("POST", mock_results, { cache_mode = "persistent" })
-      cache.update_cache_timestamp("GET")
-      cache.update_cache_timestamp("POST")
+      -- Populate cache with different methods
+      populate_find_table("GET", "test.rb", {{ path = "/api/users", line_number = 1 }})
+      populate_find_table("POST", "test.rb", {{ path = "/api/users", line_number = 5 }})
       
       -- Verify data exists
-      local cached_get = cache.get_cached_results("GET", { cache_mode = "session" })
-      local cached_post = cache.get_cached_results("POST", { cache_mode = "persistent" })
-      assert.are.same(mock_results, cached_get)
-      assert.are.same(mock_results, cached_post)
+      local results_get = get_find_table_results("GET")
+      local results_post = get_find_table_results("POST")
+      assert.is_true(#results_get > 0)
+      assert.is_true(#results_post > 0)
       
       -- Clear cache
       cache.clear_tables()
       
       -- Verify data is cleared
-      local cleared_get = cache.get_cached_results("GET", { cache_mode = "session" })
-      local cleared_post = cache.get_cached_results("POST", { cache_mode = "persistent" })
-      assert.is_nil(cleared_get)
-      assert.is_nil(cleared_post)
+      local cleared_get = get_find_table_results("GET")
+      local cleared_post = get_find_table_results("POST")
+      assert.are.same({}, cleared_get)
+      assert.are.same({}, cleared_post)
     end)
   end)
   

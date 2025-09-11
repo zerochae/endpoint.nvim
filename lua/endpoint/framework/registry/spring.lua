@@ -150,6 +150,8 @@ function M:_extract_method_mapping(file_path, line_number)
 
   local i = line_number
   local line = lines[i] or ""
+  
+  -- Match all mapping annotations, but handle @RequestMapping specially
   if not line:match "@[%a]+Mapping" then
     -- 바로 위 줄이 어노테이션일 수도 있음
     if i > 1 and (lines[i - 1] or ""):match "@[%a]+Mapping" then
@@ -158,6 +160,11 @@ function M:_extract_method_mapping(file_path, line_number)
     end
   end
   if not line:match "@[%a]+Mapping" then
+    return ""
+  end
+  
+  -- If this is @RequestMapping, treat it as class-level (return empty for method mapping)
+  if line:match "@RequestMapping" then
     return ""
   end
 
@@ -198,6 +205,16 @@ function M:get_base_path(file_path, line_number)
   local ok, lines = pcall(vim.fn.readfile, file_path)
   if not ok or not lines then
     return ""
+  end
+
+  -- First, check if the given line itself is a @RequestMapping
+  local current_line = lines[line_number] or ""
+  if current_line:match "@RequestMapping" then
+    local args = current_line:match "@RequestMapping%s*%((.*)%)"
+    if args then
+      local base_path = extract_first_path_from_str(args)
+      return base_path or ""
+    end
   end
 
   -- 이 메서드가 속한 클래스 선언 라인
@@ -264,16 +281,16 @@ end
 -- ripgrep 한 줄 "path:line:col:content" → 구조로 파싱
 function M:parse_line(line, method, _config)
   -- Debug: parse_line 호출 확인
-  local debug = require("endpoint.utils.debug")
-  debug.info("Spring parse_line called with line: " .. line)
+  local log = require("endpoint.utils.log")
+  log.info("Spring parse_line called with line: " .. line)
   
   local file_path, line_number, column, content = line:match "([^:]+):(%d+):(%d+):(.*)"
   if not file_path then
-    debug.info("Spring parse_line failed to parse line format")
+    log.info("Spring parse_line failed to parse line format")
     return nil
   end
   
-  debug.info("Spring parse_line parsed - file: " .. file_path .. ", line_num: " .. line_number .. ", content: " .. content)
+  log.info("Spring parse_line parsed - file: " .. file_path .. ", line_num: " .. line_number .. ", content: " .. content)
 
   line_number = tonumber(line_number) or 1
   column = tonumber(column) or 1
@@ -283,8 +300,8 @@ function M:parse_line(line, method, _config)
   local full_path = self:combine_paths(base_path, endpoint_path)
   
   -- Debug: path combination 확인
-  local debug = require("endpoint.utils.debug")
-  debug.info("Spring parse_line - base: '" .. (base_path or "nil") .. "', endpoint: '" .. (endpoint_path or "nil") .. "', full: '" .. (full_path or "nil") .. "'")
+  local log = require("endpoint.utils.log")
+  log.info("Spring parse_line - base: '" .. (base_path or "nil") .. "', endpoint: '" .. (endpoint_path or "nil") .. "', full: '" .. (full_path or "nil") .. "'")
 
   return {
     file_path = file_path,

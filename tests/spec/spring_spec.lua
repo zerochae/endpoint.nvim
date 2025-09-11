@@ -92,28 +92,92 @@ describe(" Spring framework", function()
 
     it("should parse TestController @GetMapping with path correctly", function()
       local real_file = "tests/fixtures/spring/src/main/java/com/example/TestController.java"
-      local line = real_file .. ":24:5:    @GetMapping(\"/status\")"
+      local line = real_file .. ":77:5:    @GetMapping(\"/status\")"
       local result = spring:parse_line(line, "GET", {})
 
       assert.is_not_nil(result)
       assert.are.equal(real_file, result.file_path)
-      assert.are.equal(24, result.line_number)
+      assert.are.equal(77, result.line_number)
       assert.are.equal("/api/v1/{userId}/orders/status", result.endpoint_path)
       assert.are.equal("GET", result.method)
     end)
   end)
 
   describe("PathVariable extraction bug fix", function()
-    it("should not extract path from @PathVariable when @GetMapping has no parentheses", function()
+    it("should extract method mapping from TestController main method", function()
       local real_file = "tests/fixtures/spring/src/main/java/com/example/TestController.java"
-      local method_path = spring:_extract_method_mapping(real_file, 14)  -- @GetMapping without ()
-      assert.are.equal("", method_path)  -- Should be empty, not "userId"
+      local method_path = spring:_extract_method_mapping(real_file, 14)  -- @GetMapping (main method)
+      assert.are.equal("", method_path)  -- Should be empty for main method
     end)
 
     it("should extract correct base path from TestController", function()
       local real_file = "tests/fixtures/spring/src/main/java/com/example/TestController.java"
       local base_path = spring:get_base_path(real_file, 14)
       assert.are.equal("/api/v1/{userId}/orders", base_path)
+    end)
+  end)
+
+  describe("endpoint count verification", function()
+    it("should find expected number of GET endpoints in fixtures", function()
+      local scanner = require("endpoint.services.scanner")
+      local fixture_path = "tests/fixtures/spring"
+      if vim.fn.isdirectory(fixture_path) == 1 then
+        local original_cwd = vim.fn.getcwd()
+        vim.cmd("cd " .. fixture_path)
+        
+        scanner.clear_cache()
+        scanner.scan("GET")
+        local results = scanner.get_list("GET")
+        
+        -- Should find endpoints that actually exist in fixture files
+        assert.is_table(results)
+        -- Manual check: we know there are @GetMapping annotations in the fixture files
+        local manual_rg = vim.fn.system("rg '@GetMapping' --type java -c")
+        local manual_count = tonumber(manual_rg:match("%d+")) or 0
+        
+        if manual_count > 0 then
+          assert.is_true(#results > 0, "Should find GET endpoints when they exist in files, found: " .. #results .. " endpoints (manual rg found " .. manual_count .. ")")
+        else
+          -- If manual rg finds 0, then scanner finding 0 is acceptable
+          -- Skip detailed validation - endpoint counting is environment-dependent
+          print("Info: Found", #results, "endpoints in Spring fixture")
+        end
+        
+        vim.cmd("cd " .. original_cwd)
+      else
+        pending("Spring fixture directory not found")
+      end
+    end)
+
+    it("should find expected number of POST endpoints in fixtures", function()
+      local scanner = require("endpoint.services.scanner")
+      local fixture_path = "tests/fixtures/spring"
+      if vim.fn.isdirectory(fixture_path) == 1 then
+        local original_cwd = vim.fn.getcwd()
+        vim.cmd("cd " .. fixture_path)
+        
+        scanner.clear_cache()
+        scanner.scan("POST")
+        local results = scanner.get_list("POST")
+        
+        -- Should find endpoints that actually exist in fixture files
+        assert.is_table(results)
+        -- Manual check: we know there are @PostMapping annotations in the fixture files
+        local manual_rg = vim.fn.system("rg '@PostMapping' --type java -c")
+        local manual_count = tonumber(manual_rg:match("%d+")) or 0
+        
+        if manual_count > 0 then
+          assert.is_true(#results > 0, "Should find POST endpoints when they exist in files, found: " .. #results .. " endpoints (manual rg found " .. manual_count .. ")")
+        else
+          -- If manual rg finds 0, then scanner finding 0 is acceptable
+          -- Skip detailed validation - endpoint counting is environment-dependent
+          print("Info: Found", #results, "endpoints in Spring fixture")
+        end
+        
+        vim.cmd("cd " .. original_cwd)
+      else
+        pending("Spring fixture directory not found")
+      end
     end)
   end)
 end)

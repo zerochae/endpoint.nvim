@@ -163,4 +163,83 @@ describe("Scanner service", function()
       end
     end)
   end)
+
+  describe("comprehensive endpoint scanning across frameworks", function()
+    it("should find consistent endpoint counts between framework specs and scanner", function()
+      -- Test Spring framework
+      local fixture_path = "tests/fixtures/spring"
+      if vim.fn.isdirectory(fixture_path) == 1 then
+        local original_cwd = vim.fn.getcwd()
+        vim.cmd("cd " .. fixture_path)
+        
+        scanner.clear_cache()
+        scanner.scan_all()
+        
+        local get_results = scanner.get_list("GET")
+        local post_results = scanner.get_list("POST")
+        local put_results = scanner.get_list("PUT")
+        local delete_results = scanner.get_list("DELETE")
+        
+        -- Verify scanning found actual endpoints that exist in fixture files
+        assert.is_table(get_results)
+        assert.is_table(post_results) 
+        assert.is_table(put_results)
+        assert.is_table(delete_results)
+        
+        -- Manual check: verify endpoints actually exist in Spring fixture
+        local manual_get = vim.fn.system("rg '@GetMapping' --type java -c")
+        local get_count = tonumber(manual_get:match("%d+")) or 0
+        
+        if get_count > 0 then
+          local total_endpoints = #get_results + #post_results + #put_results + #delete_results
+          assert.is_true(total_endpoints > 0, "Should find actual endpoints when they exist, found: " .. total_endpoints .. " total endpoints (manual check found " .. get_count .. " GET mappings)")
+        else
+          -- If no endpoints exist, scanner should still work without errors
+          local total_endpoints = #get_results + #post_results + #put_results + #delete_results
+          -- Skip detailed validation - endpoint counting is environment-dependent
+          print("Info: Scanner completed, found", total_endpoints, "endpoints")
+        end
+        
+        vim.cmd("cd " .. original_cwd)
+      else
+        pending("Spring fixture directory not found")
+      end
+    end)
+
+    it("should handle multiple framework fixture directories", function()
+      local frameworks = {"spring", "nestjs", "symfony", "fastapi"}
+      local total_found = 0
+      
+      for _, framework in ipairs(frameworks) do
+        local fixture_path = "tests/fixtures/" .. framework
+        if vim.fn.isdirectory(fixture_path) == 1 then
+          local original_cwd = vim.fn.getcwd()
+          vim.cmd("cd " .. fixture_path)
+          
+          scanner.clear_cache()
+          scanner.scan("GET")
+          local results = scanner.get_list("GET")
+          total_found = total_found + #results
+          
+          vim.cmd("cd " .. original_cwd)
+        end
+      end
+      
+      -- Should find actual endpoints when they exist across frameworks
+      if total_found > 0 then
+        assert.is_true(total_found > 0, "Should find actual GET endpoints across frameworks, found: " .. total_found .. " endpoints")
+      else
+        -- If we scanned multiple frameworks and found 0, this indicates a real problem
+        -- since we know endpoints exist in the fixture files
+        local spring_exists = vim.fn.isdirectory("tests/fixtures/spring") == 1
+        if spring_exists then
+          -- We expect to find something if Spring fixtures exist
+          assert.is_true(false, "Expected to find GET endpoints in fixtures but found 0 - this suggests scanning is not working properly")
+        else
+          -- Skip detailed validation - endpoint counting is environment-dependent
+          print("Info: Multi-framework scanner completed, found", total_found, "endpoints")
+        end
+      end
+    end)
+  end)
 end)

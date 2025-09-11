@@ -1,4 +1,5 @@
 local M = {}
+local fs = require(\"endpoint.utils.fs\")
 
 local function create_ascii_title()
   return {
@@ -111,15 +112,7 @@ M.show_cache_status = function()
     }
 
   -- Get cache file paths
-  local function get_project_root()
-    local result = vim.fn.system "git rev-parse --show-toplevel 2>/dev/null"
-    if vim.v.shell_error ~= 0 then
-      return vim.fn.getcwd()
-    end
-    return result:gsub("\n", "")
-  end
-
-  local project_root = get_project_root()
+  local project_root = fs.get_project_root()
   local project_name = vim.fn.fnamemodify(project_root, ":t")
   local cache_dir = vim.fn.stdpath "data" .. "/endpoint.nvim/" .. project_name
   local find_cache_file = cache_dir .. "/find_cache.lua"

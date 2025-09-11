@@ -2,7 +2,7 @@
 -- Manages picker selection and provides a unified interface
 
 local detector = require("endpoint.picker.detector")
-local debug = require("endpoint.utils.debug")
+local log = require("endpoint.utils.log")
 local M = {}
 
 local current_picker = nil
@@ -30,7 +30,7 @@ function M.initialize(config)
   
   -- Warn if fallback occurred
   if actual_picker ~= requested_picker then
-    debug.warn(string.format("Picker '%s' not available, falling back to '%s'", requested_picker, actual_picker))
+    log.warn(string.format("Picker '%s' not available, falling back to '%s'", requested_picker, actual_picker))
   end
   
   local picker = create_picker(actual_picker)
@@ -46,7 +46,7 @@ function M.initialize(config)
   end
   
   current_picker = picker
-  debug.info("Initialized picker: " .. actual_picker)
+  log.info("Initialized picker: " .. actual_picker)
   
   return true
 end

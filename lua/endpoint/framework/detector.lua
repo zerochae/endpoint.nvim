@@ -1,23 +1,15 @@
 local registry = require "endpoint.core.registry"
+local log = require "endpoint.utils.log"
+local fs = require "endpoint.utils.fs"
 
 local M = {}
 
--- Get the current working directory (project root)
-local function get_project_root()
-  return vim.fn.getcwd()
-end
-
--- Check if a file exists
-local function file_exists(filepath)
-  local stat = vim.loop.fs_stat(filepath)
-  return stat ~= nil and stat.type == "file"
-end
 
 -- Check if any detection files exist in the project root
 local function check_detection_files(root_path, detection_files)
   for _, file in ipairs(detection_files) do
     local full_path = root_path .. "/" .. file
-    if file_exists(full_path) then
+    if fs.file_exists(full_path) then
       return true
     end
   end
@@ -27,7 +19,7 @@ end
 -- Special check for Node.js projects (NestJS vs Express)
 local function detect_nodejs_framework(root_path)
   local package_json_path = root_path .. "/package.json"
-  if not file_exists(package_json_path) then
+  if not fs.file_exists(package_json_path) then
     return nil
   end
 
@@ -58,7 +50,7 @@ local function detect_python_framework(root_path)
   local requirements_path = root_path .. "/requirements.txt"
   
   -- Check pyproject.toml first for FastAPI
-  if file_exists(pyproject_path) then
+  if fs.file_exists(pyproject_path) then
     local ok, pyproject_content = pcall(vim.fn.readfile, pyproject_path)
     if ok then
       local content_str = table.concat(pyproject_content, "\n")
@@ -74,7 +66,7 @@ local function detect_python_framework(root_path)
   end
   
   -- Check requirements.txt
-  if file_exists(requirements_path) then
+  if fs.file_exists(requirements_path) then
     local ok, requirements_content = pcall(vim.fn.readfile, requirements_path)
     if ok then
       local content_str = table.concat(requirements_content, "\n")
@@ -90,7 +82,7 @@ local function detect_python_framework(root_path)
   end
   
   -- Check for Django-specific files
-  if file_exists(root_path .. "/manage.py") then
+  if fs.file_exists(root_path .. "/manage.py") then
     return "django"
   end
   
@@ -146,27 +138,20 @@ end
 
 -- Main function to detect the current framework
 function M.detect_framework(config)
-  local root_path = get_project_root()
+  local root_path = fs.get_project_root()
 
   -- First check framework_paths for explicit overrides
   if config.framework_paths and next(config.framework_paths) then
     local override_framework = check_framework_paths(root_path, config.framework_paths)
     if override_framework then
-      if config.debug then
-        vim.notify(
-          "Framework override detected: " .. override_framework .. " for path: " .. root_path,
-          vim.log.levels.INFO
-        )
-      end
+      log.info("Framework override detected: " .. override_framework .. " for path: " .. root_path)
       return override_framework
     end
   end
 
   -- If framework is explicitly set (not "auto"), use it
   if config.framework and config.framework ~= "auto" then
-    if config.debug then
-      vim.notify("Using explicitly configured framework: " .. config.framework, vim.log.levels.INFO)
-    end
+    log.info("Using explicitly configured framework: " .. config.framework)
     return config.framework
   end
 
@@ -175,17 +160,10 @@ function M.detect_framework(config)
   local detected_framework = auto_detect_framework(root_path, frameworks_config)
 
   if detected_framework then
-    if config.debug then
-      vim.notify(
-        "Auto-detected framework: " .. detected_framework .. " for project: " .. root_path,
-        vim.log.levels.INFO
-      )
-    end
+    log.info("Auto-detected framework: " .. detected_framework .. " for project: " .. root_path)
     return detected_framework
   else
-    if config.debug then
-      vim.notify("No framework detected for project: " .. root_path, vim.log.levels.WARN)
-    end
+    log.warn("No framework detected for project: " .. root_path)
     return nil
   end
 end

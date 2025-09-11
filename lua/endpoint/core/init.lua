@@ -4,7 +4,7 @@ local default_config = require "endpoint.core.config"
 local registry = require "endpoint.core.registry"
 local session = require "endpoint.core.session"
 local picker_manager = require "endpoint.picker.manager"
-local debug = require "endpoint.utils.debug"
+local log = require "endpoint.utils.log"
 
 -- Global config that will be used throughout the plugin
 M.config = vim.deepcopy(default_config)
@@ -22,25 +22,13 @@ local function show_picker(method, opts)
   return picker_manager.show_picker(method, opts)
 end
 
--- HTTP method handlers
-function M.pick_get_mapping(opts)
-  show_picker("GET", opts)
-end
-
-function M.pick_post_mapping(opts)
-  show_picker("POST", opts)
-end
-
-function M.pick_put_mapping(opts)
-  show_picker("PUT", opts)
-end
-
-function M.pick_delete_mapping(opts)
-  show_picker("DELETE", opts)
-end
-
-function M.pick_patch_mapping(opts)
-  show_picker("PATCH", opts)
+-- HTTP method handlers (generated programmatically)
+local methods = { "GET", "POST", "PUT", "DELETE", "PATCH" }
+for _, method in ipairs(methods) do
+  local method_lower = method:lower()
+  M["pick_" .. method_lower .. "_mapping"] = function(opts)
+    show_picker(method, opts)
+  end
 end
 
 function M.pick_all_endpoints(opts)
@@ -68,7 +56,7 @@ function M.setup(opts)
   -- Initialize picker system
   local picker_init_success = picker_manager.initialize(M.config)
   if not picker_init_success then
-    debug.warn("Picker initialization failed, falling back to telescope")
+    log.warn("Picker initialization failed, falling back to telescope")
   end
 
   -- Initialize persistent cache if needed
