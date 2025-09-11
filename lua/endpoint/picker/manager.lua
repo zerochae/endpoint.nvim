@@ -80,18 +80,19 @@ end
 -- @param opts table: Additional options
 -- @return table: Prepared picker options
 function M.prepare_picker_data(method, opts)
-  local util = require("endpoint.services.util")
+  local scanner = require("endpoint.services.scanner")
   local themes = require("endpoint.ui.themes")
   
   -- Get endpoint data
   if method == "ALL" then
-    util.create_endpoint_preview_table("ALL")
+    scanner.prepare_preview("ALL")
   else
-    util.create_endpoint_table(method)
+    scanner.scan(method)
   end
   
-  local finder_table = util.get_find_table()
-  local preview_table = util.get_preview_table()
+  local cache_data = scanner.get_cache_data()
+  local finder_table = cache_data.find_table
+  local preview_table = cache_data.preview_table
   local items = {}
   
   -- Prepare items for picker
@@ -132,7 +133,15 @@ function M.prepare_picker_data(method, opts)
   end
   
   -- Remove duplicates
-  items = util.check_duplicate_entries(items)
+  local seen = {}
+  local unique_items = {}
+  for _, item in ipairs(items) do
+    if not seen[item.value] then
+      seen[item.value] = true
+      table.insert(unique_items, item)
+    end
+  end
+  items = unique_items
   
   return {
     prompt_title = opts.prompt_title or "Endpoint Finder",
@@ -230,13 +239,16 @@ function M.handle_selection(item, preview_table)
   vim.api.nvim_set_current_buf(bufnr)
   
   vim.schedule(function()
-    local util = require("endpoint.services.util")
+    local scanner = require("endpoint.services.scanner")
     local cursor_entry = {
       path = file_path,
       lnum = line_number,
       col = column,
     }
-    util.set_cursor_on_entry(cursor_entry, bufnr, 0)
+    -- Set cursor on entry
+    local lnum = cursor_entry.line_number or 1
+    pcall(vim.api.nvim_win_set_cursor, 0, { lnum, 0 })
+    vim.cmd("norm! zz")
   end)
 end
 

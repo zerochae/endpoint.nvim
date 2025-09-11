@@ -95,17 +95,17 @@ end
 function M:create_previewer(opts)
   local previewers = require("telescope.previewers")
   local conf = require("telescope.config").values
-  local util = require("endpoint.services.util")
+  local scanner = require("endpoint.services.scanner")
   
   return previewers.new_buffer_previewer({
     title = opts.preview_title or "Preview",
     define_preview = function(self, entry)
       -- Simple approach: only create preview table if needed
-      local preview_table = util.get_preview_table()
+      local preview_table = scanner.get_cache_data().preview_table
       if not preview_table or not next(preview_table) then
         -- Determine method from entry data
         local method = entry.item.method or "GET"
-        util.create_endpoint_preview_table(method)
+        scanner.prepare_preview(method)
         preview_table = util.get_preview_table()
       end
 
@@ -135,7 +135,12 @@ function M:create_previewer(opts)
       conf.buffer_previewer_maker(path, bufnr, {
         callback = function()
           vim.schedule(function()
-            util.set_cursor_on_entry(entry, bufnr, self.state.winid)
+            -- Set cursor on entry
+            local lnum = entry.lnum or 1
+            pcall(vim.api.nvim_win_set_cursor, self.state.winid, { lnum, 0 })
+            vim.api.nvim_buf_call(bufnr, function()
+              vim.cmd("norm! zz")
+            end)
 
             -- Add highlighting for the annotation line
             local ns_id = vim.api.nvim_create_namespace("endpoint_annotation_highlight")

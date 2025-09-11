@@ -49,8 +49,8 @@ end
 
 function M:get_filetype_for_item(item)
   -- Try to determine filetype from the endpoint data
-  local util = require("endpoint.services.util")
-  local preview_table = util.get_preview_table()
+  local scanner = require("endpoint.services.scanner")
+  local preview_table = scanner.get_cache_data().preview_table
   local preview_data = preview_table[item.value]
   
   if preview_data and preview_data.path then
