@@ -25,25 +25,28 @@ return {
       "@summary.*Create"
     },
     put = { 
-      "def\\s+update", 
+      "def\\s+update",
+      "# PUT\\s+/",
+      "put\\s+['\"]",
       "resources\\s+:", 
       "@route.*PUT",
-      "@method.*PUT", 
-      "# PUT\\s+/"
+      "@method.*PUT"
     },
     delete = { 
-      "def\\s+destroy", 
+      "def\\s+destroy",
+      "# DELETE\\s+/",
+      "delete\\s+['\"]", 
       "resources\\s+:", 
       "@route.*DELETE",
-      "@method.*DELETE",
-      "# DELETE\\s+/"
+      "@method.*DELETE"
     },
     patch = { 
-      "def\\s+update", 
+      "def\\s+update",
+      "# PATCH\\s+/",
+      "patch\\s+['\"]",
       "resources\\s+:", 
       "@route.*PATCH",
-      "@method.*PATCH",
-      "# PATCH\\s+/"
+      "@method.*PATCH"
     },
   },
   -- Rails specific configuration
