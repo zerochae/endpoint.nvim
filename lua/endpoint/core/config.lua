@@ -1,6 +1,6 @@
 local M = {
   prompt_title = "endpoint finder",
-  cache_mode = "persistent", -- Cache mode: "session" (valid until nvim closes) or "persistent" (file-based cache)
+  cache_mode = "none", -- Cache mode: "none" (no cache, real-time search), "session" (valid until nvim closes), or "persistent" (file-based cache)
   debug = false, -- Enable debug logging
 
   -- Framework detection

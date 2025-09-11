@@ -9,8 +9,8 @@ function M.validate_cache_config(config)
     table.insert(errors, "cache_ttl must be a number")
   end
 
-  if config.cache_mode and not vim.tbl_contains({ "session", "persistent" }, config.cache_mode) then
-    table.insert(errors, "cache_mode must be 'session' or 'persistent'")
+  if config.cache_mode and not vim.tbl_contains({ "none", "session", "persistent" }, config.cache_mode) then
+    table.insert(errors, "cache_mode must be 'none', 'session', or 'persistent'")
   end
 
   return errors
