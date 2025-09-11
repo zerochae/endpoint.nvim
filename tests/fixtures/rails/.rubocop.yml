@@ -1,0 +1,9 @@
+inherit_from: .rubocop_todo.yml
+AllCops:
+  TargetRubyVersion:
+  NewCops: enable
+  SuggestExtensions: false
+  Exclude:
+    - "gemfiles/*"
+    - "vendor/**/*"
+    - "test/dummy/db/schema.rb"
