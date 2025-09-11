@@ -1,0 +1,96 @@
+name: Framework Support Request
+description: Request support for a new web framework
+title: "[Framework] Add support for "
+labels: ["framework", "enhancement"]
+assignees: []
+
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Request support for a new web framework or improve existing framework support.
+
+  - type: input
+    id: framework-name
+    attributes:
+      label: Framework Name
+      description: Name of the framework you'd like supported
+      placeholder: e.g., FastAPI, Django REST, Laravel, etc.
+    validations:
+      required: true
+
+  - type: input
+    id: language
+    attributes:
+      label: Programming Language
+      description: What language does this framework use?
+      placeholder: e.g., Python, PHP, Go, Rust, etc.
+    validations:
+      required: true
+
+  - type: textarea
+    id: endpoint-syntax
+    attributes:
+      label: Endpoint Definition Syntax
+      description: How are endpoints/routes defined in this framework?
+      placeholder: |
+        Show examples of how HTTP endpoints are typically defined:
+        
+        @app.route('/api/users', methods=['GET'])
+        def get_users():
+            pass
+      render: code
+    validations:
+      required: true
+
+  - type: textarea
+    id: annotation-patterns
+    attributes:
+      label: Annotation/Decorator Patterns
+      description: What patterns should we look for to identify endpoints?
+      placeholder: |
+        Examples:
+        - @app.route
+        - @router.get
+        - Route::get
+    validations:
+      required: true
+
+  - type: textarea
+    id: file-extensions
+    attributes:
+      label: File Extensions
+      description: What file extensions should we scan for this framework?
+      placeholder: e.g., .py, .php, .go, .rs
+    validations:
+      required: true
+
+  - type: textarea
+    id: examples
+    attributes:
+      label: Code Examples
+      description: Provide real-world examples of endpoint definitions
+      placeholder: |
+        Please provide 2-3 examples of how endpoints are typically defined in this framework
+      render: code
+    validations:
+      required: true
+
+  - type: textarea
+    id: documentation
+    attributes:
+      label: Framework Documentation
+      description: Links to relevant documentation about routing/endpoints
+      placeholder: |
+        - Official docs: https://...
+        - Routing guide: https://...
+    validations:
+      required: false
+
+  - type: textarea
+    id: additional-context
+    attributes:
+      label: Additional Context
+      description: Any other information that might help with implementation
+    validations:
+      required: false

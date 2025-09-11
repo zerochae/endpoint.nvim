@@ -1,0 +1,5 @@
+/scripts
+.tests
+trg/
+dist
+.DS_Store

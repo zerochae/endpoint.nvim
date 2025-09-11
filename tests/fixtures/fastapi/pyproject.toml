@@ -1,0 +1,5 @@
+[project]
+name = "fastapi-test-project"
+dependencies = [
+    "fastapi==0.116.1",
+]

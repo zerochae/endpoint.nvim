@@ -1,0 +1,434 @@
+*endpoint.txt*     A Telescope picker for API endpoints
+*endpoint* *endpoint.nvim*
+
+    ███████╗███╗   ██╗██████╗ ██████╗  ██████╗ ██╗███╗   ██╗████████╗
+    ██╔════╝████╗  ██║██╔══██╗██╔══██╗██╔═══██╗██║████╗  ██║╚══██╔══╝
+    █████╗  ██╔██╗ ██║██║  ██║██████╔╝██║   ██║██║██╔██╗ ██║   ██║   
+    ██╔══╝  ██║╚██╗██║██║  ██║██╔═══╝ ██║   ██║██║██║╚██╗██║   ██║   
+    ███████╗██║ ╚████║██████╔╝██║     ╚██████╔╝██║██║ ╚████║   ██║   
+    ╚══════╝╚═╝  ╚═══╝╚═════╝ ╚═╝      ╚═════╝ ╚═╝╚═╝  ╚═══╝   ╚═╝   
+                                                                     
+Author:   zerochae <https://github.com/zerochae>
+Repo:     https://github.com/zerochae/endpoint.nvim
+License:  MIT
+
+==============================================================================
+CONTENTS                                                  *endpoint-toc*
+
+    1. Introduction ................................ |endpoint-intro|
+    2. Requirements ................................ |endpoint-requirements|
+    3. Installation ................................ |endpoint-installation|
+    4. Setup ....................................... |endpoint-setup|
+    5. Usage ....................................... |endpoint-usage|
+    6. Commands .................................... |endpoint-commands|
+    7. Telescope Extension ......................... |endpoint-extension|
+    8. Configuration ............................... |endpoint-config|
+    9. UI Customization ............................ |endpoint-ui|
+    10. Caching .................................... |endpoint-caching|
+    11. Advanced Features .......................... |endpoint-advanced|
+    12. Troubleshooting ............................ |endpoint-troubleshooting|
+
+==============================================================================
+1. INTRODUCTION                                       *endpoint-intro*
+
+endpoint.nvim is a powerful Telescope picker for quickly finding and 
+navigating API endpoints across multiple web frameworks. It provides fast endpoint 
+discovery with customizable UI and smart caching capabilities.
+
+Supported Frameworks:~
+  • Spring Boot (Java) - @GetMapping, @PostMapping, etc.
+  • NestJS (TypeScript) - @Get(), @Post(), etc.
+  • Express (JavaScript/TypeScript) - app.get(), router.post(), etc.
+
+Features:~
+  • 🔍 Fast endpoint discovery by HTTP method or all endpoints
+  • 🎨 Customizable icons, colors, and display options  
+  • ⚡ Smart caching with persistent disk storage option
+  • 🌳 Interactive cache browser with direct navigation
+  • 📍 Precise navigation to exact annotation line with highlighting
+  • 🌈 Syntax highlighting in preview window
+  • 🔧 Easy setup with automatic framework detection
+
+==============================================================================
+2. REQUIREMENTS                                 *endpoint-requirements*
+
+  • Neovim >= 0.8.0
+  • telescope.nvim (https://github.com/nvim-telescope/telescope.nvim)
+  • ripgrep (https://github.com/BurntSushi/ripgrep) for fast searching
+
+==============================================================================
+3. INSTALLATION                                 *endpoint-installation*
+
+lazy.nvim:~
+>lua
+    {
+      "zerochae/endpoint.nvim",
+      dependencies = { "nvim-telescope/telescope.nvim" },
+      cmd = { "Endpoint" },
+      config = function()
+        require("endpoint").setup()
+      end,
+    }
+<
+
+packer.nvim:~
+>lua
+    use {
+      "zerochae/endpoint.nvim", 
+      requires = { "nvim-telescope/telescope.nvim" },
+      config = function()
+        require("endpoint").setup()
+      end,
+    }
+<
+
+==============================================================================
+4. SETUP                                             *endpoint-setup*
+
+                                                              *endpoint.setup()*
+endpoint.setup({config})
+    Configure endpoint.nvim with custom options.
+
+    IMPORTANT: You MUST call `require("endpoint").setup()` for the plugin to work
+    properly. The plugin will not function with just lazy loading options.
+
+    Parameters: ~
+        {config} (table) Optional configuration table
+
+    Usage: ~
+>lua
+        require("endpoint").setup({
+          cache_ttl = 5000,
+          cache_mode = "persistent",
+          ui = {
+            show_icons = true,
+            show_method = true,
+          },
+        })
+<
+
+==============================================================================
+5. USAGE                                             *endpoint-usage*
+
+The plugin provides a unified interface to access API endpoints across 
+different web frameworks:
+
+Main Commands:~
+    :Endpoint              " Find all endpoints (default behavior)
+    :Endpoint Get          " Find all GET endpoints
+    :Endpoint Post         " Find all POST endpoints  
+    :Endpoint Put          " Find all PUT endpoints
+    :Endpoint Delete       " Find all DELETE endpoints
+    :Endpoint Patch        " Find all PATCH endpoints
+    :Endpoint All          " Find all endpoints (explicit)
+
+Cache Management:~
+    :Endpoint ClearCache   " Clear all cached data
+    :Endpoint CacheStatus  " Show interactive cache browser
+
+==============================================================================
+6. COMMANDS                                       *endpoint-commands*
+
+                                                                      *:Endpoint*
+:Endpoint [{method}]
+    Main command for endpoint discovery. Defaults to showing all endpoints.
+    
+    Parameters:~
+        {method}  Optional HTTP method: Get, Post, Put, Delete, Patch, All, 
+                  ClearCache, or CacheStatus. Defaults to All if not specified.
+    
+    Examples:~
+        :Endpoint          " Find all endpoints (default)
+        :Endpoint Get      " Find GET endpoints only
+        :Endpoint Post     " Find POST endpoints only
+        :Endpoint ClearCache    " Clear endpoint cache
+        :Endpoint CacheStatus   " Open interactive cache browser
+
+==============================================================================
+7. CACHE STATUS UI                                *endpoint-cache-status*
+
+The cache status UI provides an interactive way to browse and navigate your 
+cached endpoints:
+
+Features:~
+  • 📊 Detailed cache statistics and project information
+  • 🌳 Tree view of all cached endpoints organized by directory
+  • 🔗 Direct navigation: press <Enter> on any endpoint to jump to its location
+  • ⚡ Real-time cache management (refresh, clear, save)
+  • 📍 Precise cursor positioning with line highlighting
+
+Navigation:~
+    <Enter>  Navigate to file/endpoint under cursor
+    <C-r>    Refresh cache status
+    <C-c>    Clear all cache
+    <C-s>    Save cache (persistent mode)
+    q        Close window
+
+Access:~
+    :Endpoint CacheStatus
+
+==============================================================================
+8. CONFIGURATION                                   *endpoint-config*
+
+Default Configuration:~
+>lua
+    require("endpoint").setup({
+      cache_mode = "persistent",                -- Cache mode: "session" or "persistent" (default)
+      debug = false,                            -- Enable debug logging
+      framework = "auto",                       -- Auto-detect or specify: "spring", "nestjs", "express"
+      
+      ui = {
+        show_icons = false,                     -- Show method icons
+        show_method = true,                     -- Show method text
+        use_nerd_font = false,                  -- Use nerd font icons instead of emojis
+        
+        method_colors = {
+          GET = "TelescopeResultsNumber",
+          POST = "TelescopeResultsConstant",
+          PUT = "TelescopeResultsKeyword", 
+          DELETE = "TelescopeResultsSpecialChar",
+          PATCH = "TelescopeResultsFunction",
+        },
+        
+        -- Cache status window configuration
+        cache_status_window = {
+          width = 80,                           -- Window width (number or "max")
+          height = "auto",                      -- Window height ("auto", "max", or number)
+          center_align = false,                 -- Center align content
+        },
+      },
+    })
+<
+
+Configuration Options:~
+
+    cache_mode (string): Cache behavior mode. Options:
+        "session"   - Cache valid until nvim closes
+        "persistent" - Cache saved to disk, persists across sessions (default)
+    
+    debug (boolean): Enable debug logging for troubleshooting.
+        Default: false
+    
+    file_patterns (table): Glob patterns for files to search.
+        Default: { "**/*.java" }
+    
+    exclude_patterns (table): Patterns to exclude from search.
+        Default: { "**/target/**", "**/build/**" }
+
+==============================================================================
+9. UI CUSTOMIZATION                                   *endpoint-ui*
+
+The plugin offers flexible UI customization through the `ui` configuration
+table:
+
+Display Options:~
+>lua
+    -- Option 1: Icons only
+    ui = {
+      show_icons = true,
+      show_method = false,
+    }
+    -- Result: 📥 /api/users
+    
+    -- Option 2: Method text only (default)  
+    ui = {
+      show_icons = false,
+      show_method = true,
+    }
+    -- Result: GET /api/users
+    
+    -- Option 3: Both icons and method text
+    ui = {
+      show_icons = true, 
+      show_method = true,
+    }
+    -- Result: 📥 GET /api/users
+    
+    -- Option 4: Minimal (path only)
+    ui = {
+      show_icons = false,
+      show_method = false,
+    }
+    -- Result: /api/users
+<
+
+Color Customization:~
+>lua
+    ui = {
+      method_colors = {
+        GET = "DiagnosticOk",      -- Green
+        POST = "DiagnosticInfo",    -- Blue
+        PUT = "DiagnosticWarn",     -- Yellow
+        DELETE = "DiagnosticError", -- Red
+        PATCH = "DiagnosticHint",   -- Purple
+      },
+    }
+<
+
+Icon Themes:~
+>lua
+    method_icons = {
+      GET    = "📥",  -- Inbox (receiving data)
+      POST   = "📤",  -- Outbox (sending data)  
+      PUT    = "✏️",   -- Pencil (editing)
+      DELETE = "🗑️",  -- Trash (deleting)
+      PATCH  = "🔧",  -- Wrench (fixing/patching)
+    }
+    
+    method_icons = {
+      GET    = "▼",   -- Down arrow
+      POST   = "▲",   -- Up arrow
+      PUT    = "◆",   -- Diamond
+      DELETE = "✖",   -- X mark  
+      PATCH  = "◉",   -- Circle with dot
+    }
+<
+
+==============================================================================
+10. CACHING                                        *endpoint-caching*
+
+The plugin includes an intelligent caching system with two modes:
+
+Cache Modes:~
+        
+    "session" mode: 
+        Cache remains valid until Neovim is closed.
+        Useful for development when endpoints change frequently.
+        
+    "persistent" mode (default):
+        Cache is saved to disk and persists across nvim sessions.
+        Provides maximum performance for large projects.
+
+Basic Configuration:~
+>lua
+    {
+      cache_mode = "session",  -- Cache until nvim closes
+    }
+    
+    {
+      cache_mode = "persistent", -- Disk-persistent cache (default)
+      debug = false,           -- Enable for troubleshooting
+    }
+<
+
+                                              *endpoint-persistent-cache*
+Persistent Cache Mode:~
+
+The persistent cache mode offers the best performance for large projects:
+
+Features:
+  • 📁 Project-specific caching: Each project gets its own cache directory
+  • 💾 Disk storage: Cache survives nvim restarts and system reboots
+  • 🚀 Instant loading: No re-scanning on subsequent launches  
+  • 🔄 Smart invalidation: Detects when annotations need re-scanning
+  • 🗂️ Cache location: `~/.local/share/nvim/endpoint/[project-name]/`
+
+Cache Management Commands:~
+    :EndpointClearCache     Clear all cache files for current project
+    :EndpointCacheStatus    Show detailed cache information
+    
+    :Endpoint ClearCache    Same as :EndpointClearCache  
+    :Endpoint CacheStatus   Same as :EndpointCacheStatus
+
+Cache Files Structure:~
+>
+    ~/.local/share/nvim/endpoint/my-project/
+    ├── find_cache.lua    " Endpoint data (paths, methods, locations)
+    └── metadata.lua      " Scan history and project metadata
+<
+
+When to use persistent mode:
+  ✅ Large Spring Boot projects with many controllers
+  ✅ Frequent nvim restarts during development
+  ✅ Want maximum performance after initial scan
+  ❌ Small projects (overhead not worth it)
+  ❌ Controllers change very frequently
+
+The cache automatically invalidates when:
+  • Neovim is restarted (in "session" mode)
+  • Annotations are modified (in "persistent" mode)
+  • Plugin is reloaded
+
+==============================================================================
+11. ADVANCED FEATURES                            *endpoint-advanced*
+
+Custom File Patterns:~
+>lua
+    {
+      file_patterns = { 
+        "**/*.java", 
+        "**/*.kt"     -- Include Kotlin files
+      },
+      exclude_patterns = { 
+        "**/target/**", 
+        "**/build/**",
+        "**/node_modules/**",
+        "**/test/**"  -- Exclude test directories
+      },
+    }
+<
+
+Additional Ripgrep Arguments:~
+>lua
+    {
+      rg_additional_args = "--hidden --no-ignore"
+    }
+<
+
+Method-Specific Configuration:~
+>lua
+    {
+      get = {
+        prompt_title = "🔍 Find GET Endpoints",
+        -- Additional telescope options for GET
+      },
+      post = {
+        prompt_title = "📤 Find POST Endpoints", 
+      },
+    }
+<
+
+==============================================================================
+12. TROUBLESHOOTING                        *endpoint-troubleshooting*
+
+Common Issues:~
+
+Q: Plugin doesn't work after installation
+A: Make sure you called `require("endpoint").setup()` in your config function.
+   The plugin requires explicit setup to function properly.
+
+Q: No endpoints found
+A: Check that:
+   • You're in a Java/Spring Boot project
+   • Java files contain @RequestMapping, @GetMapping, etc. annotations
+   • `file_patterns` includes the correct file types
+   • `exclude_patterns` isn't excluding your source files
+
+Q: Cache not working as expected  
+A: Verify your `cache_mode` and `cache_ttl` settings:
+   • Use "session" mode for temporary cache or "persistent" for disk-saved cache
+   • "session" mode: cache persists until nvim closes  
+   • "persistent" mode: cache saved to disk, check :EndpointCacheStatus
+
+Q: Persistent cache showing incomplete results
+A: Enable debug mode to troubleshoot:
+   • Set `debug = true` in setup configuration
+   • Use :EndpointCacheStatus to check cache state
+   • Try :EndpointClearCache and re-scan if needed
+
+Q: Icons not displaying
+A: Ensure:
+   • `show_icons = true` in ui configuration
+   • Your terminal/font supports the configured emoji icons
+   • Try different icon themes if needed
+
+Q: Colors not working
+A: Check that the highlight groups in `method_colors` exist in your colorscheme.
+   Use `:highlight` command to verify available groups.
+
+Debug Information:~
+    Check if setup was called: `echo g:spring_setup_called`
+    View current config: `lua print(vim.inspect(require("endpoint").get_config()))`
+
+==============================================================================
+vim:tw=78:ts=8:ft=help:norl:
