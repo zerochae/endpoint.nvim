@@ -96,7 +96,7 @@ M.show_cache_status = function()
     local default_config = require "endpoint.core.config"
     cache_config = {
       cache_ttl = default_config.cache_ttl or 5000,
-      cache_mode = default_config.cache_mode or "session",
+      cache_mode = default_config.cache_mode or "none",
     }
   end
 
@@ -138,7 +138,7 @@ M.show_cache_status = function()
   vim.list_extend(lines, create_section_header("Project Information", "📁"))
   table.insert(lines, "│ Project Name:     " .. project_name)
   table.insert(lines, "│ Project Root:     " .. project_root)
-  table.insert(lines, "│ Cache Mode:       " .. (cache_config.cache_mode or "session") .. " mode")
+  table.insert(lines, "│ Cache Mode:       " .. (cache_config.cache_mode or "none") .. " mode")
 
   table.insert(lines, "│ Configuration:    Global setup() only")
 

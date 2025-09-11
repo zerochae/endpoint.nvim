@@ -65,6 +65,11 @@ end
 
 -- Get endpoints using cache
 function M.get_endpoints(method, config)
+  -- If cache mode is "none", always generate fresh results
+  if config and config.cache_mode == "none" then
+    return M.create_endpoint_table(method, config)
+  end
+
   local cache_key = method
 
   -- Try to get from cache first
@@ -76,7 +81,7 @@ function M.get_endpoints(method, config)
   -- Generate new results
   local results = M.create_endpoint_table(method, config)
 
-  -- Cache the results
+  -- Cache the results (skip for "none" mode)
   cache.set_cached_results(cache_key, results, config)
 
   return results
