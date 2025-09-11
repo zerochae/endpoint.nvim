@@ -1,7 +1,7 @@
 return {
   file_patterns = { "**/*.rb" },
   exclude_patterns = {"**/tmp/**", "**/log/**", "**/vendor/**"},
-  detection_files = { "Gemfile", "config/application.rb" },
+  detection_files = { "Gemfile", "config/routes.rb" },
   
   -- Rails display mode: "native" shows Rails method names (show, index, etc), 
   -- "restful" shows HTTP methods (GET, POST, etc)
