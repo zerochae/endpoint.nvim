@@ -8,8 +8,14 @@ local M = {
   framework_paths = {}, -- Path-specific framework overrides: { ["/path/to/project"] = "spring" }
   
   -- Framework-specific configurations
-  rails = {
-    display_mode = "native", -- "native" (show Rails method names: index, show, etc) or "restful" (show HTTP methods: GET, POST, etc)
+  frameworks_config = {
+    rails = {
+      display_mode = "native", -- "native" (show Rails method names: index, show, etc) or "restful" (show HTTP methods: GET, POST, etc)
+    },
+    -- Future framework configs can go here:
+    -- spring = {},
+    -- nestjs = {},
+    -- django = {},
   },
 
   -- Cache mode configuration

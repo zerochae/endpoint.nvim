@@ -80,7 +80,7 @@ function M:get_display_method(content, method)
 
   -- Get display_mode from core config, fallback to rails_config
   local core_config = require("endpoint.core").get_config()
-  local display_mode = (core_config.rails and core_config.rails.display_mode) or rails_config.display_mode or "native"
+  local display_mode = (core_config.frameworks_config and core_config.frameworks_config.rails and core_config.frameworks_config.rails.display_mode) or rails_config.display_mode or "native"
   
   if display_mode == "native" then
     return rails_method
