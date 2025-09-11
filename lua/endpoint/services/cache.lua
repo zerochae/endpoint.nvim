@@ -134,9 +134,36 @@ M.clear_tables = function()
   cache_timestamp = {}
   access_order = {}
   endpoint_cache = {}
+  temp_find_table = {}
+  temp_preview_table = {}
+end
+
+-- Clear temp table for real-time mode
+M.clear_temp_table = function()
+  temp_find_table = {}
+  temp_preview_table = {}
+  debug_log("clear_temp_table: temp tables cleared")
+end
+
+-- Ensure temp_find_table is initialized
+local function ensure_temp_table_initialized()
+  if not temp_find_table then
+    temp_find_table = {}
+  end
 end
 
 M.get_find_table = function()
+  -- Check cache mode - if "none", return temp table
+  local cache_config = get_cache_config()
+  if cache_config.mode == "none" then
+    -- Ensure temp_find_table is initialized
+    if not temp_find_table then
+      temp_find_table = {}
+    end
+    debug_log("get_find_table: cache_mode is none, returning temp table with entries: " .. tostring(vim.tbl_count(temp_find_table)))
+    return temp_find_table
+  end
+  
   ensure_cache_initialized()
   -- Track access for potential cleanup
   track_access("find_table", "global_access")
@@ -145,6 +172,17 @@ M.get_find_table = function()
 end
 
 M.get_preview_table = function()
+  -- Check cache mode - if "none", return temp preview table
+  local cache_config = get_cache_config()
+  if cache_config.mode == "none" then
+    -- Ensure temp_preview_table is initialized
+    if not temp_preview_table then
+      temp_preview_table = {}
+    end
+    debug_log("get_preview_table: cache_mode is none, returning temp preview table with entries: " .. tostring(vim.tbl_count(temp_preview_table)))
+    return temp_preview_table
+  end
+  
   -- Track access for potential cleanup
   track_access("preview_table", "global_access")
   return preview_table
@@ -208,6 +246,24 @@ M.should_use_cache = function(key)
 end
 
 M.create_find_table_entry = function(path, annotation)
+  local cache_config = get_cache_config()
+  
+  if cache_config.mode == "none" then
+    debug_log("create_find_table_entry: cache_mode is none, using temp table")
+    -- Ensure temp_find_table is initialized
+    if not temp_find_table then
+      temp_find_table = {}
+    end
+    -- Use temp table for real-time mode
+    if not temp_find_table[path] then
+      temp_find_table[path] = {}
+    end
+    if not temp_find_table[path][annotation] then
+      temp_find_table[path][annotation] = {}
+    end
+    return
+  end
+  
   if not find_table[path] then
     find_table[path] = {}
   end
@@ -221,6 +277,22 @@ M.create_find_table_entry = function(path, annotation)
 end
 
 M.insert_to_find_table = function(opts)
+  local cache_config = get_cache_config()
+  
+  if cache_config.mode == "none" then
+    debug_log("insert_to_find_table: cache_mode is none, using temp table")
+    -- Ensure temp_find_table is initialized
+    if not temp_find_table then
+      temp_find_table = {}
+    end
+    -- Use temp table for real-time mode
+    table.insert(
+      temp_find_table[opts.path][opts.annotation],
+      { value = opts.value, line_number = opts.line_number, column = opts.column }
+    )
+    return
+  end
+  
   table.insert(
     find_table[opts.path][opts.annotation],
     { value = opts.value, line_number = opts.line_number, column = opts.column }
@@ -228,10 +300,40 @@ M.insert_to_find_table = function(opts)
 end
 
 M.insert_to_find_request_table = function(opts)
+  local cache_config = get_cache_config()
+  
+  if cache_config.mode == "none" then
+    debug_log("insert_to_find_request_table: cache_mode is none, using temp table")
+    -- Ensure temp_find_table is initialized
+    if not temp_find_table then
+      temp_find_table = {}
+    end
+    -- Use temp table for real-time mode
+    temp_find_table[opts.path][opts.annotation] = { value = opts.value, line_number = opts.line_number, column = opts.column }
+    return
+  end
+  
   find_table[opts.path][opts.annotation] = { value = opts.value, line_number = opts.line_number, column = opts.column }
 end
 
 M.create_preview_entry = function(endpoint, path, line_number, column)
+  local cache_config = get_cache_config()
+  
+  if cache_config.mode == "none" then
+    debug_log("create_preview_entry: cache_mode is none, using temp preview table")
+    -- Ensure temp_preview_table is initialized
+    if not temp_preview_table then
+      temp_preview_table = {}
+    end
+    -- Use temp table for real-time mode
+    temp_preview_table[endpoint] = {
+      path = path,
+      line_number = line_number,
+      column = column,
+    }
+    return
+  end
+  
   preview_table[endpoint] = {
     path = path,
     line_number = line_number,
@@ -446,6 +548,10 @@ end
 
 -- New unified cache interface for endpoint results
 local endpoint_cache = {}
+
+-- Temporary storage for real-time mode
+local temp_find_table = {}
+local temp_preview_table = {}
 
 M.get_cached_results = function(cache_key, config)
   -- If cache mode is "none", never return cached results
