@@ -1,53 +1,40 @@
 return {
   file_patterns = { "**/*.rb" },
   exclude_patterns = {"**/tmp/**", "**/log/**", "**/vendor/**"},
-  detection_files = { "Gemfile", "config/routes.rb", "config/application.rb" },
+  detection_files = { "Gemfile", "config/application.rb" },
+  
+  -- Rails display mode: "native" shows Rails method names (show, index, etc), 
+  -- "restful" shows HTTP methods (GET, POST, etc)
+  display_mode = "native", -- or "restful"
+  
+  -- Simple controller method patterns - no routes.rb confusion
   patterns = {
     get = { 
-      "def\\s+(show|index|new|edit)",
-      "# GET\\s+/",
-      "get\\s+['\"]",
-      "resources\\s+:", 
-      "resource\\s+:",
-      "@route.*GET",
-      "@method.*GET",
-      "@summary.*Get",
-      "@summary.*Show"
+      "def\\s+(show|index|new|edit)"
     },
     post = { 
-      "def\\s+create",
-      "# POST\\s+/",
-      "post\\s+['\"]",
-      "resources\\s+:", 
-      "@route.*POST", 
-      "@method.*POST",
-      "@request_body",
-      "@summary.*Create"
+      "def\\s+create"
     },
     put = { 
-      "def\\s+update",
-      "# PUT\\s+/",
-      "put\\s+['\"]",
-      "resources\\s+:", 
-      "@route.*PUT",
-      "@method.*PUT"
+      "def\\s+update"
     },
     delete = { 
-      "def\\s+destroy",
-      "# DELETE\\s+/",
-      "delete\\s+['\"]", 
-      "resources\\s+:", 
-      "@route.*DELETE",
-      "@method.*DELETE"
+      "def\\s+destroy"
     },
     patch = { 
-      "def\\s+update",
-      "# PATCH\\s+/",
-      "patch\\s+['\"]",
-      "resources\\s+:", 
-      "@route.*PATCH",
-      "@method.*PATCH"
+      "def\\s+update"
     },
+  },
+  
+  -- Rails method to HTTP method mapping
+  rails_methods = {
+    index = "GET",
+    show = "GET", 
+    new = "GET",
+    edit = "GET",
+    create = "POST",
+    update = { "PUT", "PATCH" },
+    destroy = "DELETE"
   },
   -- Rails specific configuration
   controller_patterns = {

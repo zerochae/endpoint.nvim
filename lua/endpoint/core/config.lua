@@ -6,6 +6,11 @@ local M = {
   -- Framework detection
   framework = "auto", -- "auto" for auto-detection, or specify: "spring", "nestjs", "django", "rails", "express"
   framework_paths = {}, -- Path-specific framework overrides: { ["/path/to/project"] = "spring" }
+  
+  -- Framework-specific configurations
+  rails = {
+    display_mode = "native", -- "native" (show Rails method names: index, show, etc) or "restful" (show HTTP methods: GET, POST, etc)
+  },
 
   -- Cache mode configuration
   cache_mode_paths = {}, -- Path-specific cache mode overrides: { ["/path/to/project"] = "persistent" }
