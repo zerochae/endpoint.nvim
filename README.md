@@ -7,11 +7,11 @@ A powerful Neovim plugin for quickly finding and navigating web framework API en
 - 🐦 NestJS (TypeScript/JavaScript)
 - 🎼 Symfony (PHP)
 - ⚡ FastAPI (Python)
-- 💎 Rails (Ruby) - In Development
+- 💎 Rails (Ruby) - ⚠️ Experimental (basic support added but may be incomplete)
 
 ## ✨ Features
 
-- 🔍 **Multi-Framework Support**: Automatically detects and supports Spring Boot, NestJS, Symfony, and FastAPI
+- 🔍 **Multi-Framework Support**: Automatically detects and supports Spring Boot, NestJS, Symfony, FastAPI, and Rails (experimental)
 - 🎯 **Multiple Picker Interfaces**: Choose between Telescope, vim.ui.select, or Snacks.nvim pickers (Snacks picker in development)
 - ⚡ **Smart Caching**: Three cache modes - none (real-time), session, and persistent disk storage
 - 📍 **Precise Navigation**: Jump directly to the exact line where endpoints are defined
@@ -466,7 +466,7 @@ The plugin uses these files to detect your framework:
 - **NestJS**: `package.json` (with @nestjs dependencies), `nest-cli.json`
 - **Symfony**: `composer.json` (with symfony framework), `symfony.lock`
 - **FastAPI**: `main.py`, `requirements.txt` (with FastAPI)
-- **Rails**: `Gemfile` (with Rails gem) - *In Development*
+- **Rails**: `Gemfile` (with Rails gem) - *⚠️ Experimental support*
 
 ## 📄 License
 
