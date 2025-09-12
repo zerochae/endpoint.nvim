@@ -1,3 +1,4 @@
+---@class endpoint.TelescopePicker
 -- Telescope Picker Implementation (Function-based)
 local M = {}
 
@@ -59,6 +60,8 @@ function M.show(endpoints, opts)
             local endpoint = selection.value
             vim.cmd("edit " .. endpoint.file_path)
             vim.api.nvim_win_set_cursor(0, { endpoint.line_number, endpoint.column - 1 })
+            -- Center the line in the window
+            vim.cmd("normal! zz")
           end
         end)
         return true
@@ -106,12 +109,21 @@ function M.create_endpoint_previewer()
             )
           end
 
-          -- Set cursor to the endpoint line
+          -- Set cursor to the endpoint line and center it
           if self.state.winid and vim.api.nvim_win_is_valid(self.state.winid) then
-            vim.api.nvim_win_set_cursor(self.state.winid, {
-              endpoint.line_number or 1,
-              math.max(0, (endpoint.column or 1) - 1),
-            })
+            local target_line = endpoint.line_number or 1
+            local target_col = math.max(0, (endpoint.column or 1) - 1)
+            
+            vim.api.nvim_win_set_cursor(self.state.winid, { target_line, target_col })
+            
+            -- Center the line in the window
+            vim.defer_fn(function()
+              if vim.api.nvim_win_is_valid(self.state.winid) then
+                vim.api.nvim_win_call(self.state.winid, function()
+                  vim.cmd("normal! zz")
+                end)
+              end
+            end, 10)
           end
         end,
       })

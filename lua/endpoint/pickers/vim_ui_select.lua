@@ -1,3 +1,4 @@
+---@class endpoint.VimUISelectPicker
 -- Vim UI Select Picker Implementation (Function-based)
 local M = {}
 
@@ -24,6 +25,8 @@ function M.show(endpoints, opts)
     if choice then
       vim.cmd("edit " .. choice.file_path)
       vim.api.nvim_win_set_cursor(0, { choice.line_number, choice.column - 1 })
+      -- Center the line in the window
+      vim.cmd("normal! zz")
     end
   end)
 end
