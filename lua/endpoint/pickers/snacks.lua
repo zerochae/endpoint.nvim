@@ -26,7 +26,8 @@ function M.show(endpoints, opts)
   local items = {}
   for _, endpoint in ipairs(endpoints) do
     table.insert(items, {
-      text = endpoint.display_value,
+      -- Use display_value if available (for Rails action annotations), otherwise use default format
+      text = endpoint.display_value or (endpoint.method .. " " .. endpoint.endpoint_path),
       file = endpoint.file_path,
       line = endpoint.line_number,
       col = endpoint.column,

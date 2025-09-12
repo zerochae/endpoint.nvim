@@ -104,7 +104,8 @@ function M.parse_line(line, method)
     column = tonumber(column),
     method = endpoint_info.method,
     endpoint_path = endpoint_info.path,
-    display_value = endpoint_info.method .. " " .. endpoint_info.path,
+    action = endpoint_info.action,
+    display_value = M.format_display_value(endpoint_info, file_path),
   }
 end
 
@@ -163,6 +164,7 @@ function M.extract_controller_action(content, file_path, _)
   return {
     method = method,
     path = path,
+    action = action,
   }
 end
 
@@ -173,7 +175,8 @@ function M.extract_route_definition(content, file_path, line_number)
   local route_method, route_path = content:match "(%w+)%s+['\"]([^'\"]+)['\"]"
   if route_method and route_path then
     -- Only accept valid HTTP verbs
-    local valid_methods = { get = true, post = true, put = true, delete = true, patch = true, head = true, options = true }
+    local valid_methods =
+      { get = true, post = true, put = true, delete = true, patch = true, head = true, options = true }
     if valid_methods[route_method:lower()] then
       return {
         method = route_method:upper(),
@@ -184,9 +187,19 @@ function M.extract_route_definition(content, file_path, line_number)
 
   -- Handle root route: root 'controller#action' or root to: 'controller#action'
   if content:match "root%s+" then
+    -- Try to extract controller#action pattern for root routes
+    local controller_action = content:match "root%s+['\"]([^'\"]+)['\"]" or content:match "root%s+to:%s+['\"]([^'\"]+)['\"]"
+    local action = "root" -- Default action name for root routes
+    
+    if controller_action and controller_action:match "#" then
+      -- Extract action from controller#action pattern
+      action = controller_action:match "#(%w+)" or "root"
+    end
+    
     return {
       method = "GET",
       path = "/",
+      action = action,
     }
   end
 
@@ -209,6 +222,7 @@ function M.extract_route_definition(content, file_path, line_number)
       return {
         method = action_method:upper(),
         path = path,
+        action = action_name,
       }
     end
   end
@@ -446,6 +460,23 @@ function M.is_in_collection_block(file_path, line_number)
   end
 
   return false
+end
+
+-- Format display value with Rails action annotation
+function M.format_display_value(endpoint_info, file_path)
+  -- Add Rails action annotation for controller actions and special routes.rb entries
+  if endpoint_info.action then
+    if file_path:match "controller" then
+      -- Controller actions: show action in method brackets
+      return endpoint_info.method .. "[#" .. endpoint_info.action .. "] " .. endpoint_info.path
+    elseif file_path:match "routes%.rb" and endpoint_info.action then
+      -- Special routes.rb entries (like root routes): show action in method brackets
+      return endpoint_info.method .. "[#" .. endpoint_info.action .. "] " .. endpoint_info.path
+    end
+  end
+
+  -- Default format without action
+  return endpoint_info.method .. " " .. endpoint_info.path
 end
 
 return M

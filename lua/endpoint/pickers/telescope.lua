@@ -36,14 +36,32 @@ function M.show(endpoints, opts)
           local method_text = themes.get_method_text(entry.method, config)
           local method_color = themes.get_method_color(entry.method, config)
 
-          local display_text = string.format("%s %s %s", method_icon, method_text, entry.endpoint_path)
+          -- Use display_value if available (for Rails action annotations), otherwise use default format
+          local endpoint_display = entry.display_value or (entry.method .. " " .. entry.endpoint_path)
+          local display_text = string.format("%s %s", method_icon, endpoint_display)
+
+          -- Calculate highlight length for Rails action annotations
+          local highlight_length
+          if entry.action and entry.display_value and entry.display_value:match("%[#.-%]") then
+            -- Rails action annotation: highlight the entire "GET[#action]" part
+            local method_with_action = entry.display_value:match("^([^%s]+)")
+            if method_with_action then
+              highlight_length = #method_icon + #method_with_action + 1
+            else
+              highlight_length = #method_icon + #method_text + 1
+            end
+          else
+            -- Default: just highlight the method
+            highlight_length = #method_icon + #method_text + 1
+          end
 
           return {
             value = entry,
             display = function(_)
-              return display_text, { { { 0, #method_icon + #method_text + 1 }, method_color } }
+              return display_text, { { { 0, highlight_length }, method_color } }
             end,
-            ordinal = entry.endpoint_path .. " " .. entry.method,
+            -- Include action name in search ordinal for Rails action annotations
+            ordinal = entry.endpoint_path .. " " .. entry.method .. (entry.action and (" " .. entry.action) or ""),
             filename = entry.file_path,
             lnum = entry.line_number,
             col = entry.column,
@@ -61,7 +79,7 @@ function M.show(endpoints, opts)
             vim.cmd("edit " .. endpoint.file_path)
             vim.api.nvim_win_set_cursor(0, { endpoint.line_number, endpoint.column - 1 })
             -- Center the line in the window
-            vim.cmd("normal! zz")
+            vim.cmd "normal! zz"
           end
         end)
         return true
@@ -113,14 +131,14 @@ function M.create_endpoint_previewer()
           if self.state.winid and vim.api.nvim_win_is_valid(self.state.winid) then
             local target_line = endpoint.line_number or 1
             local target_col = math.max(0, (endpoint.column or 1) - 1)
-            
+
             vim.api.nvim_win_set_cursor(self.state.winid, { target_line, target_col })
-            
+
             -- Center the line in the window
             vim.defer_fn(function()
               if vim.api.nvim_win_is_valid(self.state.winid) then
                 vim.api.nvim_win_call(self.state.winid, function()
-                  vim.cmd("normal! zz")
+                  vim.cmd "normal! zz"
                 end)
               end
             end, 10)
@@ -132,4 +150,3 @@ function M.create_endpoint_previewer()
 end
 
 return M
-

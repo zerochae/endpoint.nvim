@@ -34,37 +34,37 @@ describe("Rails framework", function()
 
   describe("search command generation", function()
     it("should generate correct search command for GET method", function()
-      local cmd = rails.get_search_cmd("GET")
+      local cmd = rails.get_search_cmd "GET"
       assert.is_string(cmd)
-      assert.is_not_nil(cmd:match("rg"))
-      assert.is_not_nil(cmd:match("def index"))
-      assert.is_not_nil(cmd:match("def show"))
-      assert.is_not_nil(cmd:match("get "))
+      assert.is_not_nil(cmd:match "rg")
+      assert.is_not_nil(cmd:match "def index")
+      assert.is_not_nil(cmd:match "def show")
+      assert.is_not_nil(cmd:match "get ")
     end)
 
     it("should generate correct search command for POST method", function()
-      local cmd = rails.get_search_cmd("POST")
+      local cmd = rails.get_search_cmd "POST"
       assert.is_string(cmd)
-      assert.is_not_nil(cmd:match("def create"))
-      assert.is_not_nil(cmd:match("post "))
+      assert.is_not_nil(cmd:match "def create")
+      assert.is_not_nil(cmd:match "post ")
     end)
 
     it("should generate correct search command for ALL methods", function()
-      local cmd = rails.get_search_cmd("ALL")
+      local cmd = rails.get_search_cmd "ALL"
       assert.is_string(cmd)
-      assert.is_not_nil(cmd:match("def index"))
-      assert.is_not_nil(cmd:match("def create"))
-      assert.is_not_nil(cmd:match("def update"))
-      assert.is_not_nil(cmd:match("get "))
-      assert.is_not_nil(cmd:match("post "))
+      assert.is_not_nil(cmd:match "def index")
+      assert.is_not_nil(cmd:match "def create")
+      assert.is_not_nil(cmd:match "def update")
+      assert.is_not_nil(cmd:match "get ")
+      assert.is_not_nil(cmd:match "post ")
     end)
 
     it("should include proper file globs", function()
-      local cmd = rails.get_search_cmd("GET")
-      assert.is_not_nil(cmd:match("%-%-glob '%*%*/%*%.rb'"))
-      assert.is_not_nil(cmd:match("%-%-glob '!%*%*/vendor/%*%*'"))
-      assert.is_not_nil(cmd:match("%-%-glob '!%*%*/log/%*%*'"))
-      assert.is_not_nil(cmd:match("%-%-glob '!%*%*/tmp/%*%*'"))
+      local cmd = rails.get_search_cmd "GET"
+      assert.is_not_nil(cmd:match "%-%-glob '%*%*/%*%.rb'")
+      assert.is_not_nil(cmd:match "%-%-glob '!%*%*/vendor/%*%*'")
+      assert.is_not_nil(cmd:match "%-%-glob '!%*%*/log/%*%*'")
+      assert.is_not_nil(cmd:match "%-%-glob '!%*%*/tmp/%*%*'")
     end)
   end)
 
@@ -72,45 +72,55 @@ describe("Rails framework", function()
     it("should parse controller action lines", function()
       local line = "app/controllers/users_controller.rb:5:3:  def index"
       local result = rails.parse_line(line, "GET")
-      
+
       assert.is_not_nil(result)
-      assert.equals("app/controllers/users_controller.rb", result.file_path)
-      assert.equals(5, result.line_number)
-      assert.equals(3, result.column)
-      assert.equals("GET", result.method)
-      assert.equals("/users", result.endpoint_path)
-      assert.equals("GET /users", result.display_value)
+      assert.equals("app/controllers/users_controller.rb", result and result.file_path)
+      assert.equals(5, result and result.line_number)
+      assert.equals(3, result and result.column)
+      assert.equals("GET", result and result.method)
+      assert.equals("/users", result and result.endpoint_path)
+      assert.equals("GET[#index] /users", result and result.display_value)
     end)
 
     it("should parse API controller action lines", function()
       local line = "app/controllers/api/v1/users_controller.rb:10:3:  def show"
       local result = rails.parse_line(line, "GET")
-      
+
       assert.is_not_nil(result)
-      assert.equals("GET", result.method)
-      assert.equals("/api/v1/users/:id", result.endpoint_path)
+      assert.equals("GET", result and result.method)
+      assert.equals("/api/v1/users/:id", result and result.endpoint_path)
     end)
 
     it("should parse routes.rb lines", function()
       local line = "config/routes.rb:5:3:  get '/health', to: 'health#check'"
       local result = rails.parse_line(line, "ALL")
-      
+
       assert.is_not_nil(result)
-      assert.equals("GET", result.method)
-      assert.equals("/health", result.endpoint_path)
+      assert.equals("GET", result and result.method)
+      assert.equals("/health", result and result.endpoint_path)
+    end)
+
+    it("should parse root routes with action annotation", function()
+      local line = "config/routes.rb:1:3:  root 'home#index'"
+      local result = rails.parse_line(line, "ALL")
+
+      assert.is_not_nil(result)
+      assert.equals("GET", result and result.method)
+      assert.equals("/", result and result.endpoint_path)
+      assert.equals("GET[#index] /", result and result.display_value)
     end)
 
     it("should skip non-controller/routes files", function()
       local line = "app/models/user.rb:5:3:  def index"
       local result = rails.parse_line(line, "GET")
-      
+
       assert.is_nil(result)
     end)
 
     it("should filter by method when specified", function()
       local line = "app/controllers/users_controller.rb:5:3:  def create"
       local result = rails.parse_line(line, "GET")
-      
+
       assert.is_nil(result)
     end)
   end)
@@ -125,17 +135,17 @@ describe("Rails framework", function()
           { "def edit", "GET", "users", "/users/:id/edit" },
           { "def create", "POST", "users", "/users" },
           { "def update", "PATCH", "users", "/users/:id" },
-          { "def destroy", "DELETE", "users", "/users/:id" }
+          { "def destroy", "DELETE", "users", "/users/:id" },
         }
 
         for _, case in ipairs(test_cases) do
           local content, expected_method, controller, expected_path = unpack(case)
           local file_path = "app/controllers/" .. controller .. "_controller.rb"
           local result = rails.extract_controller_action(content, file_path, 1)
-          
-          assert.is_not_nil(result, "Failed for: " .. content)
-          assert.equals(expected_method, result.method, "Method mismatch for: " .. content)
-          assert.equals(expected_path, result.path, "Path mismatch for: " .. content)
+
+          assert.is_not_nil(result)
+          assert.equals(expected_method, result and result.method, "Method mismatch for: " .. content)
+          assert.equals(expected_path, result and result.path, "Path mismatch for: " .. content)
         end
       end)
 
@@ -143,20 +153,20 @@ describe("Rails framework", function()
         local content = "def profile"
         local file_path = "app/controllers/users_controller.rb"
         local result = rails.extract_controller_action(content, file_path, 1)
-        
+
         assert.is_not_nil(result)
-        assert.equals("GET", result.method)
-        assert.equals("/users/:id/profile", result.path)
+        assert.equals("GET", result and result.method)
+        assert.equals("/users/:id/profile", result and result.path)
       end)
 
       it("should handle collection actions", function()
         local content = "def search"
         local file_path = "app/controllers/users_controller.rb"
         local result = rails.extract_controller_action(content, file_path, 1)
-        
+
         assert.is_not_nil(result)
-        assert.equals("GET", result.method)
-        assert.equals("/users/search", result.path)
+        assert.equals("GET", result and result.method)
+        assert.equals("/users/search", result and result.path)
       end)
     end)
 
@@ -165,23 +175,41 @@ describe("Rails framework", function()
         local test_cases = {
           { "get '/health', to: 'health#check'", "GET", "/health" },
           { "post '/api/login', to: 'sessions#create'", "POST", "/api/login" },
-          { "delete '/logout'", "DELETE", "/logout" }
+          { "delete '/logout'", "DELETE", "/logout" },
         }
 
         for _, case in ipairs(test_cases) do
           local content, expected_method, expected_path = unpack(case)
           local result = rails.extract_route_definition(content, "config/routes.rb", 1)
-          
+
+          assert.is_not_nil(result)
+          assert.equals(expected_method, result and result.method, "Method mismatch for: " .. content)
+          assert.equals(expected_path, result and result.path, "Path mismatch for: " .. content)
+        end
+      end)
+
+      it("should extract root routes with action annotation", function()
+        local test_cases = {
+          { "root 'home#index'", "GET", "/", "index" },
+          { "root to: 'welcome#dashboard'", "GET", "/", "dashboard" },
+          { "root 'pages#home'", "GET", "/", "home" },
+        }
+
+        for _, case in ipairs(test_cases) do
+          local content, expected_method, expected_path, expected_action = unpack(case)
+          local result = rails.extract_route_definition(content, "config/routes.rb", 1)
+
           assert.is_not_nil(result, "Failed for: " .. content)
-          assert.equals(expected_method, result.method, "Method mismatch for: " .. content)
-          assert.equals(expected_path, result.path, "Path mismatch for: " .. content)
+          assert.equals(expected_method, result and result.method, "Method mismatch for: " .. content)
+          assert.equals(expected_path, result and result.path, "Path mismatch for: " .. content)
+          assert.equals(expected_action, result and result.action, "Action mismatch for: " .. content)
         end
       end)
 
       it("should skip resource routes", function()
         local content = "resources :users"
         local result = rails.extract_route_definition(content, "config/routes.rb", 1)
-        
+
         -- Resources declarations should be skipped
         assert.is_nil(result)
       end)
@@ -189,7 +217,7 @@ describe("Rails framework", function()
       it("should skip namespace routes", function()
         local content = "namespace :api"
         local result = rails.extract_route_definition(content, "config/routes.rb", 1)
-        
+
         -- Namespace declarations should be skipped
         assert.is_nil(result)
       end)
@@ -225,14 +253,14 @@ describe("Rails framework", function()
         { "users", "edit", "/users/:id/edit" },
         { "users", "create", "/users" },
         { "users", "update", "/users/:id" },
-        { "users", "destroy", "/users/:id" }
+        { "users", "destroy", "/users/:id" },
       }
 
       for _, case in ipairs(test_cases) do
         local controller, action, expected_path = unpack(case)
         local file_path = "app/controllers/" .. controller .. "_controller.rb"
         local path = rails.generate_action_path(controller, action, file_path)
-        
+
         assert.equals(expected_path, path, "Path mismatch for " .. controller .. "#" .. action)
       end
     end)
@@ -240,10 +268,10 @@ describe("Rails framework", function()
     it("should handle API controllers correctly", function()
       local controller = "api/v1/users"
       local file_path = "app/controllers/api/v1/users_controller.rb"
-      
+
       local path = rails.generate_action_path(controller, "index", file_path)
       assert.equals("/api/v1/users", path)
-      
+
       path = rails.generate_action_path(controller, "show", file_path)
       assert.equals("/api/v1/users/:id", path)
     end)
@@ -251,7 +279,7 @@ describe("Rails framework", function()
     it("should handle nested controllers", function()
       local controller = "admin/users"
       local file_path = "app/controllers/admin/users_controller.rb"
-      
+
       local path = rails.generate_action_path(controller, "index", file_path)
       assert.equals("/admin/users", path)
     end)
@@ -260,7 +288,7 @@ describe("Rails framework", function()
   describe("action suffix detection", function()
     it("should identify member actions", function()
       local member_actions = { "profile", "update_status", "like", "unlike", "share" }
-      
+
       for _, action in ipairs(member_actions) do
         local suffix = rails.get_action_suffix(action)
         assert.equals("/:id/" .. action, suffix, "Member action suffix mismatch for: " .. action)
@@ -269,7 +297,7 @@ describe("Rails framework", function()
 
     it("should identify collection actions", function()
       local collection_actions = { "search", "export", "import", "bulk_update" }
-      
+
       for _, action in ipairs(collection_actions) do
         local suffix = rails.get_action_suffix(action)
         assert.equals("/" .. action, suffix, "Collection action suffix mismatch for: " .. action)
@@ -277,3 +305,4 @@ describe("Rails framework", function()
     end)
   end)
 end)
+
