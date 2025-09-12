@@ -111,6 +111,12 @@ function M:discover_endpoints(method)
 end
 
 function M:save_to_cache(method, endpoints)
+  -- Get current cache config through state
+  local config = state.get_config()
+  if not config or config.cache_mode == "none" then
+    return -- Skip caching when cache mode is none
+  end
+
   for _, endpoint in ipairs(endpoints) do
     cache.create_find_table_entry(endpoint.file_path, method)
     cache.insert_to_find_table {
