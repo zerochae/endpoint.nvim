@@ -60,7 +60,7 @@ describe("Symfony framework", function()
       local line = "src/Controller/UserController.php:10:5:#[Route('/api/users', methods: ['GET'])]"
       local result = symfony.parse_line(line, "GET")
 
-      assert.is_not.same(result, nil)
+      assert.is_not_nil(result)
       assert.is_table(result)
       assert.are.equal("GET", result and result.method)
       assert.are.equal("/api/users", result and result.endpoint_path)
@@ -73,7 +73,7 @@ describe("Symfony framework", function()
       local line = 'src/Controller/UserController.php:15:5: * @Route("/api/create", methods={"POST"})'
       local result = symfony.parse_line(line, "POST")
 
-      assert.is_not.same(result, nil)
+      assert.is_not_nil(result)
       assert.is_table(result)
       assert.are.equal("POST", result and result.method)
       assert.are.equal("/api/create", result and result.endpoint_path)
@@ -83,7 +83,7 @@ describe("Symfony framework", function()
       local line = 'src/Controller/UserController.php:20:5:     * @Route("/api/update", methods={"PUT"})'
       local result = symfony.parse_line(line, "PUT")
 
-      assert.is_not.same(result, nil)
+      assert.is_not_nil(result)
       assert.is_table(result)
       assert.are.equal("PUT", result and result.method)
       assert.are.equal("/api/update", result and result.endpoint_path)
