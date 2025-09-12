@@ -21,7 +21,6 @@ end
 -- =========================
 -- Implementation
 -- =========================
----@class FrameworkRegistryFastAPI : endpoint.FrameworkRegistry
 local M = {}
 
 function M:is_available()
@@ -167,9 +166,8 @@ end
 -- Parse ripgrep output line "path:line:col:content"
 ---@param line string
 ---@param method string
----@param _config? endpoint.Config
 ---@return endpoint.ParsedLine|nil
-function M:parse_line(line, method, _config)
+function M:parse_line(line, method)
   ---@type string?, string?, string?, string?
   local file_path, line_number, column, content = line:match "([^:]+):(%d+):(%d+):(.*)"
   if not file_path then
@@ -197,4 +195,5 @@ function M:parse_line(line, method, _config)
   }
 end
 
+---@class FrameworkRegistryFastAPI : endpoint.FrameworkRegistry
 return base.new(M, "fastapi")

@@ -8,5 +8,6 @@ return {
     put = { "@Put\\(" },
     delete = { "@Delete\\(" },
     patch = { "@Patch\\(" },
+    all = { "@Get\\(", "@Post\\(", "@Put\\(", "@Delete\\(", "@Patch\\(" },
   },
 }

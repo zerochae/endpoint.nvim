@@ -8,5 +8,6 @@ return {
     put = { "\\.put\\(", "router\\.put" },
     delete = { "\\.delete\\(", "router\\.delete" },
     patch = { "\\.patch\\(", "router\\.patch" },
+    all = { "\\.get\\(", "\\.post\\(", "\\.put\\(", "\\.delete\\(", "\\.patch\\(", "router\\." },
   },
 }

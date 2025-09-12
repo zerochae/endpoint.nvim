@@ -188,9 +188,8 @@ end
 -- Parse ripgrep line and combine base path with endpoint path
 ---@param line string
 ---@param method string
----@param config? endpoint.Config
 ---@return endpoint.ParsedLine|nil
-function M:parse_line(line, method, config)
+function M:parse_line(line, method)
   ---@type string?, string?, string?, string?
   local file_path, line_number, column, content = line:match "([^:]+):(%d+):(%d+):(.*)"
   if not file_path then

@@ -8,5 +8,6 @@ return {
     put = { "put\\s+['\"]", "patch\\s+['\"]", "def\\s+update" },
     delete = { "delete\\s+['\"]", "def\\s+destroy" },
     patch = { "patch\\s+['\"]", "def\\s+update" },
+    all = { "get\\s+", "post\\s+", "put\\s+", "patch\\s+", "delete\\s+", "def\\s+" },
   },
 }

@@ -32,5 +32,10 @@ return {
       "#\\[Route.*PATCH",
       "@Route.*PATCH",
     },
+    all = {
+      "#\\[Route",
+      "@Route",
+      "methods.*",
+    },
   },
 }

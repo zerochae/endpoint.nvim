@@ -33,5 +33,11 @@ return {
       "app\\.patch\\(",
       "router\\.patch\\(",
     },
+    all = {
+      "@app\\.",
+      "@router\\.",
+      "app\\.",
+      "router\\.",
+    },
   },
 }
