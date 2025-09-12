@@ -457,6 +457,131 @@ We'd love to include your framework! Please submit a PR with:
 
 Contributions are welcome! Please feel free to submit a Pull Request.
 
+## 🧪 Development & Testing
+
+### Running Tests
+
+The plugin includes comprehensive test suites for all supported frameworks. Tests use [plenary.nvim](https://github.com/nvim-lua/plenary.nvim) and can be run using the provided Makefile.
+
+#### Prerequisites
+```bash
+# Install test dependencies (done automatically by tests/minit.lua)
+# plenary.nvim and telescope.nvim are fetched automatically
+```
+
+#### Test Commands
+
+```bash
+# Run all tests
+make test
+
+# Test specific frameworks
+make test-spring      # Spring Boot framework tests
+make test-nestjs      # NestJS framework tests  
+make test-symfony     # Symfony framework tests
+make test-fastapi     # FastAPI framework tests
+make test-rails       # Rails framework tests
+make test-oas-rails   # Rails with OAS annotations tests
+
+# Run all framework tests together
+make test-frameworks
+
+# Test specific components
+make test-cache       # Cache functionality tests
+make test-pickers     # Picker interface tests
+```
+
+#### Test Structure
+
+```text
+tests/
+├── fixtures/          # Test fixture projects for each framework
+│   ├── spring/        # Sample Spring Boot project
+│   ├── nestjs/        # Sample NestJS project  
+│   ├── symfony/       # Sample Symfony project
+│   ├── fastapi/       # Sample FastAPI project
+│   └── rails/         # Sample Rails project
+├── spec/              # Test specifications
+│   ├── spring_spec.lua
+│   ├── nestjs_spec.lua
+│   ├── symfony_spec.lua
+│   ├── fastapi_spec.lua
+│   ├── rails_spec.lua
+│   └── oas_rails_spec.lua
+└── minit.lua          # Test initialization
+```
+
+#### Adding Tests
+
+When contributing new features or framework support:
+
+1. **Framework Tests**: Add test cases to existing `*_spec.lua` files
+2. **New Framework**: Create new spec file following existing patterns
+3. **Test Fixtures**: Add sample project files to `tests/fixtures/your_framework/`
+4. **Makefile**: Add new test targets if needed
+
+#### Debugging Tests
+
+```bash
+# Run single test with debug output  
+nvim --headless --noplugin -u tests/minit.lua -c "PlenaryBustedFile tests/spec/spring_spec.lua"
+
+# Check test fixtures
+ls tests/fixtures/spring/src/main/java/com/example/
+
+# Validate framework detection in fixture directory
+cd tests/fixtures/spring && nvim -c "lua print(require('endpoint.frameworks.spring').detect())"
+```
+
+### 🐛 Reporting Issues
+
+#### If Your Endpoints Are Not Being Detected
+
+If the plugin is not finding your endpoints, please help us fix it by providing a reproducible example:
+
+1. **Create a minimal reproduction case** in the appropriate `tests/fixtures/your-framework/` directory
+2. **Include the specific code** that is not being detected
+3. **Submit a PR** with your test case and a description of the expected behavior
+
+**Example for Spring Boot:**
+```bash
+# Add your problematic controller to:
+tests/fixtures/spring/src/main/java/com/example/ProblematicController.java
+
+# Include methods like:
+@RestController
+@RequestMapping("/api/v1")
+public class ProblematicController {
+    @GetMapping("/missing-endpoint")  // This endpoint is not detected
+    public ResponseEntity<?> missingEndpoint() { ... }
+}
+```
+
+**Example for Rails:**  
+```bash
+# Add your problematic controller/routes to:
+tests/fixtures/rails/app/controllers/problematic_controller.rb
+tests/fixtures/rails/config/routes.rb
+
+# Include actions like:
+class ProblematicController < ApplicationController
+  def missing_action  # This action is not detected
+    # ...
+  end
+end
+```
+
+This helps us:
+- ✅ **Reproduce the issue** consistently
+- ✅ **Write proper tests** for the fix  
+- ✅ **Prevent regressions** in the future
+- ✅ **Improve framework support** for everyone
+
+**Please include:**
+- Framework version (e.g., Spring Boot 3.1, Rails 7.0)
+- The exact code pattern that's not working
+- Expected vs actual behavior
+
 
 ### Framework Detection
 
