@@ -1,13 +1,16 @@
--- UI themes and styling
 local M = {}
 
--- Get method color from config
+---@param method string
+---@param config endpoint.Config
+---@return string
 function M.get_method_color(method, config)
   local colors = config.ui.method_colors
   return colors[method] or "TelescopeResultsIdentifier"
 end
 
--- Get method icon from config
+---@param method string
+---@param config endpoint.Config
+---@return string
 function M.get_method_icon(method, config)
   if not config.ui.show_icons then
     return ""
@@ -16,7 +19,9 @@ function M.get_method_icon(method, config)
   return icons[method] or "⚪"
 end
 
--- Get method text from config
+---@param method string
+---@param config endpoint.Config
+---@return string
 function M.get_method_text(method, config)
   if not config.ui.show_method then
     return ""
@@ -24,16 +29,13 @@ function M.get_method_text(method, config)
   return method
 end
 
--- Default method colors
 M.DEFAULT_METHOD_COLORS = {
-  GET = "TelescopeResultsNumber", -- Default: Green-ish
-  POST = "TelescopeResultsConstant", -- Default: Blue-ish
-  PUT = "TelescopeResultsKeyword", -- Default: Orange-ish
-  DELETE = "TelescopeResultsSpecialChar", -- Default: Red-ish
-  PATCH = "TelescopeResultsFunction", -- Default: Purple-ish
+  GET = "TelescopeResultsNumber",
+  POST = "TelescopeResultsConstant",
+  PUT = "TelescopeResultsKeyword",
+  DELETE = "TelescopeResultsSpecialChar",
+  PATCH = "TelescopeResultsFunction",
 }
-
--- Default method icons
 M.DEFAULT_METHOD_ICONS = {
   GET = "📥",
   POST = "📤",

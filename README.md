@@ -573,18 +573,6 @@ function M:get_patterns(method)
   return yourframework_config.patterns[method:lower()] or {}
 end
 
-function M:get_file_types()
-  -- Extract file extensions from config
-  local file_extensions = {}
-  for _, pattern in ipairs(yourframework_config.file_patterns) do
-    local ext = pattern:match("%.(%w+)$")
-    if ext then
-      table.insert(file_extensions, ext)
-    end
-  end
-  return file_extensions
-end
-
 function M:get_exclude_patterns()
   return yourframework_config.exclude_patterns
 end
@@ -654,15 +642,6 @@ end
 -- Standard methods using config
 function M:get_patterns(method)
   return fastapi_config.patterns[method:lower()] or {}
-end
-
-function M:get_file_types()
-  local extensions = {}
-  for _, pattern in ipairs(fastapi_config.file_patterns) do
-    local ext = pattern:match("%.(%w+)$")
-    if ext then table.insert(extensions, ext) end
-  end
-  return extensions
 end
 
 function M:get_exclude_patterns()

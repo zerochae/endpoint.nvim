@@ -1,4 +1,5 @@
 -- Main Endpoint command with all subcommands consolidated
+---@param opts table
 vim.api.nvim_create_user_command("Endpoint", function(opts)
   local endpoint = require "endpoint"
   local subcommand = opts.fargs[1]
@@ -8,27 +9,23 @@ vim.api.nvim_create_user_command("Endpoint", function(opts)
   end
 
   local method = string.upper(subcommand)
-  local config = endpoint.get_config()
 
   if method == "GET" then
-    endpoint.pick_get_mapping(config.get or {})
+    endpoint.find_get()
   elseif method == "POST" then
-    endpoint.pick_post_mapping(config.post or {})
+    endpoint.find_post()
   elseif method == "PUT" then
-    endpoint.pick_put_mapping(config.put or {})
+    endpoint.find_put()
   elseif method == "DELETE" then
-    endpoint.pick_delete_mapping(config.delete or {})
+    endpoint.find_delete()
   elseif method == "PATCH" then
-    endpoint.pick_patch_mapping(config.patch or {})
+    endpoint.find_patch()
   elseif method == "ALL" then
-    endpoint.pick_all_endpoints {}
+    endpoint.find_all()
   elseif method == "CLEARCACHE" then
-    local cache = require "endpoint.services.cache"
-    cache.clear_persistent_cache()
-    vim.notify("Endpoint cache cleared", vim.log.levels.INFO)
+    endpoint.clear_cache()
   elseif method == "CACHESTATUS" then
-    local cache = require "endpoint.services.cache"
-    cache.show_cache_status()
+    endpoint.show_cache_stats()
   else
     vim.notify(
       "Unknown method: " .. subcommand .. ". Available: Get, Post, Put, Delete, Patch, All, ClearCache, CacheStatus",
@@ -37,6 +34,7 @@ vim.api.nvim_create_user_command("Endpoint", function(opts)
   end
 end, {
   nargs = "?", -- Optional argument (0 or 1)
+  ---@return string[]
   complete = function()
     return { "Get", "Post", "Put", "Delete", "Patch", "All", "ClearCache", "CacheStatus" }
   end,

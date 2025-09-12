@@ -1,6 +1,6 @@
 # Endpoint.nvim Development Makefile
 
-.PHONY: test test-symfony test-nestjs test-spring test-fastapi test-cache
+.PHONY: test test-symfony test-nestjs test-spring test-fastapi test-cache test-scanner
 
 test:
 	nvim --headless --noplugin -u tests/minit.lua -c "PlenaryBustedDirectory tests/spec/"
@@ -19,3 +19,6 @@ test-fastapi:
 
 test-cache:
 	nvim --headless --noplugin -u tests/minit.lua -c "PlenaryBustedDirectory tests/spec/cache_spec.lua"
+
+test-scanner:
+	nvim --headless --noplugin -u tests/minit.lua -c "PlenaryBustedDirectory tests/spec/scanner_spec.lua"

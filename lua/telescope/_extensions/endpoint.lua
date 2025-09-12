@@ -1,36 +1,24 @@
-local has_telescope, telescope = pcall(require, "telescope")
+-- Telescope Extension for Simplified Endpoint.nvim
+local endpoint = require("endpoint.init")
 
-if not has_telescope then
-  error "requires telescope.nvim (https://github.com/nvim-telescope/telescope.nvim)"
+local function endpoint_picker(method)
+  return function(opts)
+    opts = opts or {}
+    opts.picker_opts = opts
+    endpoint.find_endpoints(method, opts)
+  end
 end
 
-local endpoint = require "endpoint.core"
-
-return telescope.register_extension {
-  setup = function()
-    -- telescope extension setup - usually not needed as main setup is handled by plugin/endpoint.lua
+return require("telescope").register_extension({
+  setup = function(ext_config)
+    -- Extension-specific setup if needed
   end,
   exports = {
-    -- Main endpoint picker (shows all endpoints)
-    endpoint = function(opts)
-      return endpoint.pick_all_endpoints(opts) -- Show all endpoints by default
-    end,
-
-    -- Individual method pickers
-    get = function(opts)
-      return endpoint.pick_get_mapping(opts)
-    end,
-    post = function(opts)
-      return endpoint.pick_post_mapping(opts)
-    end,
-    put = function(opts)
-      return endpoint.pick_put_mapping(opts)
-    end,
-    delete = function(opts)
-      return endpoint.pick_delete_mapping(opts)
-    end,
-    patch = function(opts)
-      return endpoint.pick_patch_mapping(opts)
-    end,
+    endpoints = endpoint_picker("ALL"),
+    get = endpoint_picker("GET"),
+    post = endpoint_picker("POST"),
+    put = endpoint_picker("PUT"),
+    delete = endpoint_picker("DELETE"),
+    patch = endpoint_picker("PATCH"),
   },
-}
+})

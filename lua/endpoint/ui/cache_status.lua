@@ -1,4 +1,5 @@
 local M = {}
+local fs = require "endpoint.utils.fs"
 
 local function create_ascii_title()
   return {
@@ -45,7 +46,6 @@ end
 local function get_cache_statistics()
   local cache = require "endpoint.services.cache"
   local find_table = cache.get_find_table()
-  local preview_table = cache.get_preview_table()
 
   local stats = {
     total_files = 0,
@@ -90,14 +90,12 @@ end
 
 M.show_cache_status = function()
   local cache = require "endpoint.services.cache"
-  local cache_config = require("endpoint.core.session").get_config()
+  local state = require "endpoint.core.state"
+  local cache_config = state.get_config()
 
   if not cache_config then
-    local default_config = require "endpoint.core.config"
-    cache_config = {
-      cache_ttl = default_config.cache_ttl or 5000,
-      cache_mode = default_config.cache_mode or "none",
-    }
+    local config_module = require "endpoint.config"
+    cache_config = config_module.get()
   end
 
   -- Get UI configuration
@@ -111,15 +109,7 @@ M.show_cache_status = function()
     }
 
   -- Get cache file paths
-  local function get_project_root()
-    local result = vim.fn.system "git rev-parse --show-toplevel 2>/dev/null"
-    if vim.v.shell_error ~= 0 then
-      return vim.fn.getcwd()
-    end
-    return result:gsub("\n", "")
-  end
-
-  local project_root = get_project_root()
+  local project_root = fs.get_project_root()
   local project_name = vim.fn.fnamemodify(project_root, ":t")
   local cache_dir = vim.fn.stdpath "data" .. "/endpoint.nvim/" .. project_name
   local find_cache_file = cache_dir .. "/find_cache.lua"
@@ -288,10 +278,9 @@ M.show_cache_status = function()
               table.insert(lines, entry_prefix .. " ➤ " .. (entry.value or "unknown endpoint"))
 
               -- Store endpoint mapping for navigation
-              local full_path = dir .. "/" .. filename
               line_map[#lines] = {
                 type = "endpoint",
-                path = full_path,
+                path = dir .. "/" .. filename,
                 line_number = entry.line_number or 1,
                 column = entry.column or 1,
                 value = entry.value,
@@ -308,11 +297,10 @@ M.show_cache_status = function()
             table.insert(lines, entry_prefix .. " ➤ " .. value)
 
             -- Store endpoint mapping for navigation
-            local full_path = dir .. "/" .. filename
             local entry = entries[1] or entries
             line_map[#lines] = {
               type = "endpoint",
-              path = full_path,
+              path = dir .. "/" .. filename,
               line_number = entry.line_number or 1,
               column = entry.column or 1,
               value = value,
@@ -374,7 +362,7 @@ M.show_cache_status = function()
   elseif window_config.height == "max" then
     height = vim.o.lines - 4
   else
-    height = math.min(window_config.height or (#lines + 2), vim.o.lines - 4)
+    height = math.min(tonumber(window_config.height) or (#lines + 2), vim.o.lines - 4)
   end
 
   local win = vim.api.nvim_open_win(buf, true, {
