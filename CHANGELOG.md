@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.3.1](https://github.com/zerochae/endpoint.nvim/compare/v1.3.0...v1.3.1) (2025-09-12)
+
+
+### Bug Fixes
+
+* **spring:** exclude class-level @RequestMapping from endpoint detection ([bd0c271](https://github.com/zerochae/endpoint.nvim/commit/bd0c271b5c36752e90d622d04cb79ac49dcce44c))
+
 ## [1.3.0](https://github.com/zerochae/endpoint.nvim/compare/v1.2.0...v1.3.0) (2025-09-12)
 
 
