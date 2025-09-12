@@ -115,7 +115,7 @@ function M:save_to_cache(method, endpoints)
   local config = state.get_config()
   
   for _, endpoint in ipairs(endpoints) do
-    cache.create_find_table_entry(endpoint.file_path, method)
+    cache.create_find_table_entry(endpoint.file_path, endpoint.method)
     cache.insert_to_find_table {
       path = endpoint.file_path,
       annotation = endpoint.method,
