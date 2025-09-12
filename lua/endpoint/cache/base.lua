@@ -12,7 +12,7 @@ local required_methods = {
 
 -- Create base class for cache implementations
 ---@class endpoint.CacheBase
-local M = core_base.create_base(required_methods) ---@diagnostic disable-line: assign-type-mismatch
+local M = core_base.create_base(required_methods)
 local find_table = {}
 local preview_table = {}
 local cache_timestamp = {}
