@@ -77,7 +77,7 @@ describe("Spring framework", function()
       local line = 'src/main/java/com/example/Controller.java:10:5:    @GetMapping("/api/users")'
       local result = spring.parse_line(line, "GET")
 
-      assert.is_not.same(result, nil)
+      assert.is_not_nil(result)
       assert.is_table(result)
       assert.are.equal("GET", result and result.method)
       assert.are.equal("/api/users", result and result.endpoint_path)
@@ -90,7 +90,7 @@ describe("Spring framework", function()
       local line = 'src/main/java/com/example/Controller.java:15:5:    @PostMapping(value = "/api/create")'
       local result = spring.parse_line(line, "POST")
 
-      assert.is_not.same(result, nil)
+      assert.is_not_nil(result)
       assert.is_table(result)
       assert.are.equal("POST", result and result.method)
       assert.are.equal("/api/create", result and result.endpoint_path)
@@ -101,7 +101,7 @@ describe("Spring framework", function()
         'src/main/java/com/example/Controller.java:20:5:    @RequestMapping(value = "/api/test", method = RequestMethod.GET)'
       local result = spring.parse_line(line, "GET")
 
-      assert.is_not.same(result, nil)
+      assert.is_not_nil(result)
       assert.is_table(result)
       assert.are.equal("GET", result and result.method)
       assert.are.equal("/api/test", result and result.endpoint_path)
@@ -111,7 +111,7 @@ describe("Spring framework", function()
       local line = 'src/main/java/com/example/Controller.java:25:5:    @GetMapping(path = "/api/version")'
       local result = spring.parse_line(line, "GET")
 
-      assert.is_not.same(result, nil)
+      assert.is_not_nil(result)
       assert.is_table(result)
       assert.are.equal("GET", result and result.method)
       assert.are.equal("/api/version", result and result.endpoint_path)
@@ -121,7 +121,7 @@ describe("Spring framework", function()
       local line = 'src/main/java/com/example/Controller.java:30:5:    @GetMapping("/api/users/{id}")'
       local result = spring.parse_line(line, "GET")
 
-      assert.is_not.same(result, nil)
+      assert.is_not_nil(result)
       assert.is_table(result)
       assert.are.equal("GET", result and result.method)
       assert.are.equal("/api/users/{id}", result and result.endpoint_path)

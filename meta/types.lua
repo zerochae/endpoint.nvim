@@ -1,8 +1,6 @@
 ---@diagnostic disable: duplicate-doc-field
 ---@meta
 
--- Simplified Types for New Structure
-
 -- UI Configuration
 ---@class endpoint.UIConfig
 ---@field method_colors table<string, string>
@@ -75,6 +73,7 @@
 ---@class endpoint.FastAPIFramework : endpoint.Framework
 ---@class endpoint.NestJSFramework : endpoint.Framework
 ---@class endpoint.SymfonyFramework : endpoint.Framework
+---@class endpoint.RailsFramework : endpoint.Framework
 
 -- Picker Implementations
 ---@class endpoint.TelescopePicker : endpoint.Picker

@@ -59,7 +59,7 @@ describe("NestJS framework", function()
       local line = "src/users/users.controller.ts:10:5:  @Get('profile')"
       local result = nestjs.parse_line(line, "GET")
 
-      assert.is_not.same(result, nil)
+      assert.is_not_nil(result)
       assert.is_table(result)
       assert.are.equal("GET", result and result.method)
       assert.are.equal("/profile", result and result.endpoint_path) -- Should add leading slash
@@ -72,7 +72,7 @@ describe("NestJS framework", function()
       local line = "src/users/users.controller.ts:15:5:  @Post('create')"
       local result = nestjs.parse_line(line, "POST")
 
-      assert.is_not.same(result, nil)
+      assert.is_not_nil(result)
       assert.is_table(result)
       assert.are.equal("POST", result and result.method)
       assert.are.equal("/create", result and result.endpoint_path)

@@ -1,3 +1,4 @@
+---@class endpoint.VimUISelectPicker
 -- Vim UI Select Picker Implementation (Function-based)
 local M = {}
 
@@ -18,12 +19,15 @@ function M.show(endpoints, opts)
   vim.ui.select(endpoints, {
     prompt = "Select endpoint:",
     format_item = function(item)
-      return item.display_value
+      -- Use display_value if available (for Rails action annotations), otherwise use default format
+      return item.display_value or (item.method .. " " .. item.endpoint_path)
     end,
   }, function(choice)
     if choice then
       vim.cmd("edit " .. choice.file_path)
       vim.api.nvim_win_set_cursor(0, { choice.line_number, choice.column - 1 })
+      -- Center the line in the window
+      vim.cmd("normal! zz")
     end
   end)
 end

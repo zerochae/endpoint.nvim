@@ -9,6 +9,7 @@ local frameworks = {
   fastapi = require "endpoint.frameworks.fastapi",
   nestjs = require "endpoint.frameworks.nestjs",
   symfony = require "endpoint.frameworks.symfony",
+  rails = require "endpoint.frameworks.rails",
 }
 
 -- Main scan function

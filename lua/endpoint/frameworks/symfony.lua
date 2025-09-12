@@ -1,4 +1,4 @@
--- Symfony Framework Implementation (Function-based)
+---@class endpoint.SymfonyFramework
 local M = {}
 
 -- Detection

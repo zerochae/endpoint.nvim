@@ -1,3 +1,4 @@
+---@class endpoint.SnacksPicker
 -- Snacks Picker Implementation (Function-based)
 local M = {}
 
@@ -25,7 +26,8 @@ function M.show(endpoints, opts)
   local items = {}
   for _, endpoint in ipairs(endpoints) do
     table.insert(items, {
-      text = endpoint.display_value,
+      -- Use display_value if available (for Rails action annotations), otherwise use default format
+      text = endpoint.display_value or (endpoint.method .. " " .. endpoint.endpoint_path),
       file = endpoint.file_path,
       line = endpoint.line_number,
       col = endpoint.column,
@@ -49,12 +51,16 @@ function M.show(endpoints, opts)
         file = item.file,
         line = item.line,
         col = item.col,
+        -- Additional options for better preview positioning
+        centered = true,
       }
     end,
     confirm = function(item)
       if item and item.endpoint then
         vim.cmd("edit " .. item.endpoint.file_path)
         vim.api.nvim_win_set_cursor(0, { item.endpoint.line_number, item.endpoint.column - 1 })
+        -- Center the line in the window
+        vim.cmd("normal! zz")
       end
     end,
   }
