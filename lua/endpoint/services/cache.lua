@@ -50,6 +50,10 @@ M.create_preview_entry = function(endpoint, path, line_number, column)
   return get_current_cache():create_preview_entry(endpoint, path, line_number, column)
 end
 
+M.batch_create_preview_entries = function(entries)
+  return get_current_cache():batch_create_preview_entries(entries)
+end
+
 M.save_to_file = function()
   return get_current_cache():save_to_file()
 end
@@ -73,8 +77,7 @@ M.get_scanned_methods = function()
 end
 
 M.get_missing_methods = function(required_methods)
-  local persistent_cache = cache_manager.get "persistent"
-  return persistent_cache:get_missing_methods(required_methods)
+  return get_current_cache():get_missing_methods(required_methods)
 end
 
 M.show_cache_status = function()

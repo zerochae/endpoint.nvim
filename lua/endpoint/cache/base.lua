@@ -198,6 +198,29 @@ function M:create_preview_entry(endpoint, path, line_number, column)
   end
 end
 
+-- Batch create preview entries for better performance
+function M:batch_create_preview_entries(entries)
+  local cache_config = self:get_cache_config()
+  
+  -- Insert all entries first
+  for endpoint, data in pairs(entries) do
+    preview_table[endpoint] = {
+      path = data.path,
+      line_number = data.line_number,
+      column = data.column,
+    }
+    
+    if cache_config.mode ~= "none" then
+      self:track_access("preview_table", endpoint)
+    end
+  end
+  
+  -- Cleanup only once at the end
+  if cache_config.mode ~= "none" then
+    self:cleanup_cache_by_size(preview_table, MAX_PREVIEW_ENTRIES, "preview_table")
+  end
+end
+
 function M:update_cache_timestamp(annotation)
   cache_timestamp[annotation] = os.time()
 end

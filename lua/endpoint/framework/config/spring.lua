@@ -8,6 +8,6 @@ return {
     put = { "@PutMapping", "@RequestMapping.*method.*=.*PUT" },
     delete = { "@DeleteMapping", "@RequestMapping.*method.*=.*DELETE" },
     patch = { "@PatchMapping", "@RequestMapping.*method.*=.*PATCH" },
-    all = { "@GetMapping", "@PostMapping", "@PutMapping", "@DeleteMapping", "@PatchMapping", "@RequestMapping" },
+    all = { "@GetMapping", "@PostMapping", "@PutMapping", "@DeleteMapping", "@PatchMapping", "@RequestMapping.*method.*=.*GET", "@RequestMapping.*method.*=.*POST", "@RequestMapping.*method.*=.*PUT", "@RequestMapping.*method.*=.*DELETE", "@RequestMapping.*method.*=.*PATCH", "@RequestMapping" },
   },
 }

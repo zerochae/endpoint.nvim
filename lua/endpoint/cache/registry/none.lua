@@ -39,4 +39,13 @@ function M:load_from_file()
   -- Do nothing in none mode
 end
 
+-- For none mode, always return all methods as missing since we never cache
+function M:get_missing_methods(required_methods)
+  return required_methods or {}
+end
+
+function M:get_scanned_methods()
+  return {}
+end
+
 return M

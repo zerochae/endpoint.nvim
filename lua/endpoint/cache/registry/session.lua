@@ -51,4 +51,29 @@ function M:cleanup_cache_by_size(cache_table, max_entries, name)
   -- Do nothing in session mode - keep all data
 end
 
+-- Get which methods have been scanned (for intelligent cache management)
+function M:get_scanned_methods()
+  local cache_timestamp = self:get_cache_timestamp()
+  return vim.tbl_keys(cache_timestamp)
+end
+
+-- Check if specific methods need scanning
+function M:get_missing_methods(required_methods)
+  local scanned_methods = self:get_scanned_methods()
+  
+  local scanned_set = {}
+  for _, method in ipairs(scanned_methods) do
+    scanned_set[method] = true
+  end
+  
+  local missing_methods = {}
+  for _, method in ipairs(required_methods) do
+    if not scanned_set[method] then
+      table.insert(missing_methods, method)
+    end
+  end
+  
+  return missing_methods
+end
+
 return M

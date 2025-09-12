@@ -198,4 +198,11 @@ function M:get_missing_methods(required_methods)
   return missing_methods
 end
 
+-- Override cleanup methods to be more conservative in persistent mode
+function M:cleanup_cache_by_size(cache_table, max_entries, name)
+  -- In persistent mode, use a much larger threshold to avoid premature cleanup
+  local conservative_max = max_entries * 3 -- Triple the normal limit
+  return cache_base.cleanup_cache_by_size(self, cache_table, conservative_max, name)
+end
+
 return M
