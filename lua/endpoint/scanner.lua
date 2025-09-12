@@ -46,11 +46,24 @@ function M.scan(method, options)
   local endpoints = {}
   for line in vim.gsplit(output, "\n") do
     if line ~= "" then
-      local endpoint = framework.parse_line(line, method)
-      if endpoint and endpoint.endpoint_path and endpoint.endpoint_path ~= "" then
-        table.insert(endpoints, endpoint)
-        -- Save to cache using the actual endpoint method, not the search method
-        cache.save_endpoint(endpoint.method, endpoint)
+      local result = framework.parse_line(line, method)
+      if result then
+        -- Check if result is a single endpoint or array of endpoints
+        if result.method then
+          -- Single endpoint
+          if result.endpoint_path and result.endpoint_path ~= "" then
+            table.insert(endpoints, result)
+            cache.save_endpoint(result.method, result)
+          end
+        else
+          -- Array of endpoints (multiple methods)
+          for _, endpoint in ipairs(result) do
+            if endpoint.endpoint_path and endpoint.endpoint_path ~= "" then
+              table.insert(endpoints, endpoint)
+              cache.save_endpoint(endpoint.method, endpoint)
+            end
+          end
+        end
       end
     end
   end

@@ -71,6 +71,9 @@ function M.create_endpoint_previewer(opts)
   local previewers = require("telescope.previewers")
   local conf = require("telescope.config").values
   
+  -- Track highlight namespaces for cleanup
+  local highlight_ns = vim.api.nvim_create_namespace("endpoint_preview_highlight")
+  
   return previewers.new_buffer_previewer({
     title = "Endpoint Preview",
     get_buffer_by_name = function(_, entry)
@@ -87,11 +90,14 @@ function M.create_endpoint_previewer(opts)
         bufname = self.state.bufname,
         winid = self.state.winid,
         callback = function(bufnr)
+          -- Clear previous highlights first
+          vim.api.nvim_buf_clear_namespace(bufnr, highlight_ns, 0, -1)
+          
           -- Highlight the endpoint line
           if endpoint.line_number then
             vim.api.nvim_buf_add_highlight(
               bufnr,
-              -1,
+              highlight_ns,
               "TelescopePreviewMatch",
               endpoint.line_number - 1,
               math.max(0, (endpoint.column or 1) - 1),
