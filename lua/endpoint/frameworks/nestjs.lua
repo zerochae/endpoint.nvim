@@ -22,7 +22,7 @@ function M.get_search_cmd(method)
     PUT = { "@Put", "@HttpCode.-@Put" },
     DELETE = { "@Delete", "@HttpCode.-@Delete" },
     PATCH = { "@Patch", "@HttpCode.-@Patch" },
-    ALL = { "@(Get|Post|Put|Delete|Patch)" },
+    ALL = { "@Get", "@Post", "@Put", "@Delete", "@Patch" },
   }
 
   local method_patterns = patterns[method:upper()] or patterns.ALL

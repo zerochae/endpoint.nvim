@@ -56,9 +56,21 @@ function M.get_search_cmd(method)
       "\\* @Route\\(.*methods.*PATCH",
     },
     ALL = {
-      "#\\[Route", -- PHP 8+ attributes
-      "@Route", -- Direct annotations
-      "\\* @Route", -- Docblock annotations
+      "#\\[Route\\(.*methods.*GET", -- PHP 8+ attributes GET
+      "#\\[Route\\(.*methods.*POST", -- PHP 8+ attributes POST
+      "#\\[Route\\(.*methods.*PUT", -- PHP 8+ attributes PUT
+      "#\\[Route\\(.*methods.*DELETE", -- PHP 8+ attributes DELETE
+      "#\\[Route\\(.*methods.*PATCH", -- PHP 8+ attributes PATCH
+      "@Route\\(.*methods.*GET", -- Direct annotations GET
+      "@Route\\(.*methods.*POST", -- Direct annotations POST
+      "@Route\\(.*methods.*PUT", -- Direct annotations PUT
+      "@Route\\(.*methods.*DELETE", -- Direct annotations DELETE
+      "@Route\\(.*methods.*PATCH", -- Direct annotations PATCH
+      "\\* @Route\\(.*methods.*GET", -- Docblock annotations GET
+      "\\* @Route\\(.*methods.*POST", -- Docblock annotations POST
+      "\\* @Route\\(.*methods.*PUT", -- Docblock annotations PUT
+      "\\* @Route\\(.*methods.*DELETE", -- Docblock annotations DELETE
+      "\\* @Route\\(.*methods.*PATCH", -- Docblock annotations PATCH
     },
   }
 
@@ -153,6 +165,11 @@ end
 
 -- Extract HTTP methods (can be multiple)
 function M.extract_methods(content, search_method)
+  -- Handle case where search_method is not provided
+  if not search_method then
+    search_method = "ALL"
+  end
+  
   -- If searching for specific method, return it
   if search_method ~= "ALL" then
     return { search_method:upper() }
@@ -203,6 +220,11 @@ end
 
 -- Get base path from controller-level @Route
 function M.get_base_path(file_path, line_number)
+  -- Handle case where line_number is not provided
+  if not line_number then
+    line_number = math.huge -- Read entire file if no line number provided
+  end
+  
   -- Read file content around the class definition
   local file = io.open(file_path, "r")
   if not file then

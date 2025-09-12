@@ -28,12 +28,12 @@ end
 -- Search command generation
 function M.get_search_cmd(method)
   local patterns = {
-    GET = { "@.*\\.get" },
-    POST = { "@.*\\.post" },
-    PUT = { "@.*\\.put" },
-    DELETE = { "@.*\\.delete" },
-    PATCH = { "@.*\\.patch" },
-    ALL = { "@.*\\.(get|post|put|delete|patch)" },
+    GET = { "@app.get", "@router.get" },
+    POST = { "@app.post", "@router.post" },
+    PUT = { "@app.put", "@router.put" },
+    DELETE = { "@app.delete", "@router.delete" },
+    PATCH = { "@app.patch", "@router.patch" },
+    ALL = { "@app.get", "@app.post", "@app.put", "@app.delete", "@app.patch", "@router.get", "@router.post", "@router.put", "@router.delete", "@router.patch" },
   }
 
   local method_patterns = patterns[method:upper()] or patterns.ALL
@@ -162,6 +162,15 @@ function M.get_base_path(file_path, line_number)
   return M.infer_prefix_from_path(file_path)
 end
 
+-- Get router prefix (alias for find_router_prefix for testing compatibility)
+function M.get_router_prefix(file_path, line_number)
+  -- If line_number is not provided, scan the entire file
+  if not line_number then
+    line_number = math.huge
+  end
+  return M.find_router_prefix(file_path, line_number)
+end
+
 -- Find router prefix in current file
 function M.find_router_prefix(file_path, line_number)
   local file = io.open(file_path, "r")
@@ -177,7 +186,8 @@ function M.find_router_prefix(file_path, line_number)
 
   -- Find the main function that returns APIRouter (skip inner async def functions)
   local function_start = nil
-  for i = line_number, 1, -1 do
+  local start_line = math.min(line_number, #lines)
+  for i = start_line, 1, -1 do
     if lines[i] and lines[i]:match "def%s+%w+.*APIRouter" then
       function_start = i
       break

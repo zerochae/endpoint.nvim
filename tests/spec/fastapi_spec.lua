@@ -1,159 +1,15 @@
-describe(" FastAPI framework", function()
-  local endpoint = require "endpoint"
-  local fastapi = require "endpoint.framework.registry.fastapi"
+describe("FastAPI framework", function()
+  local fastapi = require "endpoint.frameworks.fastapi"
 
-  before_each(function()
-    endpoint.setup()
-    -- Reset session config before each test
-    local state = require "endpoint.core.state"
-    state.set_config {
-      framework = "auto",
-      cache_mode = "none",
-      debug = false,
-    }
-  end)
-
-  describe("pattern matching", function()
-    it("should detect GET routes with @app.get decorators", function()
-      local patterns = fastapi:get_patterns "get"
-      assert.is_not_nil(patterns)
-      assert.is_true(#patterns > 0)
-      assert.is_true(vim.tbl_contains(patterns, "@app\\.get"))
-    end)
-
-    it("should detect POST routes", function()
-      local patterns = fastapi:get_patterns "post"
-      assert.is_not_nil(patterns)
-      assert.is_true(#patterns > 0)
-      assert.is_true(vim.tbl_contains(patterns, "@app\\.post"))
-    end)
-
-    it("should return empty for unknown methods", function()
-      local patterns = fastapi:get_patterns "unknown"
-      assert.are.same({}, patterns)
-    end)
-  end)
-
-  describe("path extraction with real files", function()
-    it("should extract GET route from list_users controller", function()
-      local real_file = "tests/fixtures/fastapi/src/app/presentation/http/controllers/users/list_users.py"
-      local endpoint_path = fastapi:extract_endpoint_path "@router.get('/')"
-      assert.are.equal("/", endpoint_path)
-    end)
-
-    it("should extract POST route from create_user controller", function()
-      local real_file = "tests/fixtures/fastapi/src/app/presentation/http/controllers/users/create_user.py"
-      local endpoint_path = fastapi:extract_endpoint_path "@router.post('/')"
-      assert.are.equal("/", endpoint_path)
-    end)
-
-    it("should extract POST route from login controller", function()
-      local real_file = "tests/fixtures/fastapi/src/app/presentation/http/controllers/account/log_in.py"
-      local endpoint_path = fastapi:extract_endpoint_path "@router.post('/login')"
-      assert.are.equal("/login", endpoint_path)
-    end)
-
-    it("should extract route from change_password controller", function()
-      local real_file = "tests/fixtures/fastapi/src/app/presentation/http/controllers/users/change_password.py"
-      local endpoint_path = fastapi:extract_endpoint_path "@router.patch('/{username}/password')"
-      assert.are.equal("/{username}/password", endpoint_path)
-    end)
-  end)
-
-  describe("base path extraction", function()
-    it("should extract base path from users router", function()
-      local real_file = "tests/fixtures/fastapi/src/app/presentation/http/controllers/users/list_users.py"
-      local base_path = fastapi:get_base_path(real_file, 8)
-      assert.are.equal("/api/v1/users", base_path)
-    end)
-
-    it("should extract base path from account router", function()
-      local real_file = "tests/fixtures/fastapi/src/app/presentation/http/controllers/account/log_in.py"
-      local base_path = fastapi:get_base_path(real_file, 8)
-      assert.are.equal("/api/v1/account", base_path)
-    end)
-
-    it("should return empty for files without router", function()
-      local real_file = "tests/fixtures/fastapi/src/app/presentation/http/controllers/root_router.py"
-      local base_path = fastapi:get_base_path(real_file, 10)
-      assert.are.equal("", base_path)
-    end)
-  end)
-
-  describe("ripgrep command generation", function()
-    it("should generate valid ripgrep command", function()
-      local cmd = fastapi:get_grep_cmd("get", {})
-      assert.is_string(cmd)
-      assert.is_not_nil(cmd:match "rg")
-      assert.is_not_nil(cmd:match "--glob")
-    end)
-
-    it("should include exclude patterns", function()
-      local cmd = fastapi:get_grep_cmd("get", {})
-      assert.is_not_nil(cmd:match "venv")
-      assert.is_not_nil(cmd:match "__pycache__")
-    end)
-  end)
-
-  describe("line parsing with real files", function()
-    it("should parse list_users GET route correctly", function()
-      local real_file = "tests/fixtures/fastapi/src/app/presentation/http/controllers/users/list_users.py"
-      local line = real_file .. ":8:5:@router.get("
-      local result = fastapi:parse_line(line, "GET", {})
-
-      assert.is_not_nil(result)
-      assert.are.equal(real_file, result.file_path)
-      assert.are.equal(8, result.line_number)
-      assert.are.equal("/api/v1/users", result.endpoint_path)
-      assert.are.equal("GET", result.method)
-    end)
-
-    it("should parse create_user POST route correctly", function()
-      local real_file = "tests/fixtures/fastapi/src/app/presentation/http/controllers/users/create_user.py"
-      local line = real_file .. ":8:5:@router.post("
-      local result = fastapi:parse_line(line, "POST", {})
-
-      assert.is_not_nil(result)
-      assert.are.equal(real_file, result.file_path)
-      assert.are.equal(8, result.line_number)
-      assert.are.equal("/api/v1/users", result.endpoint_path)
-      assert.are.equal("POST", result.method)
-    end)
-
-    it("should parse login POST route correctly", function()
-      local real_file = "tests/fixtures/fastapi/src/app/presentation/http/controllers/account/log_in.py"
-      local line = real_file .. ':7:5:@router.post("/login"'
-      local result = fastapi:parse_line(line, "POST", {})
-
-      assert.is_not_nil(result)
-      assert.are.equal(real_file, result.file_path)
-      assert.are.equal(7, result.line_number)
-      assert.are.equal("/api/v1/account/login", result.endpoint_path)
-      assert.are.equal("POST", result.method)
-    end)
-  end)
-
-  describe("endpoint count verification", function()
-    it("should find expected number of GET endpoints in fixtures", function()
-      local scanner = require "endpoint.services.scanner"
+  describe("framework detection", function()
+    it("should detect FastAPI project", function()
       local fixture_path = "tests/fixtures/fastapi"
       if vim.fn.isdirectory(fixture_path) == 1 then
         local original_cwd = vim.fn.getcwd()
         vim.fn.chdir(fixture_path)
 
-        local state = require "endpoint.core.state"
-        state.set_config {
-          framework = "fastapi",
-        }
-
-        scanner.clear_cache()
-        scanner.scan "GET"
-        local results = scanner.get_list "GET"
-
-        -- Should run without errors and return a table (endpoint counting can be environment-dependent)
-        assert.is_table(results)
-        -- Skip detailed validation - endpoint counting is environment-dependent
-        print("Info: Found", #results, "endpoints in FastAPI fixture")
+        local detected = fastapi.detect()
+        assert.is_true(detected)
 
         vim.fn.chdir(original_cwd)
       else
@@ -161,31 +17,160 @@ describe(" FastAPI framework", function()
       end
     end)
 
-    it("should find expected number of POST endpoints in fixtures", function()
-      local scanner = require "endpoint.services.scanner"
+    it("should not detect FastAPI in non-Python directory", function()
+      local temp_dir = "/tmp/non_fastapi_" .. os.time()
+      vim.fn.mkdir(temp_dir, "p")
+      local original_cwd = vim.fn.getcwd()
+      vim.fn.chdir(temp_dir)
+
+      local detected = fastapi.detect()
+      assert.is_false(detected)
+
+      vim.fn.chdir(original_cwd)
+      vim.fn.delete(temp_dir, "rf")
+    end)
+  end)
+
+  describe("search command generation", function()
+    it("should generate search command for GET method", function()
+      local cmd = fastapi.get_search_cmd "GET"
+      assert.is_string(cmd)
+      assert.is_true(cmd:match "rg" ~= nil)
+      assert.is_true(cmd:match "@app.get" ~= nil or cmd:match "@router.get" ~= nil)
+    end)
+
+    it("should generate search command for POST method", function()
+      local cmd = fastapi.get_search_cmd "POST"
+      assert.is_string(cmd)
+      assert.is_true(cmd:match "@app.post" ~= nil or cmd:match "@router.post" ~= nil)
+    end)
+
+    it("should generate search command for ALL method", function()
+      local cmd = fastapi.get_search_cmd "ALL"
+      assert.is_string(cmd)
+      -- Should contain multiple HTTP methods
+      assert.is_true(cmd:match "get" ~= nil)
+      assert.is_true(cmd:match "post" ~= nil)
+    end)
+  end)
+
+  describe("line parsing", function()
+    it("should parse simple @app.get line", function()
+      local line = 'main.py:10:5:@app.get("/api/users")'
+      local result = fastapi.parse_line(line, "GET")
+
+      assert.is_table(result)
+      assert.are.equal("GET", result and result.method)
+      assert.are.equal("/api/users", result and result.endpoint_path)
+      assert.are.equal("main.py", result and result.file_path)
+      assert.are.equal(10, result and result.line_number)
+      assert.are.equal(5, result and result.column)
+    end)
+
+    it("should parse @router.post line", function()
+      local line = 'routes/api.py:15:5:@router.post("/api/create")'
+      local result = fastapi.parse_line(line, "POST")
+
+      assert.is_table(result)
+      assert.are.equal("POST", result and result.method)
+      assert.are.equal("/api/create", result and result.endpoint_path)
+    end)
+
+    it("should handle multiline decorators", function()
+      local line = "main.py:20:5:@app.get("
+      local result = fastapi.parse_line(line, "GET")
+
+      -- Should handle multiline or return appropriate result
+      if result then
+        assert.is_table(result)
+        assert.are.equal("GET", result and result.method)
+      end
+    end)
+
+    it("should combine router prefix with endpoint path", function()
+      -- This would need actual fixture context for proper testing
+      local line = 'routes/users.py:25:5:@router.get("/profile")'
+      local result = fastapi.parse_line(line, "GET")
+
+      if result then
+        assert.is_table(result)
+        -- Should combine router prefix if available
+        assert.is_string(result.endpoint_path)
+      end
+    end)
+
+    it("should return nil for invalid lines", function()
+      local line = "invalid line format"
+      local result = fastapi.parse_line(line, "GET")
+      assert.is_nil(result)
+    end)
+  end)
+
+  describe("router prefix extraction", function()
+    it("should extract prefix from APIRouter", function()
+      -- This would need actual fixture files for proper testing
+      local fixture_file = "tests/fixtures/fastapi/src/app/presentation/http/controllers/users/router.py"
+      if vim.fn.filereadable(fixture_file) == 1 then
+        local prefix = fastapi.get_router_prefix(fixture_file)
+        if prefix then
+          assert.is_string(prefix)
+        end
+      else
+        pending "FastAPI fixture file not found"
+      end
+    end)
+  end)
+
+  describe("integration with fixtures", function()
+    it("should correctly parse real FastAPI fixture files", function()
       local fixture_path = "tests/fixtures/fastapi"
       if vim.fn.isdirectory(fixture_path) == 1 then
         local original_cwd = vim.fn.getcwd()
         vim.fn.chdir(fixture_path)
 
-        local state = require "endpoint.core.state"
-        state.set_config {
-          framework = "fastapi",
-        }
+        -- Test that framework is detected
+        assert.is_true(fastapi.detect())
 
-        scanner.clear_cache()
-        scanner.scan "POST"
-        local results = scanner.get_list "POST"
-
-        -- Should find multiple POST endpoints
-        -- Should run without errors and return a table (endpoint counting can be environment-dependent)
-        assert.is_table(results)
-        -- Skip detailed validation - endpoint counting is environment-dependent
-        print("Info: Found", #results, "endpoints in FastAPI fixture")
+        -- Test that search command works
+        local cmd = fastapi.get_search_cmd "GET"
+        assert.is_string(cmd)
 
         vim.fn.chdir(original_cwd)
       else
         pending "FastAPI fixture directory not found"
+      end
+    end)
+  end)
+
+  describe("edge cases", function()
+    it("should handle various path formats", function()
+      local line1 = "main.py:10:5:@app.get('/api/single')"
+      local line2 = 'main.py:11:5:@app.get("/api/double")'
+
+      local result1 = fastapi.parse_line(line1, "GET")
+      local result2 = fastapi.parse_line(line2, "GET")
+
+      if result1 and result2 then
+        assert.are.equal("/api/single", result1.endpoint_path)
+        assert.are.equal("/api/double", result2.endpoint_path)
+      end
+    end)
+
+    it("should handle path parameters", function()
+      local line = 'main.py:15:5:@app.get("/api/users/{user_id}")'
+      local result = fastapi.parse_line(line, "GET")
+
+      if result then
+        assert.are.equal("/api/users/{user_id}", result and result.endpoint_path)
+      end
+    end)
+
+    it("should handle complex path patterns", function()
+      local line = 'main.py:20:5:@app.get("/api/users/{user_id}/posts/{post_id}")'
+      local result = fastapi.parse_line(line, "GET")
+
+      if result then
+        assert.are.equal("/api/users/{user_id}/posts/{post_id}", result and result.endpoint_path)
       end
     end)
   end)

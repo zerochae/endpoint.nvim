@@ -20,7 +20,10 @@ function M.scan(method, options)
   if not options.force_refresh and cache.is_valid(method) then
     local cached_results = cache.get_endpoints(method)
     if vim.g.endpoint_debug then
-      vim.notify(string.format("🚀 Using cached data for %s: %d endpoints found", method, #cached_results), vim.log.levels.INFO)
+      vim.notify(
+        string.format("🚀 Using cached data for %s: %d endpoints found", method, #cached_results),
+        vim.log.levels.INFO
+      )
     end
     return cached_results
   end
@@ -134,4 +137,3 @@ function M.setup(config)
 end
 
 return M
-

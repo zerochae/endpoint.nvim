@@ -116,6 +116,11 @@ function M.extract_path(content)
     return path
   end
 
+  -- @GetMapping, @PostMapping, etc. without parentheses - root path
+  if content:match "@%w+Mapping%s*$" then
+    return "/"
+  end
+
   return nil
 end
 
@@ -214,6 +219,49 @@ function M.combine_paths(base, endpoint)
   endpoint = endpoint:gsub("^/", "")
 
   return base .. "/" .. endpoint
+end
+
+-- Get controller base path (alias for get_base_path for testing compatibility)
+function M.get_controller_base_path(file_path)
+  -- Read the entire file to find class-level @RequestMapping
+  local file = io.open(file_path, "r")
+  if not file then
+    return ""
+  end
+
+  local content = file:read "*all"
+  file:close()
+
+  -- Look for @RequestMapping on controller class
+  local lines = {}
+  for line in content:gmatch "[^\r\n]+" do
+    table.insert(lines, line)
+  end
+
+  for i, line in ipairs(lines) do
+    -- Check if this is a class declaration
+    if line:match "class%s+%w+" then
+      -- Look for @RequestMapping on this class or preceding lines
+      for j = math.max(1, i - 5), i do
+        local annotation_line = lines[j]
+        local base_path = annotation_line:match "@RequestMapping%s*%(%s*[\"']([^\"']+)[\"']"
+        if base_path then
+          return base_path
+        end
+        base_path = annotation_line:match "@RequestMapping%s*%([^%)]*value%s*=%s*[\"']([^\"']+)[\"']"
+        if base_path then
+          return base_path
+        end
+        base_path = annotation_line:match "@RequestMapping%s*%([^%)]*path%s*=%s*[\"']([^\"']+)[\"']"
+        if base_path then
+          return base_path
+        end
+      end
+      break
+    end
+  end
+
+  return ""
 end
 
 return M

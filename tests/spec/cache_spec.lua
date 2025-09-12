@@ -1,269 +1,348 @@
 describe("Cache system behavior", function()
-  local endpoint = require "endpoint"
-  local cache = require "endpoint.services.cache"
-  local scanner = require "endpoint.services.scanner"
+  local cache = require "endpoint.cache"
 
   before_each(function()
-    endpoint.setup()
+    -- Reset cache state before each test
+    cache.clear()
+    cache.set_mode "session" -- Default mode for tests
   end)
 
-  -- Helper to populate find_table directly
-  local function populate_find_table(method, file_path, endpoints)
-    cache.create_find_table_entry(file_path, method)
-    for _, endpoint in ipairs(endpoints) do
-      cache.insert_to_find_table {
-        path = file_path,
-        annotation = method,
-        value = endpoint.path,
-        line_number = endpoint.line_number,
-        column = endpoint.column or 1,
-      }
-    end
-    cache.update_cache_timestamp(method)
-  end
+  describe("cache modes", function()
+    it("should set and get cache mode correctly", function()
+      cache.set_mode "persistent"
+      assert.are.equal("persistent", cache.get_mode())
 
-  -- Helper to get results from find_table
-  local function get_find_table_results(method)
-    local find_table = cache.get_find_table()
-    local results = {}
-    for file_path, mapping_object in pairs(find_table) do
-      if mapping_object[method] then
-        local mappings = mapping_object[method]
-        if type(mappings) == "table" then
-          for _, item in ipairs(mappings) do
-            table.insert(results, {
-              method = method,
-              path = item.value or "",
-              file_path = file_path,
-              line_number = item.line_number,
-              column = item.column,
-            })
-          end
-        end
+      cache.set_mode "session"
+      assert.are.equal("session", cache.get_mode())
+
+      cache.set_mode "none"
+      assert.are.equal("none", cache.get_mode())
+    end)
+  end)
+
+  describe("endpoint storage and retrieval", function()
+    it("should store and retrieve single endpoint", function()
+      cache.set_mode "session"
+
+      local endpoint = {
+        file_path = "/path/to/controller.java",
+        endpoint_path = "/api/users",
+        line_number = 10,
+        column = 5,
+      }
+
+      cache.save_endpoint("GET", endpoint)
+
+      local results = cache.get_endpoints "GET"
+      assert.are.equal(1, #results)
+      assert.are.equal("/api/users", results[1].endpoint_path)
+      assert.are.equal("GET", results[1].method)
+      assert.are.equal("/path/to/controller.java", results[1].file_path)
+      assert.are.equal(10, results[1].line_number)
+      assert.are.equal(5, results[1].column)
+    end)
+
+    it("should store multiple endpoints for same method", function()
+      cache.set_mode "session"
+
+      local endpoint1 = {
+        file_path = "/path/to/controller.java",
+        endpoint_path = "/api/users",
+        line_number = 10,
+        column = 5,
+      }
+
+      local endpoint2 = {
+        file_path = "/path/to/controller.java",
+        endpoint_path = "/api/posts",
+        line_number = 20,
+        column = 5,
+      }
+
+      cache.save_endpoint("GET", endpoint1)
+      cache.save_endpoint("GET", endpoint2)
+
+      local results = cache.get_endpoints "GET"
+      assert.are.equal(2, #results)
+    end)
+
+    it("should store endpoints for different methods", function()
+      cache.set_mode "session"
+
+      local get_endpoint = {
+        file_path = "/path/to/controller.java",
+        endpoint_path = "/api/users",
+        line_number = 10,
+        column = 5,
+      }
+
+      local post_endpoint = {
+        file_path = "/path/to/controller.java",
+        endpoint_path = "/api/users",
+        line_number = 20,
+        column = 5,
+      }
+
+      cache.save_endpoint("GET", get_endpoint)
+      cache.save_endpoint("POST", post_endpoint)
+
+      local get_results = cache.get_endpoints "GET"
+      local post_results = cache.get_endpoints "POST"
+
+      assert.are.equal(1, #get_results)
+      assert.are.equal(1, #post_results)
+      assert.are.equal("GET", get_results[1].method)
+      assert.are.equal("POST", post_results[1].method)
+    end)
+
+    it("should handle ALL method to return all endpoints", function()
+      cache.set_mode "session"
+
+      local get_endpoint = {
+        file_path = "/path/to/controller.java",
+        endpoint_path = "/api/users",
+        line_number = 10,
+        column = 5,
+      }
+
+      local post_endpoint = {
+        file_path = "/path/to/controller.java",
+        endpoint_path = "/api/posts",
+        line_number = 20,
+        column = 5,
+      }
+
+      cache.save_endpoint("GET", get_endpoint)
+      cache.save_endpoint("POST", post_endpoint)
+
+      local all_results = cache.get_endpoints "ALL"
+      assert.are.equal(2, #all_results)
+
+      -- Should contain both GET and POST endpoints
+      local methods = {}
+      for _, result in ipairs(all_results) do
+        table.insert(methods, result and result.method)
       end
-    end
-    return results
-  end
 
-  -- Helper function to reset cache state
-  local function reset_cache()
-    cache.clear_tables()
-  end
-
-  before_each(function()
-    reset_cache()
+      assert.is_true(vim.tbl_contains(methods, "GET"))
+      assert.is_true(vim.tbl_contains(methods, "POST"))
+    end)
   end)
 
-  describe("cache mode: none", function()
-    local none_config = { cache_mode = "none" }
+  describe("duplicate prevention", function()
+    it("should prevent duplicate endpoints with same path and location", function()
+      cache.set_mode "session"
 
-    it("should never use cached data", function()
-      local method = "GET"
-
-      -- Populate find_table with session mode first
-      populate_find_table(method, "test.rb", { { path = "/api/users", line_number = 1 } })
-
-      -- With "none" mode, cache should not be considered valid
-      local is_valid = cache.is_cache_valid(method, none_config)
-      assert.is_false(is_valid)
-
-      local should_use = cache.should_use_cache(method, none_config)
-      assert.is_false(should_use)
-    end)
-
-    it("should use cache tables in none mode", function()
-      -- In "none" mode, get_find_table should return the cache table
-      local find_table = cache.get_find_table()
-
-      -- Should be empty initially
-      assert.are.same({}, find_table)
-
-      -- Create entry in cache
-      cache.create_find_table_entry("test.rb", "GET")
-      cache.insert_to_find_table {
-        path = "test.rb",
-        annotation = "GET",
-        value = "/api/users",
-        line_number = 1,
-        column = 1,
+      local endpoint = {
+        file_path = "/path/to/controller.java",
+        endpoint_path = "/api/users",
+        line_number = 10,
+        column = 5,
       }
 
-      -- Should now have data in cache
-      local results = get_find_table_results "GET"
-      assert.is_true(#results > 0)
+      -- Save same endpoint twice
+      cache.save_endpoint("GET", endpoint)
+      cache.save_endpoint("GET", endpoint)
+
+      local results = cache.get_endpoints "GET"
+      assert.are.equal(1, #results) -- Should only have one copy
+    end)
+
+    it("should allow different endpoints with same path but different locations", function()
+      cache.set_mode "session"
+
+      local endpoint1 = {
+        file_path = "/path/to/controller.java",
+        endpoint_path = "/api/users",
+        line_number = 10,
+        column = 5,
+      }
+
+      local endpoint2 = {
+        file_path = "/path/to/controller.java",
+        endpoint_path = "/api/users",
+        line_number = 20, -- Different line
+        column = 5,
+      }
+
+      cache.save_endpoint("GET", endpoint1)
+      cache.save_endpoint("GET", endpoint2)
+
+      local results = cache.get_endpoints "GET"
+      assert.are.equal(2, #results) -- Should have both since different locations
+    end)
+
+    it("should handle backward compatibility with old cache format", function()
+      cache.set_mode "session"
+
+      -- Simulate old cache format by directly inserting into find_table
+      local find_table = cache.get_find_table()
+      find_table["/path/to/controller.java"] = {
+        GET = {
+          -- Old format: just an array
+          { value = "/api/legacy", line_number = 5, column = 1 },
+        },
+      }
+
+      -- Now save a new endpoint - should convert old format
+      local new_endpoint = {
+        file_path = "/path/to/controller.java",
+        endpoint_path = "/api/new",
+        line_number = 10,
+        column = 5,
+      }
+
+      cache.save_endpoint("GET", new_endpoint)
+
+      local results = cache.get_endpoints "GET"
+      assert.are.equal(2, #results) -- Should have both legacy and new
+
+      -- Check that endpoints are correct
+      local paths = {}
+      for _, result in ipairs(results) do
+        table.insert(paths, result and result.endpoint_path)
+      end
+
+      assert.is_true(vim.tbl_contains(paths, "/api/legacy"))
+      assert.is_true(vim.tbl_contains(paths, "/api/new"))
     end)
   end)
 
-  describe("cache mode: session", function()
-    local session_config = { cache_mode = "session" }
+  describe("cache validation", function()
+    it("should return false for none mode", function()
+      cache.set_mode "none"
 
-    it("should store and retrieve find_table data", function()
-      local method = "GET"
+      local endpoint = {
+        file_path = "/path/to/controller.java",
+        endpoint_path = "/api/users",
+        line_number = 10,
+        column = 5,
+      }
 
-      -- Populate find_table
-      populate_find_table(method, "test.rb", { { path = "/api/users", line_number = 1 } })
+      cache.save_endpoint("GET", endpoint)
 
-      -- Should be valid cache
-      local is_valid = cache.is_cache_valid(method, session_config)
-      assert.is_true(is_valid)
-
-      -- Should retrieve data from find_table
-      local results = get_find_table_results(method)
-      assert.is_true(#results > 0)
-      assert.are.equal("/api/users", results[1].path)
+      assert.is_false(cache.is_valid "GET")
     end)
 
-    it("should return empty when no cache exists", function()
-      local method = "DELETE"
+    it("should validate session mode with timestamp", function()
+      cache.set_mode "session"
 
-      -- No cached data exists
-      local is_valid = cache.is_cache_valid(method, session_config)
-      assert.is_false(is_valid)
+      -- Initially should be invalid
+      assert.is_false(cache.is_valid "GET")
 
-      local results = get_find_table_results(method)
-      assert.are.same({}, results)
+      local endpoint = {
+        file_path = "/path/to/controller.java",
+        endpoint_path = "/api/users",
+        line_number = 10,
+        column = 5,
+      }
+
+      cache.save_endpoint("GET", endpoint)
+
+      -- Should be valid after saving
+      assert.is_true(cache.is_valid "GET")
     end)
 
-    it("should persist cache across calls", function()
-      local method = "GET"
+    it("should validate persistent mode based on data existence", function()
+      cache.set_mode "persistent"
 
-      -- Store results
-      populate_find_table(method, "test.rb", { { path = "/api/users", line_number = 1 } })
+      -- Initially should be invalid
+      assert.is_false(cache.is_valid "GET")
 
-      -- Should be valid
-      local should_use = cache.should_use_cache(method, session_config)
-      assert.is_true(should_use)
+      local endpoint = {
+        file_path = "/path/to/controller.java",
+        endpoint_path = "/api/users",
+        line_number = 10,
+        column = 5,
+      }
 
-      -- Should persist across multiple calls
-      local should_use_again = cache.should_use_cache(method, session_config)
-      assert.is_true(should_use_again)
-    end)
-  end)
+      cache.save_endpoint("GET", endpoint)
 
-  describe("cache mode: persistent", function()
-    local persistent_config = { cache_mode = "persistent" }
-
-    it("should store and retrieve find_table data", function()
-      local method = "PUT"
-
-      -- Populate find_table
-      populate_find_table(method, "test.rb", { { path = "/api/users", line_number = 1 } })
-
-      -- Should retrieve data from find_table
-      local results = get_find_table_results(method)
-      assert.is_true(#results > 0)
-      assert.are.equal("/api/users", results[1].path)
+      -- Should be valid in persistent mode if data exists
+      assert.is_true(cache.is_valid "GET")
     end)
 
-    it("should handle cache validation correctly", function()
-      local method = "PATCH"
+    it("should handle ALL method validation", function()
+      cache.set_mode "session"
 
-      -- Populate find_table with timestamp
-      populate_find_table(method, "test.rb", { { path = "/api/users", line_number = 1 } })
+      -- Initially should be invalid
+      assert.is_false(cache.is_valid "ALL")
 
-      -- Should be valid cache
-      local is_valid = cache.is_cache_valid(method, persistent_config)
-      assert.is_true(is_valid)
+      local endpoint = {
+        file_path = "/path/to/controller.java",
+        endpoint_path = "/api/users",
+        line_number = 10,
+        column = 5,
+      }
 
-      -- Should use cache
-      local should_use = cache.should_use_cache(method, persistent_config)
-      assert.is_true(should_use)
+      cache.save_endpoint("GET", endpoint)
+
+      -- Should be valid for ALL if any method has data
+      assert.is_true(cache.is_valid "ALL")
     end)
   end)
 
-  describe("cache mode transitions", function()
-    it("should handle switching between different cache modes", function()
-      local method = "GET"
+  describe("preview operations", function()
+    it("should save and retrieve preview data", function()
+      cache.set_mode "session"
 
-      -- Start with session cache
-      populate_find_table(method, "test.rb", { { path = "/api/users", line_number = 1 } })
+      local endpoint_key = "GET /api/users"
+      cache.save_preview(endpoint_key, "/path/to/file.java", 10, 5)
 
-      local should_use_session = cache.should_use_cache(method, { cache_mode = "session" })
-      assert.is_true(should_use_session)
-
-      -- Switch to "none" mode - should not use cache
-      local should_use_none = cache.should_use_cache(method, { cache_mode = "none" })
-      assert.is_false(should_use_none)
-
-      -- Switch to persistent mode - should still have data (if valid)
-      local should_use_persistent = cache.should_use_cache(method, { cache_mode = "persistent" })
-      assert.is_true(should_use_persistent)
+      local preview = cache.get_preview(endpoint_key)
+      assert.are.equal("/path/to/file.java", preview.path)
+      assert.are.equal(10, preview.line_number)
+      assert.are.equal(5, preview.column)
     end)
   end)
 
-  describe("cache interface", function()
-    it("should have consistent cache validation behavior", function()
-      local method = "TEST"
+  describe("cache clearing", function()
+    it("should clear all cache data", function()
+      cache.set_mode "session"
 
-      -- Test with nil config (should use default)
-      local is_valid_nil = cache.is_cache_valid(method, nil)
-      assert.is_false(is_valid_nil) -- No cache exists yet
+      local endpoint = {
+        file_path = "/path/to/controller.java",
+        endpoint_path = "/api/users",
+        line_number = 10,
+        column = 5,
+      }
 
-      -- Test with empty config
-      local is_valid_empty = cache.is_cache_valid(method, {})
-      assert.is_false(is_valid_empty)
-    end)
-
-    it("should handle find_table operations without errors", function()
-      local method = "TEST"
-
-      -- Should not error with basic operations
-      assert.has_no_error(function()
-        cache.create_find_table_entry("test.rb", method)
-        cache.insert_to_find_table {
-          path = "test.rb",
-          annotation = method,
-          value = "/api/test",
-          line_number = 1,
-          column = 1,
-        }
-        cache.update_cache_timestamp(method)
-      end)
-    end)
-  end)
-
-  describe("cache clear operations", function()
-    it("should clear all cache data correctly", function()
-      -- Populate cache with different methods
-      populate_find_table("GET", "test.rb", { { path = "/api/users", line_number = 1 } })
-      populate_find_table("POST", "test.rb", { { path = "/api/users", line_number = 5 } })
+      cache.save_endpoint("GET", endpoint)
+      cache.save_preview("GET /api/users", "/path/to/file.java", 10, 5)
 
       -- Verify data exists
-      local results_get = get_find_table_results "GET"
-      local results_post = get_find_table_results "POST"
-      assert.is_true(#results_get > 0)
-      assert.is_true(#results_post > 0)
+      assert.is_true(cache.is_valid "GET")
+      assert.is_not_nil(cache.get_preview "GET /api/users")
 
       -- Clear cache
-      cache.clear_tables()
+      cache.clear()
 
       -- Verify data is cleared
-      local cleared_get = get_find_table_results "GET"
-      local cleared_post = get_find_table_results "POST"
-      assert.are.same({}, cleared_get)
-      assert.are.same({}, cleared_post)
+      assert.is_false(cache.is_valid "GET")
+      assert.is_nil(cache.get_preview "GET /api/users")
+      assert.are.equal(0, #cache.get_endpoints "GET")
     end)
   end)
 
-  describe("default cache mode behavior", function()
-    it("should use default cache mode when not specified", function()
-      local default_config = require "endpoint.core.config"
+  describe("cache statistics", function()
+    it("should return correct statistics", function()
+      cache.set_mode "session"
 
-      -- Default should be "none"
-      assert.are.equal("none", default_config.cache_mode)
-    end)
+      local endpoint = {
+        file_path = "/path/to/controller.java",
+        endpoint_path = "/api/users",
+        line_number = 10,
+        column = 5,
+      }
 
-    it("should handle fallback cache mode correctly", function()
-      -- Test session fallback behavior
-      local state = require "endpoint.core.state"
+      cache.save_endpoint("GET", endpoint)
+      cache.save_preview("GET /api/users", "/path/to/file.java", 10, 5)
 
-      -- Should use fallback logic (implementation depends on session.lua)
-      assert.has_no_error(function()
-        local cache_config = state.get_config()
-        -- Session config can be nil if not initialized, which is valid
-        -- The important thing is that it doesn't error
-      end)
+      local stats = cache.get_stats()
+      assert.are.equal("session", stats.mode)
+      assert.are.equal(1, stats.find_entries)
+      assert.are.equal(1, stats.preview_entries)
+      assert.is_true(vim.tbl_contains(stats.timestamps, "GET"))
     end)
   end)
 end)
-

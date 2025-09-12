@@ -1,53 +1,203 @@
-describe("Scanner service", function()
-  local endpoint = require "endpoint"
-  local scanner = require "endpoint.services.scanner"
+describe("Scanner functionality", function()
+  local scanner = require "endpoint.scanner"
+  local cache = require "endpoint.cache"
 
   before_each(function()
-    endpoint.setup()
     -- Clear cache before each test
-    scanner.clear_cache()
-    -- Reset session config before each test
-    local state = require "endpoint.core.state"
-    state.set_config {
-      framework = "auto",
-      cache_mode = "none",
-      debug = false,
-    }
+    cache.clear()
+    cache.set_mode "session"
   end)
 
-  describe("basic functionality", function()
-    it("should export expected API", function()
+  describe("basic API", function()
+    it("should export expected functions", function()
       assert.is_function(scanner.scan)
-      assert.is_function(scanner.scan_all)
-      assert.is_function(scanner.get_list)
+      assert.is_function(scanner.detect_framework)
       assert.is_function(scanner.prepare_preview)
+      assert.is_function(scanner.get_cached_endpoints)
+      assert.is_function(scanner.get_preview_data)
       assert.is_function(scanner.clear_cache)
-      assert.is_function(scanner.get_cache_data)
-    end)
-
-    it("should return cache data structure", function()
-      local cache_data = scanner.get_cache_data()
-      assert.is_table(cache_data)
-      assert.is_table(cache_data.find_table)
-      assert.is_table(cache_data.preview_table)
+      assert.is_function(scanner.get_cache_stats)
+      assert.is_function(scanner.setup)
     end)
   end)
-  --
-  describe("Symfony framework integration", function()
-    it("should scan Symfony endpoints correctly", function()
-      local fixture_path = "tests/fixtures/symfony"
-      local state = require "endpoint.core.state"
-      state.set_config {
-        framework = "symfony",
+
+  describe("framework detection", function()
+    it("should detect framework or return nil", function()
+      local framework = scanner.detect_framework()
+      -- In test environment, might not detect any framework
+      assert.is_true(framework == nil or type(framework) == "table")
+    end)
+  end)
+
+  describe("cache operations", function()
+    it("should clear cache", function()
+      -- Add some test data to cache first
+      cache.save_endpoint("GET", {
+        file_path = "/test/file.java",
+        endpoint_path = "/api/test",
+        line_number = 10,
+        column = 5,
+      })
+
+      -- Verify cache has data
+      assert.is_true(cache.is_valid "GET")
+
+      -- Clear via scanner
+      scanner.clear_cache()
+
+      -- Verify cache is cleared
+      assert.is_false(cache.is_valid "GET")
+    end)
+
+    it("should get cached endpoints", function()
+      -- Add test data
+      cache.save_endpoint("POST", {
+        file_path = "/test/file.java",
+        endpoint_path = "/api/create",
+        line_number = 20,
+        column = 5,
+      })
+
+      local results = scanner.get_cached_endpoints "POST"
+      assert.are.equal(1, #results)
+      assert.are.equal("/api/create", results[1].endpoint_path)
+    end)
+
+    it("should get cache statistics", function()
+      -- Add test data
+      cache.save_endpoint("GET", {
+        file_path = "/test/file.java",
+        endpoint_path = "/api/test",
+        line_number = 10,
+        column = 5,
+      })
+
+      local stats = scanner.get_cache_stats()
+      assert.is_table(stats)
+      assert.is_string(stats.mode)
+      assert.is_number(stats.find_entries)
+      assert.is_number(stats.preview_entries)
+      assert.is_table(stats.timestamps)
+    end)
+  end)
+
+  describe("preview operations", function()
+    it("should prepare and retrieve preview data", function()
+      local endpoints = {
+        {
+          method = "GET",
+          endpoint_path = "/api/users",
+          file_path = "/test/controller.java",
+          line_number = 10,
+          column = 5,
+        },
       }
+
+      scanner.prepare_preview(endpoints)
+
+      local preview = scanner.get_preview_data "GET /api/users"
+      assert.is_table(preview)
+      assert.are.equal("/test/controller.java", preview.path)
+      assert.are.equal(10, preview.line_number)
+      assert.are.equal(5, preview.column)
+    end)
+  end)
+
+  describe("setup", function()
+    it("should setup scanner with config", function()
+      local config = {
+        cache_mode = "persistent",
+      }
+
+      local ok, err = pcall(function()
+        scanner.setup(config)
+      end)
+      assert.is_true(ok, err)
+    end)
+  end)
+
+  describe("Spring framework integration", function()
+    it("should handle Spring fixture scanning", function()
+      local fixture_path = "tests/fixtures/spring"
       if vim.fn.isdirectory(fixture_path) == 1 then
         local original_cwd = vim.fn.getcwd()
         vim.fn.chdir(fixture_path)
 
-        local results = scanner.get_list "GET"
+        -- Should not throw errors when scanning
+        local results
+        local ok, err = pcall(function()
+          results = scanner.scan "GET"
+        end)
+        assert.is_true(ok, err)
 
-        -- Should find some endpoints
-        assert.is_true(#results > 0, "Should return table even if empty")
+        assert.is_table(results)
+        -- Results length depends on fixture content
+
+        vim.fn.chdir(original_cwd)
+      else
+        pending "Spring fixture directory not found"
+      end
+    end)
+  end)
+
+  describe("FastAPI framework integration", function()
+    it("should handle FastAPI fixture scanning", function()
+      local fixture_path = "tests/fixtures/fastapi"
+      if vim.fn.isdirectory(fixture_path) == 1 then
+        local original_cwd = vim.fn.getcwd()
+        vim.fn.chdir(fixture_path)
+
+        local results
+        local ok, err = pcall(function()
+          results = scanner.scan "GET"
+        end)
+        assert.is_true(ok, err)
+
+        assert.is_table(results)
+
+        vim.fn.chdir(original_cwd)
+      else
+        pending "FastAPI fixture directory not found"
+      end
+    end)
+  end)
+
+  describe("NestJS framework integration", function()
+    it("should handle NestJS fixture scanning", function()
+      local fixture_path = "tests/fixtures/nestjs"
+      if vim.fn.isdirectory(fixture_path) == 1 then
+        local original_cwd = vim.fn.getcwd()
+        vim.fn.chdir(fixture_path)
+
+        local results
+        local ok, err = pcall(function()
+          results = scanner.scan "GET"
+        end)
+        assert.is_true(ok, err)
+
+        assert.is_table(results)
+
+        vim.fn.chdir(original_cwd)
+      else
+        pending "NestJS fixture directory not found"
+      end
+    end)
+  end)
+
+  describe("Symfony framework integration", function()
+    it("should handle Symfony fixture scanning", function()
+      local fixture_path = "tests/fixtures/symfony"
+      if vim.fn.isdirectory(fixture_path) == 1 then
+        local original_cwd = vim.fn.getcwd()
+        vim.fn.chdir(fixture_path)
+
+        local results
+        local ok, err = pcall(function()
+          results = scanner.scan "GET"
+        end)
+        assert.is_true(ok, err)
+
+        assert.is_table(results)
 
         vim.fn.chdir(original_cwd)
       else
@@ -55,132 +205,99 @@ describe("Scanner service", function()
       end
     end)
   end)
-  --
-  -- describe("cache management", function()
-  --   it("should clear cache properly", function()
-  --     -- Add some mock data to cache first
-  --     local cache = require "endpoint.services.cache"
-  --     cache.create_find_table_entry("/test/file.rb", "GET")
-  --     cache.insert_to_find_table {
-  --       path = "/test/file.rb",
-  --       annotation = "GET",
-  --       value = "/test/endpoint",
-  --       line_number = 1,
-  --       column = 1,
-  --     }
-  --
-  --     -- Verify cache has data
-  --     local cache_data = scanner.get_cache_data()
-  --     local has_data = next(cache_data.find_table) ~= nil
-  --
-  --     -- Clear cache
-  --     scanner.clear_cache()
-  --
-  --     -- Verify cache is empty
-  --     cache_data = scanner.get_cache_data()
-  --     local is_empty = next(cache_data.find_table) == nil
-  --
-  --     assert.is_true(is_empty, "Cache should be empty after clear")
-  --   end)
-  -- end)
-  --
-  -- describe("batch scanning", function()
-  --   it("should scan all methods without errors", function()
-  --     local fixture_path = "tests/fixtures/rails"
-  --     if vim.fn.isdirectory(fixture_path) == 1 then
-  --       local original_cwd = vim.fn.getcwd()
-  --       vim.fn.chdir(fixture_path)
-  --
-  --       -- Should not throw errors
-  --       assert.has_no_error(function()
-  --         scanner.scan_all()
-  --       end)
-  --
-  --       vim.fn.chdir(original_cwd)
-  --     else
-  --       pending "Rails fixture directory not found"
-  --     end
-  --   end)
-  -- end)
-  --
-  -- describe("error handling", function()
-  --   it("should handle missing framework gracefully", function()
-  --     -- Change to directory without any framework files
-  --     local temp_dir = "/tmp/test_empty_dir_" .. os.time()
-  --     vim.fn.mkdir(temp_dir, "p")
-  --     local original_cwd = vim.fn.getcwd()
-  --     vim.cmd("cd " .. temp_dir)
-  --
-  --     -- Should not throw errors
-  --     assert.has_no_error(function()
-  --       scanner.scan "GET"
-  --     end)
-  --
-  --     local results = scanner.get_list "GET"
-  --     assert.is_table(results)
-  --     assert.are.equal(0, #results)
-  --
-  --     -- Cleanup
-  --     vim.cmd("cd " .. original_cwd)
-  --     vim.fn.delete(temp_dir, "rf")
-  --   end)
-  --
-  --   it("should handle invalid methods gracefully", function()
-  --     assert.has_no_error(function()
-  --       scanner.scan "INVALID_METHOD"
-  --     end)
-  --
-  --     local results = scanner.get_list "INVALID_METHOD"
-  --     assert.is_table(results)
-  --     assert.are.equal(0, #results)
-  --   end)
-  -- end)
-  --
-  -- describe("Spring framework integration", function()
-  --   it("should scan Spring endpoints correctly", function()
-  --     local fixture_path = "tests/fixtures/spring"
-  --     local session = require "endpoint.core.state"
-  --     session.set_config {
-  --       framework = "spring",
-  --     }
-  --     if vim.fn.isdirectory(fixture_path) == 1 then
-  --       local original_cwd = vim.fn.getcwd()
-  --       vim.fn.chdir(fixture_path)
-  --
-  --       scanner.scan "GET"
-  --       local results = scanner.get_list "GET"
-  --
-  --       -- Should find some endpoints
-  --       assert.is_true(#results >= 0, "Should return table even if empty")
-  --
-  --       vim.fn.chdir(original_cwd)
-  --     else
-  --       pending "Spring fixture directory not found"
-  --     end
-  --   end)
-  -- end)
-  --
-  -- describe("NestJS framework integration", function()
-  --   it("should scan NestJS endpoints correctly", function()
-  --     local fixture_path = "tests/fixtures/nestjs"
-  --     local session = require "endpoint.core.state"
-  --     session.set_config {
-  --       framework = "nestjs",
-  --     }
-  --     if vim.fn.isdirectory(fixture_path) == 1 then
-  --       local original_cwd = vim.fn.getcwd()
-  --       vim.fn.chdir(fixture_path)
-  --
-  --       scanner.scan "GET"
-  --       local results = scanner.get_list "GET"
-  --
-  --       -- Should find some endpoints
-  --       assert.is_true(#results >= 0, "Should return table even if empty")
-  --
-  --       vim.fn.chdir(original_cwd)
-  --     else
-  --       pending "NestJS fixture directory not found"
-  --     end
-  -- end)
-  -- end)
+
+  describe("error handling", function()
+    it("should handle no framework detected gracefully", function()
+      -- Create empty temp directory
+      local temp_dir = "/tmp/endpoint_test_" .. os.time()
+      vim.fn.mkdir(temp_dir, "p")
+      local original_cwd = vim.fn.getcwd()
+      vim.fn.chdir(temp_dir)
+
+      local results
+      local ok, err = pcall(function()
+        results = scanner.scan "GET"
+      end)
+      assert.is_true(ok, err)
+
+      assert.is_table(results)
+      assert.are.equal(0, #results)
+
+      -- Cleanup
+      vim.fn.chdir(original_cwd)
+      vim.fn.delete(temp_dir, "rf")
+    end)
+
+    it("should handle invalid methods gracefully", function()
+      local results
+      local ok, err = pcall(function()
+        results = scanner.scan "INVALID_METHOD"
+      end)
+      assert.is_true(ok, err)
+
+      assert.is_table(results)
+      assert.are.equal(0, #results)
+    end)
+  end)
+
+  describe("cache integration", function()
+    it("should use cached results when valid", function()
+      -- Manually populate cache
+      cache.save_endpoint("GET", {
+        file_path = "/test/controller.java",
+        endpoint_path = "/api/cached",
+        line_number = 15,
+        column = 10,
+      })
+
+      -- Should return cached results instead of scanning
+      local results = scanner.scan "GET"
+      assert.are.equal(1, #results)
+      assert.are.equal("/api/cached", results[1].endpoint_path)
+    end)
+
+    it("should force refresh when requested", function()
+      -- Manually populate cache
+      cache.save_endpoint("GET", {
+        file_path = "/test/controller.java",
+        endpoint_path = "/api/cached",
+        line_number = 15,
+        column = 10,
+      })
+
+      -- Force refresh should bypass cache
+      local results = scanner.scan("GET", { force_refresh = true })
+      assert.is_table(results)
+      -- Results depend on detected framework and files
+    end)
+
+    it("should handle ALL method correctly", function()
+      -- Add multiple methods to cache
+      cache.save_endpoint("GET", {
+        file_path = "/test/controller.java",
+        endpoint_path = "/api/get",
+        line_number = 10,
+        column = 5,
+      })
+
+      cache.save_endpoint("POST", {
+        file_path = "/test/controller.java",
+        endpoint_path = "/api/post",
+        line_number = 20,
+        column = 5,
+      })
+
+      local all_results = scanner.scan "ALL"
+      assert.is_true(#all_results >= 2)
+
+      -- Should contain both methods
+      local methods = {}
+      for _, result in ipairs(all_results) do
+        table.insert(methods, result and result.method)
+      end
+
+      assert.is_true(vim.tbl_contains(methods, "GET"))
+      assert.is_true(vim.tbl_contains(methods, "POST"))
+    end)
+  end)
 end)
