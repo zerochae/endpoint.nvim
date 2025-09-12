@@ -18,7 +18,15 @@ function M.scan(method, options)
 
   -- Check cache first
   if not options.force_refresh and cache.is_valid(method) then
-    return cache.get_endpoints(method)
+    local cached_results = cache.get_endpoints(method)
+    if vim.g.endpoint_debug then
+      vim.notify(string.format("🚀 Using cached data for %s: %d endpoints found", method, #cached_results), vim.log.levels.INFO)
+    end
+    return cached_results
+  end
+
+  if vim.g.endpoint_debug then
+    vim.notify(string.format("🔍 Cache miss for %s, scanning filesystem...", method), vim.log.levels.INFO)
   end
 
   -- Detect framework
@@ -71,6 +79,11 @@ function M.scan(method, options)
   -- Prepare preview data
   if #endpoints > 0 then
     M.prepare_preview(endpoints)
+  end
+
+  -- Save to file once after all endpoints are collected (for persistent mode)
+  if cache.get_mode() == "persistent" and #endpoints > 0 then
+    cache.save_to_file()
   end
 
   return endpoints
