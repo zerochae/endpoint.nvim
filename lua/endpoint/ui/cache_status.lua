@@ -46,7 +46,6 @@ end
 local function get_cache_statistics()
   local cache = require "endpoint.services.cache"
   local find_table = cache.get_find_table()
-  local preview_table = cache.get_preview_table()
 
   local stats = {
     total_files = 0,
@@ -95,11 +94,8 @@ M.show_cache_status = function()
   local cache_config = state.get_config()
 
   if not cache_config then
-    local default_config = require "endpoint.core.config"
-    cache_config = {
-      cache_ttl = default_config.cache_ttl or 5000,
-      cache_mode = default_config.cache_mode or "none",
-    }
+    local config_module = require "endpoint.config"
+    cache_config = config_module.get()
   end
 
   -- Get UI configuration
@@ -282,10 +278,9 @@ M.show_cache_status = function()
               table.insert(lines, entry_prefix .. " ➤ " .. (entry.value or "unknown endpoint"))
 
               -- Store endpoint mapping for navigation
-              local full_path = dir .. "/" .. filename
               line_map[#lines] = {
                 type = "endpoint",
-                path = full_path,
+                path = dir .. "/" .. filename,
                 line_number = entry.line_number or 1,
                 column = entry.column or 1,
                 value = entry.value,
@@ -302,11 +297,10 @@ M.show_cache_status = function()
             table.insert(lines, entry_prefix .. " ➤ " .. value)
 
             -- Store endpoint mapping for navigation
-            local full_path = dir .. "/" .. filename
             local entry = entries[1] or entries
             line_map[#lines] = {
               type = "endpoint",
-              path = full_path,
+              path = dir .. "/" .. filename,
               line_number = entry.line_number or 1,
               column = entry.column or 1,
               value = value,
@@ -368,7 +362,7 @@ M.show_cache_status = function()
   elseif window_config.height == "max" then
     height = vim.o.lines - 4
   else
-    height = math.min(window_config.height or (#lines + 2), vim.o.lines - 4)
+    height = math.min(tonumber(window_config.height) or (#lines + 2), vim.o.lines - 4)
   end
 
   local win = vim.api.nvim_open_win(buf, true, {

@@ -1,38 +1,38 @@
 -- Simplified Scanner Implementation (Function-based)
-local cache = require("endpoint.cache")
+local cache = require "endpoint.cache"
 
 local M = {}
 
 -- Available frameworks
 local frameworks = {
-  spring = require("endpoint.frameworks.spring"),
-  fastapi = require("endpoint.frameworks.fastapi"),
-  nestjs = require("endpoint.frameworks.nestjs"),
-  symfony = require("endpoint.frameworks.symfony"),
+  spring = require "endpoint.frameworks.spring",
+  fastapi = require "endpoint.frameworks.fastapi",
+  nestjs = require "endpoint.frameworks.nestjs",
+  symfony = require "endpoint.frameworks.symfony",
 }
 
 -- Main scan function
 function M.scan(method, options)
   method = method or "ALL"
   options = options or {}
-  
+
   -- Check cache first
   if not options.force_refresh and cache.is_valid(method) then
     return cache.get_endpoints(method)
   end
-  
+
   -- Detect framework
   local framework = M.detect_framework()
   if not framework then
     vim.notify("No supported framework detected", vim.log.levels.WARN)
     return {}
   end
-  
+
   -- Execute search
   local cmd = framework.get_search_cmd(method)
   local output = vim.fn.system(cmd)
   local exit_code = vim.v.shell_error
-  
+
   if exit_code ~= 0 then
     if exit_code == 1 then
       return {} -- No results found
@@ -41,7 +41,7 @@ function M.scan(method, options)
       return {}
     end
   end
-  
+
   -- Parse results
   local endpoints = {}
   for line in vim.gsplit(output, "\n") do
@@ -67,18 +67,18 @@ function M.scan(method, options)
       end
     end
   end
-  
+
   -- Prepare preview data
   if #endpoints > 0 then
     M.prepare_preview(endpoints)
   end
-  
+
   return endpoints
 end
 
 -- Framework detection
 function M.detect_framework()
-  for name, framework in pairs(frameworks) do
+  for _, framework in pairs(frameworks) do
     if framework.detect() then
       return framework
     end
@@ -121,3 +121,4 @@ function M.setup(config)
 end
 
 return M
+

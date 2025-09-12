@@ -9,12 +9,12 @@ end
 -- Show endpoints in vim.ui.select
 function M.show(endpoints, opts)
   opts = opts or {}
-  
+
   if #endpoints == 0 then
     vim.notify("No endpoints found", vim.log.levels.INFO)
     return
   end
-  
+
   vim.ui.select(endpoints, {
     prompt = "Select endpoint:",
     format_item = function(item)
@@ -29,3 +29,4 @@ function M.show(endpoints, opts)
 end
 
 return M
+

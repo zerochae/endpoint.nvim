@@ -12,15 +12,15 @@ function M.show(endpoints, opts)
     vim.notify("Snacks is not available", vim.log.levels.ERROR)
     return
   end
-  
-  local snacks = require("snacks")
+
+  local snacks = require "snacks"
   opts = opts or {}
-  
+
   if #endpoints == 0 then
     vim.notify("No endpoints found", vim.log.levels.INFO)
     return
   end
-  
+
   -- Format endpoints for snacks picker
   local items = {}
   for _, endpoint in ipairs(endpoints) do
@@ -32,8 +32,8 @@ function M.show(endpoints, opts)
       endpoint = endpoint,
     })
   end
-  
-  snacks.picker.pick({
+
+  snacks.picker.pick {
     source = "static",
     items = items,
     prompt = "Endpoints",
@@ -57,7 +57,8 @@ function M.show(endpoints, opts)
         vim.api.nvim_win_set_cursor(0, { item.endpoint.line_number, item.endpoint.column - 1 })
       end
     end,
-  })
+  }
 end
 
 return M
+

@@ -32,7 +32,7 @@ function M.get_project_root()
   if vim.v.shell_error ~= 0 then
     return cwd -- fallback to current directory
   end
-  return result:gsub("\n", "")
+  return (result:gsub("\n", ""))
 end
 
 -- Read file contents

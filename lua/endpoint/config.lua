@@ -35,13 +35,13 @@ local current_config = vim.deepcopy(default_config)
 function M.setup(user_config)
   user_config = user_config or {}
   current_config = vim.tbl_deep_extend("force", current_config, user_config)
-  
+
   -- Initialize cache with the configured mode
-  local cache = require("endpoint.cache")
+  local cache = require "endpoint.cache"
   cache.set_mode(current_config.cache_mode)
-  
+
   -- Initialize scanner
-  local scanner = require("endpoint.scanner")
+  local scanner = require "endpoint.scanner"
   scanner.setup(current_config)
 end
 
@@ -66,3 +66,4 @@ function M.reset()
 end
 
 return M
+
