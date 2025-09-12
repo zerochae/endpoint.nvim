@@ -489,14 +489,11 @@ make test-frameworks
 # Test specific components
 make test-cache       # Cache functionality tests
 make test-pickers     # Picker interface tests
-
-# Test with timeout (useful for CI)
-timeout 60s make test
 ```
 
 #### Test Structure
 
-```
+```text
 tests/
 ├── fixtures/          # Test fixture projects for each framework
 │   ├── spring/        # Sample Spring Boot project
@@ -523,15 +520,6 @@ When contributing new features or framework support:
 3. **Test Fixtures**: Add sample project files to `tests/fixtures/your_framework/`
 4. **Makefile**: Add new test targets if needed
 
-#### Test Coverage
-
-Current test coverage by framework:
-- ✅ **Spring Boot**: 22+ test cases (mappings, paths, annotations)
-- ✅ **NestJS**: 18+ test cases (decorators, controllers, modules)  
-- ✅ **Symfony**: 21+ test cases (attributes, annotations, routes)
-- ✅ **FastAPI**: 15+ test cases (decorators, routers, dependencies)
-- ✅ **Rails**: 27+ test cases (actions, routes, annotations) - *New!*
-
 #### Debugging Tests
 
 ```bash
@@ -544,6 +532,55 @@ ls tests/fixtures/spring/src/main/java/com/example/
 # Validate framework detection in fixture directory
 cd tests/fixtures/spring && nvim -c "lua print(require('endpoint.frameworks.spring').detect())"
 ```
+
+### 🐛 Reporting Issues
+
+#### If Your Endpoints Are Not Being Detected
+
+If the plugin is not finding your endpoints, please help us fix it by providing a reproducible example:
+
+1. **Create a minimal reproduction case** in the appropriate `tests/fixtures/your-framework/` directory
+2. **Include the specific code** that is not being detected
+3. **Submit a PR** with your test case and a description of the expected behavior
+
+**Example for Spring Boot:**
+```bash
+# Add your problematic controller to:
+tests/fixtures/spring/src/main/java/com/example/ProblematicController.java
+
+# Include methods like:
+@RestController
+@RequestMapping("/api/v1")
+public class ProblematicController {
+    @GetMapping("/missing-endpoint")  // This endpoint is not detected
+    public ResponseEntity<?> missingEndpoint() { ... }
+}
+```
+
+**Example for Rails:**  
+```bash
+# Add your problematic controller/routes to:
+tests/fixtures/rails/app/controllers/problematic_controller.rb
+tests/fixtures/rails/config/routes.rb
+
+# Include actions like:
+class ProblematicController < ApplicationController
+  def missing_action  # This action is not detected
+    # ...
+  end
+end
+```
+
+This helps us:
+- ✅ **Reproduce the issue** consistently
+- ✅ **Write proper tests** for the fix  
+- ✅ **Prevent regressions** in the future
+- ✅ **Improve framework support** for everyone
+
+**Please include:**
+- Framework version (e.g., Spring Boot 3.1, Rails 7.0)
+- The exact code pattern that's not working
+- Expected vs actual behavior
 
 
 ### Framework Detection
