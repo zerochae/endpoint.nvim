@@ -56,8 +56,10 @@ function M:get_grep_cmd(method, config)
     cmd = cmd .. " " .. config.rg_additional_args
   end
 
-  local pattern_str = table.concat(patterns, " -e ")
-  cmd = cmd .. " -e '" .. pattern_str .. "'"
+  -- Use -e flag for each pattern
+  for _, pattern in ipairs(patterns) do
+    cmd = cmd .. " -e '" .. pattern .. "'"
+  end
 
   return cmd
 end

@@ -1,11 +1,10 @@
 local base_manager = require "endpoint.core.base_manager"
 local detector = require "endpoint.services.detector"
 
+
 ---@class endpoint.FrameworkManagerImpl
 ---@field register fun(type: string, module_path: string)
 ---@field get fun(type?: string): any
-
----@type endpoint.FrameworkManagerImpl
 local M = base_manager.create_manager("framework", "auto")
 
 -- Framework implementations will be registered during setup

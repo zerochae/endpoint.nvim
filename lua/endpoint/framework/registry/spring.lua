@@ -296,8 +296,15 @@ function M:get_grep_cmd(method, config)
     cmd = cmd .. " " .. config.rg_additional_args
   end
 
-  -- 싱글 패턴: @GetMapping / @PostMapping 등만 먼저 긁어온다
-  cmd = cmd .. " '" .. patterns[1] .. "'"
+  -- Use all patterns for comprehensive search
+  if #patterns == 1 then
+    cmd = cmd .. " '" .. patterns[1] .. "'"
+  else
+    -- Multiple patterns: use -e flag for each pattern
+    for _, pattern in ipairs(patterns) do
+      cmd = cmd .. " -e '" .. pattern .. "'"
+    end
+  end
   return cmd
 end
 

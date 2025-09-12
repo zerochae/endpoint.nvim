@@ -179,8 +179,15 @@ function M:get_grep_cmd(method, config)
     cmd = cmd .. " " .. config.rg_additional_args
   end
 
-  -- NestJS decorators are distinct enough that we can search for the first pattern.
-  cmd = cmd .. " '" .. patterns[1] .. "'"
+  -- Use all patterns for comprehensive search
+  if #patterns == 1 then
+    cmd = cmd .. " '" .. patterns[1] .. "'"
+  else
+    -- Multiple patterns: use -e flag for each pattern
+    for _, pattern in ipairs(patterns) do
+      cmd = cmd .. " -e '" .. pattern .. "'"
+    end
+  end
 
   return cmd
 end
