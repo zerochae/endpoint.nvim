@@ -1,6 +1,14 @@
+---@diagnostic disable: duplicate-doc-field
 ---@meta
 
 -- Simplified Types for New Structure
+
+-- UI Configuration
+---@class endpoint.UIConfig
+---@field method_colors table<string, string>
+---@field method_icons table<string, string>
+---@field show_icons boolean
+---@field show_method boolean
 
 -- Core Configuration
 ---@class endpoint.Config
@@ -10,6 +18,7 @@
 ---@field picker_opts table
 ---@field methods string[]
 ---@field rg_additional_args string
+---@field ui endpoint.UIConfig
 
 -- Endpoint Data
 ---@class endpoint.Endpoint
