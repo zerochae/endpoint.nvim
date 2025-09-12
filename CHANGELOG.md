@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.2.0](https://github.com/zerochae/endpoint.nvim/compare/v1.1.0...v1.2.0) (2025-09-12)
+
+
+### Features
+
+* add UI configuration types for method display customization ([fdae803](https://github.com/zerochae/endpoint.nvim/commit/fdae8037c726bfac40978d7bc229884198eb2c55))
+
 ## [1.1.0](https://github.com/zerochae/endpoint.nvim/compare/v1.0.1...v1.1.0) (2025-09-12)
 
 
