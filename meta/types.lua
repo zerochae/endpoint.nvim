@@ -1,25 +1,24 @@
----@diagnostic disable: duplicate-doc-field
 ---@meta
 
 -- UI Configuration
----@class endpoint.UIConfig
+---@class endpoint.ui.config
 ---@field method_colors table<string, string>
 ---@field method_icons table<string, string>
 ---@field show_icons boolean
 ---@field show_method boolean
 
 -- Core Configuration
----@class endpoint.Config
+---@class endpoint.config
 ---@field cache_mode "none" | "session" | "persistent"
 ---@field debug boolean
 ---@field picker "telescope" | "vim_ui_select" | "snacks"
 ---@field picker_opts table
 ---@field methods string[]
 ---@field rg_additional_args string
----@field ui endpoint.UIConfig
+---@field ui endpoint.ui.config
 
--- Endpoint Data
----@class endpoint.Endpoint
+-- Endpoint Entry
+---@class endpoint.entry
 ---@field file_path string
 ---@field line_number number
 ---@field column number
@@ -28,54 +27,54 @@
 ---@field display_value string
 
 -- Cache Module (Function-based)
----@class endpoint.Cache
+---@class endpoint.cache
 ---@field set_mode fun(mode: string)
 ---@field get_mode fun(): string
 ---@field is_valid fun(key: string): boolean
----@field save_endpoint fun(method: string, endpoint: endpoint.Endpoint)
+---@field save_endpoint fun(method: string, endpoint: endpoint.entry)
 ---@field save_preview fun(key: string, file_path: string, line_number: number, column: number)
----@field get_endpoints fun(method: string): endpoint.Endpoint[]
----@field get_preview fun(key: string): endpoint.PreviewData?
+---@field get_endpoints fun(method: string): endpoint.entry[]
+---@field get_preview fun(key: string): endpoint.cache.preview?
 ---@field clear fun()
 ---@field save_to_file fun()
 ---@field load_from_file fun()
----@field get_stats fun(): endpoint.CacheStats
+---@field get_stats fun(): endpoint.cache.stats
 
----@class endpoint.PreviewData
+---@class endpoint.cache.preview
 ---@field path string
 ---@field line_number number
 ---@field column number
 
----@class endpoint.CacheStats
+---@class endpoint.cache.stats
 ---@field find_entries number
 ---@field preview_entries number
 ---@field mode string
 ---@field timestamps string[]
 
 -- Framework Module (Function-based)
----@class endpoint.Framework
+---@class endpoint.framework
 ---@field detect fun(): boolean
 ---@field get_search_cmd fun(method: string): string
----@field parse_line fun(line: string, method: string): endpoint.Endpoint?
+---@field parse_line fun(line: string, method: string): endpoint.entry?
 
 -- Scanner Module (Function-based)
----@class endpoint.Scanner
----@field scan fun(method: string): endpoint.Endpoint[]
----@field detect_framework fun(): endpoint.Framework?
----@field prepare_preview fun(endpoints: endpoint.Endpoint[])
+---@class endpoint.scanner
+---@field scan fun(method: string): endpoint.entry[]
+---@field detect_framework fun(): endpoint.framework?
+---@field prepare_preview fun(endpoints: endpoint.entry[])
 
 -- Picker Module (Function-based)
----@class endpoint.Picker
----@field show fun(endpoints: endpoint.Endpoint[], opts?: table)
+---@class endpoint.picker
+---@field show fun(endpoints: endpoint.entry[], opts?: table)
 
 -- Framework Implementations
----@class endpoint.SpringFramework : endpoint.Framework
----@class endpoint.FastAPIFramework : endpoint.Framework
----@class endpoint.NestJSFramework : endpoint.Framework
----@class endpoint.SymfonyFramework : endpoint.Framework
----@class endpoint.RailsFramework : endpoint.Framework
+---@class endpoint.frameworks.spring : endpoint.framework
+---@class endpoint.frameworks.fastapi : endpoint.framework
+---@class endpoint.frameworks.nestjs : endpoint.framework
+---@class endpoint.frameworks.symfony : endpoint.framework
+---@class endpoint.frameworks.rails : endpoint.framework
 
 -- Picker Implementations
----@class endpoint.TelescopePicker : endpoint.Picker
----@class endpoint.VimUISelectPicker : endpoint.Picker
----@class endpoint.SnacksPicker : endpoint.Picker
+---@class endpoint.pickers.telescope : endpoint.picker
+---@class endpoint.pickers.vim_ui_select : endpoint.picker
+---@class endpoint.pickers.snacks : endpoint.picker

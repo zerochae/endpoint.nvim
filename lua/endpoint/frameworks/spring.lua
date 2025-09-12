@@ -1,7 +1,8 @@
----@class endpoint.SpringFramework
+---@class endpoint.frameworks.spring
 local M = {}
 
 -- Detection
+---@return boolean
 function M.detect()
   return vim.fn.filereadable "pom.xml" == 1
     or vim.fn.filereadable "build.gradle" == 1
@@ -272,4 +273,3 @@ function M.get_controller_base_path(file_path)
 end
 
 return M
-

@@ -1,5 +1,4 @@
----@class endpoint.VimUISelectPicker
--- Vim UI Select Picker Implementation (Function-based)
+---@class endpoint.pickers.vim_ui_select
 local M = {}
 
 -- Always available (built into Neovim)

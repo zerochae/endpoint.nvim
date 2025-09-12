@@ -1,5 +1,4 @@
----@class endpoint.SnacksPicker
--- Snacks Picker Implementation (Function-based)
+---@class endpoint.pickers.telescope
 local M = {}
 
 -- Check if Snacks is available
@@ -60,11 +59,10 @@ function M.show(endpoints, opts)
         vim.cmd("edit " .. item.endpoint.file_path)
         vim.api.nvim_win_set_cursor(0, { item.endpoint.line_number, item.endpoint.column - 1 })
         -- Center the line in the window
-        vim.cmd("normal! zz")
+        vim.cmd "normal! zz"
       end
     end,
   }
 end
 
 return M
-

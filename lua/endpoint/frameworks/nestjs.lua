@@ -1,4 +1,4 @@
----@class endpoint.NestJSFramework
+---@class endpoint.frameworks.nestjs
 local M = {}
 
 -- Detection
@@ -158,4 +158,3 @@ function M.combine_paths(base, endpoint)
 end
 
 return M
-

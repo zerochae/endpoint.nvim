@@ -1,4 +1,4 @@
----@class endpoint.SymfonyFramework
+---@class endpoint.frameworks.symfony
 local M = {}
 
 -- Detection
@@ -169,7 +169,7 @@ function M.extract_methods(content, search_method)
   if not search_method then
     search_method = "ALL"
   end
-  
+
   -- If searching for specific method, return it
   if search_method ~= "ALL" then
     return { search_method:upper() }
@@ -224,7 +224,7 @@ function M.get_base_path(file_path, line_number)
   if not line_number then
     line_number = math.huge -- Read entire file if no line number provided
   end
-  
+
   -- Read file content around the class definition
   local file = io.open(file_path, "r")
   if not file then
@@ -292,4 +292,3 @@ function M.combine_paths(base, endpoint)
 end
 
 return M
-

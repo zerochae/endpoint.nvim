@@ -1,4 +1,4 @@
----@class endpoint.RailsFramework
+---@class endpoint.frameworks.rails
 local M = {}
 
 -- Detection
@@ -188,14 +188,15 @@ function M.extract_route_definition(content, file_path, line_number)
   -- Handle root route: root 'controller#action' or root to: 'controller#action'
   if content:match "root%s+" then
     -- Try to extract controller#action pattern for root routes
-    local controller_action = content:match "root%s+['\"]([^'\"]+)['\"]" or content:match "root%s+to:%s+['\"]([^'\"]+)['\"]"
+    local controller_action = content:match "root%s+['\"]([^'\"]+)['\"]"
+      or content:match "root%s+to:%s+['\"]([^'\"]+)['\"]"
     local action = "root" -- Default action name for root routes
-    
+
     if controller_action and controller_action:match "#" then
       -- Extract action from controller#action pattern
       action = controller_action:match "#(%w+)" or "root"
     end
-    
+
     return {
       method = "GET",
       path = "/",

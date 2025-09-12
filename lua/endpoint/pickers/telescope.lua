@@ -1,5 +1,4 @@
----@class endpoint.TelescopePicker
--- Telescope Picker Implementation (Function-based)
+---@class endpoint.pickers.telescope
 local M = {}
 
 -- Check if Telescope is available

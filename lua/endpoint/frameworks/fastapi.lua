@@ -1,4 +1,4 @@
----@class endpoint.FastAPIFramework
+---@class endpoint.frameworks.fastapi
 local M = {}
 
 -- Detection
@@ -33,7 +33,18 @@ function M.get_search_cmd(method)
     PUT = { "@app.put", "@router.put" },
     DELETE = { "@app.delete", "@router.delete" },
     PATCH = { "@app.patch", "@router.patch" },
-    ALL = { "@app.get", "@app.post", "@app.put", "@app.delete", "@app.patch", "@router.get", "@router.post", "@router.put", "@router.delete", "@router.patch" },
+    ALL = {
+      "@app.get",
+      "@app.post",
+      "@app.put",
+      "@app.delete",
+      "@app.patch",
+      "@router.get",
+      "@router.post",
+      "@router.put",
+      "@router.delete",
+      "@router.patch",
+    },
   }
 
   local method_patterns = patterns[method:upper()] or patterns.ALL
@@ -293,4 +304,3 @@ function M.combine_paths(base, endpoint)
 end
 
 return M
-
