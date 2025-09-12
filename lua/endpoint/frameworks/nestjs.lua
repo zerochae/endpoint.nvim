@@ -1,4 +1,4 @@
--- NestJS Framework Implementation (Function-based)
+---@class endpoint.NestJSFramework
 local M = {}
 
 -- Detection

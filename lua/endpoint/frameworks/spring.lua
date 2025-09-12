@@ -1,4 +1,4 @@
--- Spring Framework Implementation (Function-based)
+---@class endpoint.SpringFramework
 local M = {}
 
 -- Detection

@@ -1,4 +1,4 @@
--- FastAPI Framework Implementation (Function-based)
+---@class endpoint.FastAPIFramework
 local M = {}
 
 -- Detection
