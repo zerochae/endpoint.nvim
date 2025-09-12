@@ -42,4 +42,13 @@ function M:load_from_file()
   -- Do nothing in state mode
 end
 
+-- Override cleanup methods to prevent data loss in session mode
+function M:track_access(table_name, key)
+  -- Do nothing in session mode - no cleanup needed
+end
+
+function M:cleanup_cache_by_size(cache_table, max_entries, name)
+  -- Do nothing in session mode - keep all data
+end
+
 return M
