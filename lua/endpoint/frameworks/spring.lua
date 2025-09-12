@@ -29,7 +29,6 @@ function M.get_search_cmd(method)
       "@RequestMapping.*method.*=.*PUT",
       "@RequestMapping.*method.*=.*DELETE",
       "@RequestMapping.*method.*=.*PATCH",
-      "@RequestMapping",
     },
   }
 
@@ -80,44 +79,52 @@ end
 
 -- Extract path from Spring annotations
 function M.extract_path(content)
+  -- Skip @RequestMapping unless it has method parameter
+  if content:match "@RequestMapping" and not content:match "@RequestMapping.*method%s*=" then
+    return nil
+  end
+
   -- @GetMapping("/path"), @PostMapping(value = "/path"), etc.
   local path = content:match "@%w+Mapping%s*%(%s*[\"']([^\"']+)[\"']"
-  if path then
+  if path and not content:match "@RequestMapping" then
     return path
   end
 
   -- @GetMapping(value = "/path")
   path = content:match "@%w+Mapping%s*%(%s*value%s*=%s*[\"']([^\"']+)[\"']"
-  if path then
+  if path and not content:match "@RequestMapping" then
     return path
   end
 
   -- @GetMapping(path = "/path")
   path = content:match "@%w+Mapping%s*%(%s*path%s*=%s*[\"']([^\"']+)[\"']"
-  if path then
+  if path and not content:match "@RequestMapping" then
     return path
   end
 
-  -- @RequestMapping(value = "/path", method = ...)
-  path = content:match "@RequestMapping%s*%([^%)]*value%s*=%s*[\"']([^\"']+)[\"']"
-  if path then
-    return path
-  end
+  -- @RequestMapping with method parameter (only method-level endpoints)
+  if content:match "@RequestMapping.*method%s*=" then
+    -- @RequestMapping(value = "/path", method = ...)
+    path = content:match "@RequestMapping%s*%([^%)]*value%s*=%s*[\"']([^\"']+)[\"']"
+    if path then
+      return path
+    end
 
-  -- @RequestMapping(path = "/path", method = ...)
-  path = content:match "@RequestMapping%s*%([^%)]*path%s*=%s*[\"']([^\"']+)[\"']"
-  if path then
-    return path
-  end
+    -- @RequestMapping(path = "/path", method = ...)
+    path = content:match "@RequestMapping%s*%([^%)]*path%s*=%s*[\"']([^\"']+)[\"']"
+    if path then
+      return path
+    end
 
-  -- @RequestMapping("/path")
-  path = content:match "@RequestMapping%s*%(%s*[\"']([^\"']+)[\"']"
-  if path then
-    return path
+    -- @RequestMapping("/path", method = ...)
+    path = content:match "@RequestMapping%s*%(%s*[\"']([^\"']+)[\"']"
+    if path then
+      return path
+    end
   end
 
   -- @GetMapping, @PostMapping, etc. without parentheses - root path
-  if content:match "@%w+Mapping%s*$" then
+  if content:match "@%w+Mapping%s*$" and not content:match "@RequestMapping%s*$" then
     return "/"
   end
 

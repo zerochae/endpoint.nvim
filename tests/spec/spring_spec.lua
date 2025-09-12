@@ -255,5 +255,32 @@ describe("Spring framework", function()
         assert.are.equal("/api/users/{userId}/posts/{postId}", result and result.endpoint_path)
       end
     end)
+
+    it("should not parse class-level @RequestMapping as endpoint", function()
+      local class_level_line = 'src/main/java/Controller.java:5:1:@RequestMapping("/api/v1")'
+      local result = spring.parse_line(class_level_line, "ALL")
+
+      -- Class-level @RequestMapping should not be parsed as an endpoint
+      assert.is_nil(result)
+    end)
+
+    it("should parse method-level @RequestMapping with method parameter as endpoint", function()
+      local method_level_line =
+        'src/main/java/Controller.java:10:5:    @RequestMapping(value = "/users", method = RequestMethod.GET)'
+      local result = spring.parse_line(method_level_line, "ALL")
+
+      -- Method-level @RequestMapping with method parameter should be parsed
+      assert.is_not_nil(result)
+      assert.are.equal("GET", result and result.method)
+      assert.are.equal("/users", result and result.endpoint_path)
+    end)
+
+    it("should not parse standalone @RequestMapping without method parameter", function()
+      local standalone_line = 'src/main/java/Controller.java:10:5:    @RequestMapping("/users")'
+      local result = spring.parse_line(standalone_line, "ALL")
+
+      -- Standalone @RequestMapping without method parameter should not be parsed
+      assert.is_nil(result)
+    end)
   end)
 end)
