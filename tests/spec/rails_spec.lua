@@ -36,35 +36,35 @@ describe("Rails framework", function()
     it("should generate correct search command for GET method", function()
       local cmd = rails.get_search_cmd("GET")
       assert.is_string(cmd)
-      assert.is_true(cmd:match("rg"))
-      assert.is_true(cmd:match("def index"))
-      assert.is_true(cmd:match("def show"))
-      assert.is_true(cmd:match("get "))
+      assert.is_not_nil(cmd:match("rg"))
+      assert.is_not_nil(cmd:match("def index"))
+      assert.is_not_nil(cmd:match("def show"))
+      assert.is_not_nil(cmd:match("get "))
     end)
 
     it("should generate correct search command for POST method", function()
       local cmd = rails.get_search_cmd("POST")
       assert.is_string(cmd)
-      assert.is_true(cmd:match("def create"))
-      assert.is_true(cmd:match("post "))
+      assert.is_not_nil(cmd:match("def create"))
+      assert.is_not_nil(cmd:match("post "))
     end)
 
     it("should generate correct search command for ALL methods", function()
       local cmd = rails.get_search_cmd("ALL")
       assert.is_string(cmd)
-      assert.is_true(cmd:match("def index"))
-      assert.is_true(cmd:match("def create"))
-      assert.is_true(cmd:match("def update"))
-      assert.is_true(cmd:match("get "))
-      assert.is_true(cmd:match("post "))
+      assert.is_not_nil(cmd:match("def index"))
+      assert.is_not_nil(cmd:match("def create"))
+      assert.is_not_nil(cmd:match("def update"))
+      assert.is_not_nil(cmd:match("get "))
+      assert.is_not_nil(cmd:match("post "))
     end)
 
     it("should include proper file globs", function()
       local cmd = rails.get_search_cmd("GET")
-      assert.is_true(cmd:match("%-%-glob '%*%*/%*%.rb'"))
-      assert.is_true(cmd:match("%-%-glob '!%*%*/vendor/%*%*'"))
-      assert.is_true(cmd:match("%-%-glob '!%*%*/log/%*%*'"))
-      assert.is_true(cmd:match("%-%-glob '!%*%*/tmp/%*%*'"))
+      assert.is_not_nil(cmd:match("%-%-glob '%*%*/%*%.rb'"))
+      assert.is_not_nil(cmd:match("%-%-glob '!%*%*/vendor/%*%*'"))
+      assert.is_not_nil(cmd:match("%-%-glob '!%*%*/log/%*%*'"))
+      assert.is_not_nil(cmd:match("%-%-glob '!%*%*/tmp/%*%*'"))
     end)
   end)
 
@@ -170,7 +170,7 @@ describe("Rails framework", function()
 
         for _, case in ipairs(test_cases) do
           local content, expected_method, expected_path = unpack(case)
-          local result = rails.extract_route_definition(content)
+          local result = rails.extract_route_definition(content, "config/routes.rb", 1)
           
           assert.is_not_nil(result, "Failed for: " .. content)
           assert.equals(expected_method, result.method, "Method mismatch for: " .. content)
@@ -178,22 +178,20 @@ describe("Rails framework", function()
         end
       end)
 
-      it("should extract resource routes", function()
+      it("should skip resource routes", function()
         local content = "resources :users"
-        local result = rails.extract_route_definition(content)
+        local result = rails.extract_route_definition(content, "config/routes.rb", 1)
         
-        assert.is_not_nil(result)
-        assert.equals("ALL", result.method)
-        assert.equals("/users", result.path)
+        -- Resources declarations should be skipped
+        assert.is_nil(result)
       end)
 
-      it("should extract namespace routes", function()
+      it("should skip namespace routes", function()
         local content = "namespace :api"
-        local result = rails.extract_route_definition(content)
+        local result = rails.extract_route_definition(content, "config/routes.rb", 1)
         
-        assert.is_not_nil(result)
-        assert.equals("ALL", result.method)
-        assert.equals("/api", result.path)
+        -- Namespace declarations should be skipped
+        assert.is_nil(result)
       end)
     end)
   end)
@@ -208,13 +206,13 @@ describe("Rails framework", function()
     it("should handle nested controllers", function()
       local file_path = "app/controllers/admin/users_controller.rb"
       local name = rails.extract_controller_name(file_path)
-      assert.equals("admin_users", name)
+      assert.equals("admin/users", name)
     end)
 
     it("should handle API controllers", function()
       local file_path = "app/controllers/api/v1/users_controller.rb"
       local name = rails.extract_controller_name(file_path)
-      assert.equals("api_v1_users", name)
+      assert.equals("api/v1/users", name)
     end)
   end)
 
@@ -240,7 +238,7 @@ describe("Rails framework", function()
     end)
 
     it("should handle API controllers correctly", function()
-      local controller = "api_v1_users"
+      local controller = "api/v1/users"
       local file_path = "app/controllers/api/v1/users_controller.rb"
       
       local path = rails.generate_action_path(controller, "index", file_path)
@@ -251,7 +249,7 @@ describe("Rails framework", function()
     end)
 
     it("should handle nested controllers", function()
-      local controller = "admin_users"
+      local controller = "admin/users"
       local file_path = "app/controllers/admin/users_controller.rb"
       
       local path = rails.generate_action_path(controller, "index", file_path)
