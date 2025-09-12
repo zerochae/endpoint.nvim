@@ -187,6 +187,22 @@ end
 
 -- Parse ripgrep line and combine base path with endpoint path
 ---@param line string
+-- Extract actual HTTP method from NestJS decorators
+local function extract_http_method_from_content(content)
+  if content:match "@Get%(" then
+    return "GET"
+  elseif content:match "@Post%(" then
+    return "POST"
+  elseif content:match "@Put%(" then
+    return "PUT"
+  elseif content:match "@Delete%(" then
+    return "DELETE"
+  elseif content:match "@Patch%(" then
+    return "PATCH"
+  end
+  return nil
+end
+
 ---@param method string
 ---@return endpoint.ParsedLine|nil
 function M:parse_line(line, method)
@@ -206,12 +222,21 @@ function M:parse_line(line, method)
   ---@type string
   local full_path = self:combine_paths(base_path, endpoint_path)
 
+  -- Extract actual HTTP method if searching with ALL
+  local actual_method = method:upper()
+  if method:upper() == "ALL" then
+    local detected_method = extract_http_method_from_content(content)
+    if detected_method then
+      actual_method = detected_method
+    end
+  end
+
   return {
     file_path = file_path,
     line_number = line_number,
     column = column,
     endpoint_path = full_path,
-    method = method:upper(),
+    method = actual_method,
     raw_line = line,
     content = content,
   }

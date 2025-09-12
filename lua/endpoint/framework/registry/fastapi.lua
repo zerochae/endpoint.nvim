@@ -166,6 +166,22 @@ end
 -- Parse ripgrep output line "path:line:col:content"
 ---@param line string
 ---@param method string
+-- Extract actual HTTP method from FastAPI decorators
+local function extract_http_method_from_content(content)
+  if content:match "@app%.get" or content:match "@router%.get" or content:match "app%.get%(" or content:match "router%.get%(" then
+    return "GET"
+  elseif content:match "@app%.post" or content:match "@router%.post" or content:match "app%.post%(" or content:match "router%.post%(" then
+    return "POST"
+  elseif content:match "@app%.put" or content:match "@router%.put" or content:match "app%.put%(" or content:match "router%.put%(" then
+    return "PUT"
+  elseif content:match "@app%.delete" or content:match "@router%.delete" or content:match "app%.delete%(" or content:match "router%.delete%(" then
+    return "DELETE"
+  elseif content:match "@app%.patch" or content:match "@router%.patch" or content:match "app%.patch%(" or content:match "router%.patch%(" then
+    return "PATCH"
+  end
+  return nil
+end
+
 ---@return endpoint.ParsedLine|nil
 function M:parse_line(line, method)
   ---@type string?, string?, string?, string?
@@ -184,12 +200,21 @@ function M:parse_line(line, method)
   ---@type string
   local full_path = self:combine_paths(base_path, endpoint_path)
 
+  -- Extract actual HTTP method if searching with ALL
+  local actual_method = method:upper()
+  if method:upper() == "ALL" then
+    local detected_method = extract_http_method_from_content(content)
+    if detected_method then
+      actual_method = detected_method
+    end
+  end
+
   return {
     file_path = file_path,
     line_number = line_number,
     column = column,
     endpoint_path = full_path,
-    method = method:upper(),
+    method = actual_method,
     raw_line = line,
     content = content,
   }

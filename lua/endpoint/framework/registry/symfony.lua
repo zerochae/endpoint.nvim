@@ -172,6 +172,22 @@ function M:get_grep_cmd(method, config)
   return cmd
 end
 
+-- Extract actual HTTP method from Symfony Route annotations
+local function extract_http_method_from_content(content)
+  if content:match "GET" then
+    return "GET"
+  elseif content:match "POST" then
+    return "POST"
+  elseif content:match "PUT" then
+    return "PUT"
+  elseif content:match "DELETE" then
+    return "DELETE"
+  elseif content:match "PATCH" then
+    return "PATCH"
+  end
+  return "GET" -- Default for Symfony routes
+end
+
 -- Parse ripgrep output line "path:line:col:content"
 function M:parse_line(line, method)
   local file_path, line_number, column, content = line:match "([^:]+):(%d+):(%d+):(.*)"
@@ -186,12 +202,21 @@ function M:parse_line(line, method)
   local base_path = self:get_base_path(file_path, line_number)
   local full_path = self:combine_paths(base_path, endpoint_path)
 
+  -- Extract actual HTTP method if searching with ALL
+  local actual_method = method:upper()
+  if method:upper() == "ALL" then
+    local detected_method = extract_http_method_from_content(content)
+    if detected_method then
+      actual_method = detected_method
+    end
+  end
+
   return {
     file_path = file_path,
     line_number = line_number,
     column = column,
     endpoint_path = full_path,
-    method = method:upper(),
+    method = actual_method,
     raw_line = line,
     content = content,
   }

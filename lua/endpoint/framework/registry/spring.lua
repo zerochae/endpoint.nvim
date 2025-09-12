@@ -302,6 +302,34 @@ function M:get_grep_cmd(method, config)
 end
 
 -- ripgrep 한 줄 "path:line:col:content" → 구조로 파싱
+-- Extract actual HTTP method from Spring annotations
+local function extract_http_method_from_content(content)
+  if content:match "@GetMapping" then
+    return "GET"
+  elseif content:match "@PostMapping" then
+    return "POST"
+  elseif content:match "@PutMapping" then
+    return "PUT"
+  elseif content:match "@DeleteMapping" then
+    return "DELETE"
+  elseif content:match "@PatchMapping" then
+    return "PATCH"
+  elseif content:match "@RequestMapping.*method.*=.*GET" then
+    return "GET"
+  elseif content:match "@RequestMapping.*method.*=.*POST" then
+    return "POST"
+  elseif content:match "@RequestMapping.*method.*=.*PUT" then
+    return "PUT"
+  elseif content:match "@RequestMapping.*method.*=.*DELETE" then
+    return "DELETE"
+  elseif content:match "@RequestMapping.*method.*=.*PATCH" then
+    return "PATCH"
+  elseif content:match "@RequestMapping" then
+    return "GET" -- Default to GET for @RequestMapping without explicit method
+  end
+  return nil
+end
+
 function M:parse_line(line, method)
   -- Debug: parse_line 호출 확인
   local log = require "endpoint.utils.log"
@@ -324,6 +352,15 @@ function M:parse_line(line, method)
   local base_path = self:get_base_path(file_path, line_number)
   local full_path = self:combine_paths(base_path, endpoint_path)
 
+  -- Extract actual HTTP method if searching with ALL
+  local actual_method = method:upper()
+  if method:upper() == "ALL" then
+    local detected_method = extract_http_method_from_content(content)
+    if detected_method then
+      actual_method = detected_method
+    end
+  end
+
   -- Debug: path combination 확인
   local log = require "endpoint.utils.log"
   log.info(
@@ -333,6 +370,8 @@ function M:parse_line(line, method)
       .. (endpoint_path or "nil")
       .. "', full: '"
       .. (full_path or "nil")
+      .. "', method: '"
+      .. actual_method
       .. "'"
   )
 
@@ -341,7 +380,7 @@ function M:parse_line(line, method)
     line_number = line_number,
     column = column,
     endpoint_path = full_path,
-    method = method:upper(),
+    method = actual_method,
     raw_line = line,
     content = content,
   }
