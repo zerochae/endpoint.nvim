@@ -32,4 +32,3 @@ M.detector = {
 }
 
 return M
-

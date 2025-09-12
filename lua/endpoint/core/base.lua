@@ -1,5 +1,9 @@
 local M = {}
 
+---@generic T
+---@param required_methods string[]
+---@param optional_methods table<string, function>?
+---@return T
 function M.create_base(required_methods, optional_methods)
   local base = {}
   base.__index = base
@@ -68,4 +72,3 @@ M.common_optional_methods = {
 }
 
 return M
-

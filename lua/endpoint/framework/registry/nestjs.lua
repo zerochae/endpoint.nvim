@@ -3,22 +3,30 @@ local base = require "endpoint.framework.base"
 local nestjs_config = require "endpoint.framework.config.nestjs"
 
 -- Create a new NestJS framework object inheriting from base
+---@class FrameworkRegistryNestJS : endpoint.FrameworkRegistry
 local M = base.new({}, "nestjs")
 
+---@param method string
+---@return string[]
 function M:get_patterns(method)
   return nestjs_config.patterns[method:lower()] or {}
 end
 
+---@return string[]
 function M:get_file_patterns()
   return nestjs_config.file_patterns
 end
 
+---@return string[]
 function M:get_exclude_patterns()
   return nestjs_config.exclude_patterns
 end
 
 -- Extracts the endpoint path from the decorator content
-function M:extract_endpoint_path(content)
+---@param content string
+---@param method? string
+---@return string
+function M:extract_endpoint_path(content, method)
   -- Look for path inside parentheses: @Get('/api/users'), @Get('api/users'), or @Get()
   local path = content:match "@%w+%s*%(%s*['\"]([^'\"]*)['\"]"
   if path == nil then
@@ -36,6 +44,9 @@ function M:extract_endpoint_path(content)
 end
 
 -- Override path combiner for NestJS specific behavior
+---@param base string
+---@param endpoint string
+---@return string
 function M:combine_paths(base, endpoint)
   -- If base is empty, just return endpoint (with leading slash if needed)
   if not base or base == "" then
@@ -76,8 +87,12 @@ function M:combine_paths(base, endpoint)
 end
 
 -- Extracts base path from @Controller decorator at the class level
+---@param file_path string
+---@param line_number number
+---@return string
 function M:get_base_path(file_path, line_number)
   -- Try vim.fn.readfile first, then fallback to io.lines if needed
+  ---@type string[]
   local lines = {}
 
   if vim and vim.fn and vim.fn.readfile then
@@ -107,6 +122,7 @@ function M:get_base_path(file_path, line_number)
     end
   end
 
+  ---@type string
   local controller_path = ""
   -- Look backwards from the method line to find a class-level @Controller
   for i = line_number, 1, -1 do
@@ -127,15 +143,22 @@ function M:get_base_path(file_path, line_number)
 end
 
 -- Override the default grep command builder to be simpler for NestJS
+---@param method string
+---@param config endpoint.Config
+---@return string
 function M:get_grep_cmd(method, config)
+  ---@type string[]
   local patterns = self:get_patterns(method)
   if not patterns or #patterns == 0 then
     error("No patterns defined for method: " .. method)
   end
 
+  ---@type string[]
   local file_patterns = self:get_file_patterns()
+  ---@type string[]
   local exclude_patterns = self:get_exclude_patterns()
 
+  ---@type string
   local cmd = "rg"
   cmd = cmd .. " --line-number --column --no-heading --color=never"
   cmd = cmd .. " --case-sensitive"
@@ -159,7 +182,12 @@ function M:get_grep_cmd(method, config)
 end
 
 -- Parse ripgrep line and combine base path with endpoint path
+---@param line string
+---@param method string
+---@param config? endpoint.Config
+---@return endpoint.ParsedLine|nil
 function M:parse_line(line, method, config)
+  ---@type string?, string?, string?, string?
   local file_path, line_number, column, content = line:match "([^:]+):(%d+):(%d+):(.*)"
   if not file_path then
     return nil
@@ -168,8 +196,11 @@ function M:parse_line(line, method, config)
   line_number = tonumber(line_number) or 1
   column = tonumber(column) or 1
 
+  ---@type string
   local endpoint_path = self:extract_endpoint_path(content, method)
+  ---@type string
   local base_path = self:get_base_path(file_path, line_number)
+  ---@type string
   local full_path = self:combine_paths(base_path, endpoint_path)
 
   return {

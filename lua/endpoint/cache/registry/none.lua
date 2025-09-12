@@ -1,7 +1,10 @@
 -- None cache - Real-time mode with no caching
-local base = require "endpoint.cache.base"
+local cache_base = require "endpoint.cache.base"
 
-local M = base.new {}
+---@class CacheRegistryNone : endpoint.CacheBase
+local M = {}
+setmetatable(M, { __index = cache_base })
+M.name = "none"
 
 -- For cache_mode = "none", never use cache - always scan fresh
 function M:is_cache_valid(key, config)
@@ -37,4 +40,3 @@ function M:load_from_file()
 end
 
 return M
-

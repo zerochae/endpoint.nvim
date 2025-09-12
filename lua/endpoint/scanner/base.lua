@@ -10,6 +10,12 @@ local required_methods = {
 }
 
 -- Create base class for scanner implementations
+---@class endpoint.ScannerBaseImpl
+---@field new fun(implementation: table, name: string): table
+---@field execute_command fun(self: endpoint.ScannerBaseImpl, cmd: string): string?
+---@field process fun(self: endpoint.ScannerBaseImpl, method: string, options?: table): any
+
+---@type endpoint.ScannerBaseImpl
 local M = core_base.create_base(required_methods)
 function M:execute_command(cmd)
   log.info("Running command: " .. cmd)
@@ -132,4 +138,3 @@ end
 -- Required methods are automatically validated by core_base
 
 return M
-

@@ -1,8 +1,11 @@
 -- Persistent cache - File-based caching that persists across sessions
-local base = require "endpoint.cache.base"
+local cache_base = require "endpoint.cache.base"
 local fs = require "endpoint.utils.fs"
 
-local M = base.new {}
+---@class CacheRegistryPersistent : endpoint.CacheBase
+local M = {}
+setmetatable(M, { __index = cache_base })
+M.name = "persistent"
 
 -- Lazy initialization flag
 local cache_initialized = false
@@ -196,4 +199,3 @@ function M:get_missing_methods(required_methods)
 end
 
 return M
-

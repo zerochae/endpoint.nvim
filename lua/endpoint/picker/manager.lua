@@ -2,6 +2,11 @@ local base_manager = require "endpoint.core.base_manager"
 local detector = require "endpoint.services.detector"
 local log = require "endpoint.utils.log"
 
+---@class endpoint.PickerManagerImpl
+---@field register fun(type: string, module_path: string)
+---@field get fun(type?: string): endpoint.PickerRegistry?
+
+---@type endpoint.PickerManagerImpl
 local M = base_manager.create_manager("picker", "vim_ui_select")
 
 -- Picker implementations will be registered during setup
@@ -11,10 +16,13 @@ M.register("vim_ui_select", "endpoint.picker.registry.vim_ui_select")
 M.register("snacks", "endpoint.picker.registry.snacks")
 
 -- Current picker state
+---@type endpoint.PickerRegistry?
 local current_picker = nil
 
 -- Override get method to handle picker availability
 local base_get = M.get
+---@param picker_type string
+---@return endpoint.PickerRegistry?
 function M.get(picker_type)
   local picker = base_get(picker_type)
 
@@ -27,6 +35,8 @@ function M.get(picker_type)
   return picker
 end
 
+---@param config endpoint.Config
+---@return boolean
 function M.initialize(config)
   local requested_picker = config.picker or "vim_ui_select"
   local actual_picker = detector.resolve_picker(requested_picker)
@@ -47,10 +57,14 @@ function M.initialize(config)
   return true
 end
 
+---@return endpoint.PickerRegistry?
 function M.get_current_picker()
   return current_picker
 end
 
+---@param method string
+---@param opts table?
+---@return boolean
 function M.show_picker(method, opts)
   if not current_picker then
     log.error "Picker not initialized. Call setup() first."
@@ -213,4 +227,3 @@ function M.handle_selection(item, preview_table)
 end
 
 return M
-

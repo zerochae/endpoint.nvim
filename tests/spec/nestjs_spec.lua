@@ -1,16 +1,16 @@
 describe(" NestJS framework", function()
   local endpoint = require "endpoint"
   local nestjs = require "endpoint.framework.registry.nestjs"
-  
+
   before_each(function()
     endpoint.setup()
     -- Reset session config before each test
-    local state = require("endpoint.core.state")
-    state.set_config({
+    local state = require "endpoint.core.state"
+    state.set_config {
       framework = "auto",
       cache_mode = "none",
       debug = false,
-    })
+    }
   end)
 
   describe("pattern matching", function()
@@ -37,13 +37,13 @@ describe(" NestJS framework", function()
   describe("path extraction with real files", function()
     it("should extract path from @Get decorator in app.controller.ts", function()
       local real_file = "tests/fixtures/nestjs/src/app.controller.ts"
-      local endpoint_path = nestjs:extract_endpoint_path("@Get()")
+      local endpoint_path = nestjs:extract_endpoint_path "@Get()"
       assert.are.equal("/", endpoint_path)
     end)
 
     it("should extract path from @Get with parameter", function()
       local real_file = "tests/fixtures/nestjs/src/app.controller.ts"
-      local endpoint_path = nestjs:extract_endpoint_path("@Get('health')")
+      local endpoint_path = nestjs:extract_endpoint_path "@Get('health')"
       assert.are.equal("health", endpoint_path)
     end)
   end)
@@ -60,13 +60,13 @@ describe(" NestJS framework", function()
     it("should generate valid ripgrep command", function()
       local cmd = nestjs:get_grep_cmd("get", {})
       assert.is_string(cmd)
-      assert.is_not_nil(cmd:match("rg"))
+      assert.is_not_nil(cmd:match "rg")
     end)
 
     it("should include exclude patterns", function()
       local cmd = nestjs:get_grep_cmd("get", {})
-      assert.is_not_nil(cmd:match("node_modules"))
-      assert.is_not_nil(cmd:match("dist"))
+      assert.is_not_nil(cmd:match "node_modules")
+      assert.is_not_nil(cmd:match "dist")
     end)
   end)
 
@@ -86,57 +86,57 @@ describe(" NestJS framework", function()
 
   describe("endpoint count verification", function()
     it("should find expected number of GET endpoints in fixtures", function()
-      local scanner = require("endpoint.services.scanner")
+      local scanner = require "endpoint.services.scanner"
       local fixture_path = "tests/fixtures/nestjs"
       if vim.fn.isdirectory(fixture_path) == 1 then
         local original_cwd = vim.fn.getcwd()
         vim.fn.chdir(fixture_path)
-        
-        local state = require("endpoint.core.state")
-        state.set_config({
+
+        local state = require "endpoint.core.state"
+        state.set_config {
           framework = "nestjs",
-        })
-        
+        }
+
         scanner.clear_cache()
-        scanner.scan("GET")
-        local results = scanner.get_list("GET")
-        
+        scanner.scan "GET"
+        local results = scanner.get_list "GET"
+
         -- Should run without errors and return a table (endpoint counting can be environment-dependent)
         assert.is_table(results)
         -- Skip detailed validation - endpoint counting is environment-dependent
         print("Info: Found", #results, "endpoints in NestJS fixture")
-        
+
         vim.fn.chdir(original_cwd)
       else
-        pending("NestJS fixture directory not found")
+        pending "NestJS fixture directory not found"
       end
     end)
 
     it("should find expected number of POST endpoints in fixtures", function()
-      local scanner = require("endpoint.services.scanner")
+      local scanner = require "endpoint.services.scanner"
       local fixture_path = "tests/fixtures/nestjs"
       if vim.fn.isdirectory(fixture_path) == 1 then
         local original_cwd = vim.fn.getcwd()
         vim.fn.chdir(fixture_path)
-        
-        local state = require("endpoint.core.state")
-        state.set_config({
+
+        local state = require "endpoint.core.state"
+        state.set_config {
           framework = "nestjs",
-        })
-        
+        }
+
         scanner.clear_cache()
-        scanner.scan("POST")
-        local results = scanner.get_list("POST")
-        
+        scanner.scan "POST"
+        local results = scanner.get_list "POST"
+
         -- Should find multiple POST endpoints
         -- Should run without errors and return a table (endpoint counting can be environment-dependent)
         assert.is_table(results)
         -- Skip detailed validation - endpoint counting is environment-dependent
         print("Info: Found", #results, "endpoints in NestJS fixture")
-        
+
         vim.fn.chdir(original_cwd)
       else
-        pending("NestJS fixture directory not found")
+        pending "NestJS fixture directory not found"
       end
     end)
   end)

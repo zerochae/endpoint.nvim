@@ -1,10 +1,16 @@
 local M = {}
 
+---@param method string
+---@param config endpoint.Config
+---@return string
 function M.get_method_color(method, config)
   local colors = config.ui.method_colors
   return colors[method] or "TelescopeResultsIdentifier"
 end
 
+---@param method string
+---@param config endpoint.Config
+---@return string
 function M.get_method_icon(method, config)
   if not config.ui.show_icons then
     return ""
@@ -13,6 +19,9 @@ function M.get_method_icon(method, config)
   return icons[method] or "⚪"
 end
 
+---@param method string
+---@param config endpoint.Config
+---@return string
 function M.get_method_text(method, config)
   if not config.ui.show_method then
     return ""

@@ -75,4 +75,3 @@ function M.get_registry_status()
 end
 
 return M
-

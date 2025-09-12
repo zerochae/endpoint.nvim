@@ -1,5 +1,9 @@
 local M = {}
 
+---@generic T
+---@param module_name string
+---@param default_type string?
+---@return T
 function M.create_manager(module_name, default_type)
   local manager = {
     module_name = module_name,
@@ -77,4 +81,3 @@ function M.create_manager(module_name, default_type)
 end
 
 return M
-

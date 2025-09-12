@@ -2,18 +2,23 @@
 local M = {}
 
 -- Check if a file exists
+---@param filepath string
+---@return boolean
 function M.file_exists(filepath)
   local stat = vim.loop.fs_stat(filepath)
   return stat ~= nil and stat.type == "file"
 end
 
 -- Check if a directory exists
+---@param dirpath string
+---@return boolean
 function M.dir_exists(dirpath)
   local stat = vim.loop.fs_stat(dirpath)
   return stat ~= nil and stat.type == "directory"
 end
 
 -- Get the current working directory (project root)
+---@return string
 function M.get_project_root()
   local cwd = vim.fn.getcwd()
 
@@ -31,6 +36,8 @@ function M.get_project_root()
 end
 
 -- Read file contents
+---@param filepath string
+---@return string[]?
 function M.read_file(filepath)
   local ok, lines = pcall(vim.fn.readfile, filepath)
   if not ok or not lines then

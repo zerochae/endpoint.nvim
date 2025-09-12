@@ -5,12 +5,12 @@ describe(" Symfony framework", function()
   before_each(function()
     endpoint.setup()
     -- Reset session config before each test
-    local state = require("endpoint.core.state")
-    state.set_config({
+    local state = require "endpoint.core.state"
+    state.set_config {
       framework = "auto",
       cache_mode = "none",
       debug = false,
-    })
+    }
   end)
 
   describe("pattern matching", function()
@@ -89,7 +89,7 @@ describe(" Symfony framework", function()
       if vim.fn.isdirectory(fixture_path) == 1 then
         local original_cwd = vim.fn.getcwd()
         vim.fn.chdir(fixture_path)
-        
+
         local state = require "endpoint.core.state"
         state.set_config {
           framework = "symfony",
@@ -115,7 +115,7 @@ describe(" Symfony framework", function()
       if vim.fn.isdirectory(fixture_path) == 1 then
         local original_cwd = vim.fn.getcwd()
         vim.fn.chdir(fixture_path)
-        
+
         local state = require "endpoint.core.state"
         state.set_config {
           framework = "symfony",

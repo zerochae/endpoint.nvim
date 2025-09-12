@@ -1,6 +1,7 @@
 -- Snacks picker adapter
 local base = require "endpoint.picker.base"
 
+---@class PickerRegistrySnacks : endpoint.PickerRegistry
 local M = base.new({}, "snacks")
 
 function M:is_available()
@@ -61,4 +62,3 @@ function M:get_filetype_for_item(item)
 end
 
 return M
-

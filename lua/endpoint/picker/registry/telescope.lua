@@ -1,5 +1,6 @@
 local base = require "endpoint.picker.base"
 
+---@class PickerRegistryTelescope : endpoint.PickerRegistry
 local M = base.new({}, "telescope")
 
 function M:is_available()
@@ -164,4 +165,3 @@ function M:create_previewer(opts)
 end
 
 return M
-

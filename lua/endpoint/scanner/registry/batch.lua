@@ -3,7 +3,10 @@ local base = require "endpoint.scanner.base"
 local cache = require "endpoint.services.cache"
 local framework = require "endpoint.services.framework"
 
-local M = base.new {}
+-- Create scanner registry implementation that inherits from base
+local implementation = {}
+---@class ScannerRegistryBatch : endpoint.ScannerRegistry
+local M = base.new(implementation, "batch")
 
 -- Process method for batch operations
 function M:process(method, options)
@@ -95,4 +98,3 @@ function M:scan_all_method()
 end
 
 return M
-

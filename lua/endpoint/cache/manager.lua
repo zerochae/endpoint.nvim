@@ -1,5 +1,12 @@
 local base_manager = require "endpoint.core.base_manager"
 
+---@class endpoint.CacheManagerImpl
+---@field register fun(type: string, module_path: string)
+---@field get fun(type?: string): any
+---@field get_current fun(): endpoint.CacheRegistry?
+---@field session fun(): endpoint.CacheRegistry?
+
+---@class endpoint.CacheManagerImpl
 local M = base_manager.create_manager("cache", "none")
 
 -- Cache implementations will be registered during setup
@@ -8,6 +15,7 @@ M.register("none", "endpoint.cache.registry.none")
 M.register("session", "endpoint.cache.registry.session")
 M.register("persistent", "endpoint.cache.registry.persistent")
 
+---@return table
 local function get_cache_config()
   local ok, state = pcall(require, "endpoint.core.state")
   if ok then
@@ -31,14 +39,15 @@ local function get_cache_config()
   }
 end
 
+---@return endpoint.CacheRegistry?
 function M.get_current()
   local cache_config = get_cache_config()
   return M.get(cache_config.mode)
 end
 
+---@return endpoint.CacheRegistry?
 function M.session()
   return M.get "session"
 end
 
 return M
-

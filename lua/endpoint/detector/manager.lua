@@ -1,5 +1,10 @@
 local base_manager = require "endpoint.core.base_manager"
 
+---@class endpoint.DetectorManagerImpl
+---@field register fun(type: string, module_path: string)
+---@field get fun(type?: string): any
+
+---@type endpoint.DetectorManagerImpl
 local M = base_manager.create_manager("detector", "framework")
 
 -- Detector implementations will be registered during setup
@@ -31,4 +36,3 @@ function M.detect_all_available(detector_type)
 end
 
 return M
-

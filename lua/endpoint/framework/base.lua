@@ -20,6 +20,13 @@ local optional_methods = {
 }
 
 -- Create base class for frameworks
+---@class endpoint.FrameworkBaseImpl
+---@field new fun(implementation: table, name: string): table
+---@field get_grep_cmd fun(self: endpoint.FrameworkBaseImpl, method: string, config: endpoint.Config): string
+---@field parse_line fun(self: endpoint.FrameworkBaseImpl, line: string, method: string): endpoint.ParsedLine?
+---@field combine_paths fun(self: endpoint.FrameworkBaseImpl, base: string, endpoint: string): string
+
+---@class endpoint.FrameworkBaseImpl
 local M = core_base.create_base(required_methods, optional_methods)
 
 -- Framework-specific methods
@@ -100,4 +107,3 @@ function M:combine_paths(base, endpoint)
 end
 
 return M
-

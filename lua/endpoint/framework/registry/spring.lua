@@ -1,10 +1,18 @@
 local base = require "endpoint.framework.base"
 local spring_config = require "endpoint.framework.config.spring"
 
+---@class FrameworkRegistrySpring : endpoint.FrameworkRegistry
+
+---@param s string
+---@return string
 local function strip_inline_comments(s)
   return (s:gsub("%s*//.*$", ""))
 end
 
+---@param lines string[]
+---@param start_i number
+---@param stop_i number
+---@return string
 local function concat_lines(lines, start_i, stop_i)
   local buf = {}
   for i = start_i, stop_i do
@@ -17,6 +25,8 @@ local function concat_lines(lines, start_i, stop_i)
 end
 
 -- 괄호 포함/미포함, 단일/키-값/배열 형식 모두 커버
+---@param s string
+---@return string
 local function extract_first_path_from_str(s)
   if not s or s == "" then
     return ""
@@ -60,6 +70,9 @@ local function extract_first_path_from_str(s)
   return ""
 end
 
+---@param lines string[]
+---@param start_line number
+---@return number?
 local function find_enclosing_class_decl_index(lines, start_line)
   -- Find the outermost public class that could be a controller
   -- Spring controllers are typically public classes with @RequestMapping or @RestController
@@ -119,18 +132,25 @@ end
 -- =========================
 local implementation = {}
 
+---@param method string
+---@return string[]
 function implementation:get_patterns(method)
   return spring_config.patterns[method:lower()] or {}
 end
 
+---@return string[]
 function implementation:get_file_patterns()
   return spring_config.file_patterns
 end
 
+---@return string[]
 function implementation:get_exclude_patterns()
   return spring_config.exclude_patterns
 end
 
+---@param content string
+---@param method string
+---@return string
 function implementation:extract_endpoint_path(content, method)
   -- Spring uses file-based parsing, so this is a simplified version
   -- The actual logic is in _extract_method_mapping which needs file_path and line_number
@@ -138,6 +158,9 @@ function implementation:extract_endpoint_path(content, method)
 end
 
 -- 메서드 레벨 매핑을 라인 기준으로 (멀티라인 포함) 파싱
+---@param file_path string
+---@param line_number number
+---@return string
 function implementation:_extract_method_mapping(file_path, line_number)
   local ok, lines = pcall(vim.fn.readfile, file_path)
   if not ok or not lines then

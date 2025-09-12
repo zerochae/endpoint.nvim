@@ -1,15 +1,18 @@
 -- Finder scanner - Responsible for endpoint discovery and list generation
-local base = require("endpoint.scanner.base")
-local cache = require("endpoint.services.cache")
+local base = require "endpoint.scanner.base"
+local cache = require "endpoint.services.cache"
 
-local M = base.new({})
+-- Create scanner registry implementation that inherits from base
+local implementation = {}
+---@class ScannerRegistryFinder : endpoint.ScannerRegistry
+local M = base.new(implementation, "finder")
 
 -- Process method for finding endpoints
 function M:process(method, options)
   options = options or {}
-  local state = require("endpoint.core.state")
+  local state = require "endpoint.core.state"
   local config = state.get_config()
-  
+
   -- Clear cache for real-time mode
   cache.clear_for_realtime_mode()
 
@@ -36,7 +39,7 @@ end
 function M:get_cached_list(method)
   local finder_table = cache.get_find_table()
   local results = {}
-  
+
   for file_path, mapping_object in pairs(finder_table) do
     if mapping_object[method] then
       local mappings = mapping_object[method]
@@ -54,7 +57,7 @@ function M:get_cached_list(method)
       end
     end
   end
-  
+
   return results
 end
 

@@ -81,4 +81,3 @@ function M.get_supported_pickers()
 end
 
 return M
-

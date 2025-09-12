@@ -1,4 +1,5 @@
 -- Main Endpoint command with all subcommands consolidated
+---@param opts table
 vim.api.nvim_create_user_command("Endpoint", function(opts)
   local endpoint = require "endpoint"
   local subcommand = opts.fargs[1]
@@ -37,6 +38,7 @@ vim.api.nvim_create_user_command("Endpoint", function(opts)
   end
 end, {
   nargs = "?", -- Optional argument (0 or 1)
+  ---@return string[]
   complete = function()
     return { "Get", "Post", "Put", "Delete", "Patch", "All", "ClearCache", "CacheStatus" }
   end,

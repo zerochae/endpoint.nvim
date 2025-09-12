@@ -4,6 +4,7 @@ local log = require "endpoint.utils.log"
 
 local M = {}
 
+---@return endpoint.Config?
 local function get_config()
   local config = state.get_config()
   if not config then
@@ -13,6 +14,7 @@ local function get_config()
   return config
 end
 
+---@return endpoint.FrameworkRegistry?, string?, endpoint.FrameworkConfig?
 function M.get_current_framework()
   local config = get_config()
   if not config then
@@ -107,4 +109,3 @@ function M.get_current_framework_name()
 end
 
 return M
-

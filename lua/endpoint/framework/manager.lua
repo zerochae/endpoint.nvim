@@ -1,12 +1,17 @@
 local base_manager = require "endpoint.core.base_manager"
 local detector = require "endpoint.services.detector"
 
+---@class endpoint.FrameworkManagerImpl
+---@field register fun(type: string, module_path: string)
+---@field get fun(type?: string): any
+
+---@type endpoint.FrameworkManagerImpl
 local M = base_manager.create_manager("framework", "auto")
 
 -- Framework implementations will be registered during setup
 -- Temporary fallback: register immediately for compatibility
 M.register("spring", "endpoint.framework.registry.spring")
-M.register("nestjs", "endpoint.framework.registry.nestjs")  
+M.register("nestjs", "endpoint.framework.registry.nestjs")
 M.register("fastapi", "endpoint.framework.registry.fastapi")
 M.register("symfony", "endpoint.framework.registry.symfony")
 
@@ -226,4 +231,3 @@ function M.list_available_frameworks()
 end
 
 return M
-

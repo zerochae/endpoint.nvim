@@ -8,10 +8,14 @@ local log = require "endpoint.utils.log"
 
 M.config = vim.deepcopy(default_config)
 
+---@return endpoint.Config
 function M.get_config()
   return M.config
 end
 
+---@param method string
+---@param opts table?
+---@return boolean
 local function show_picker(method, opts)
   opts = opts or {}
   return picker.show_picker(method, opts)
@@ -26,10 +30,12 @@ for _, method in ipairs(methods) do
   end
 end
 
+---@param opts table?
 function M.pick_all_endpoints(opts)
   show_picker("ALL", opts)
 end
 
+---@param opts endpoint.Config?
 function M.setup(opts)
   opts = opts or {}
 

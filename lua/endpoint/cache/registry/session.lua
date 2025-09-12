@@ -1,7 +1,10 @@
 -- Session cache - Memory-based caching for current session
-local base = require "endpoint.cache.base"
+local cache_base = require "endpoint.cache.base"
 
-local M = base.new {}
+---@class CacheRegistrySession : endpoint.CacheBase
+local M = {}
+setmetatable(M, { __index = cache_base })
+M.name = "session"
 
 function M:is_cache_valid(key, config)
   local cache_config = self:get_cache_config()
@@ -40,4 +43,3 @@ function M:load_from_file()
 end
 
 return M
-

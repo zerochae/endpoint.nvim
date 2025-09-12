@@ -11,7 +11,8 @@ local required_methods = {
 }
 
 -- Create base class for cache implementations
-local M = core_base.create_base(required_methods)
+---@class endpoint.CacheBase
+local M = core_base.create_base(required_methods) ---@diagnostic disable-line: assign-type-mismatch
 local find_table = {}
 local preview_table = {}
 local cache_timestamp = {}
@@ -19,6 +20,7 @@ local cache_timestamp = {}
 local MAX_CACHE_ENTRIES = 1000
 local MAX_PREVIEW_ENTRIES = 200
 local access_order = {}
+---@return table
 function M:get_cache_config()
   local ok, state = pcall(require, "endpoint.core.state")
   if ok then
@@ -42,6 +44,9 @@ function M:get_cache_config()
   }
 end
 
+---@param cache_table table
+---@param max_entries number
+---@param name string
 function M:cleanup_cache_by_size(cache_table, max_entries, name)
   local count = 0
   for _ in pairs(cache_table) do
@@ -66,6 +71,8 @@ function M:cleanup_cache_by_size(cache_table, max_entries, name)
   end
 end
 
+---@param cache_name string
+---@param key string
 function M:track_access(cache_name, key)
   if not access_order[cache_name] then
     access_order[cache_name] = {}
@@ -81,12 +88,14 @@ function M:track_access(cache_name, key)
   table.insert(access_order[cache_name], key)
 end
 
+---@return string
 function M:get_project_cache_dir()
   local project_root = fs.get_project_root()
   local project_name = vim.fn.fnamemodify(project_root, ":t")
   return vim.fn.stdpath "data" .. "/endpoint.nvim/" .. project_name
 end
 
+---@return table
 function M:get_cache_files()
   local cache_dir = self:get_project_cache_dir()
   return {
@@ -217,4 +226,3 @@ end
 -- Required methods are automatically validated by core_base
 
 return M
-

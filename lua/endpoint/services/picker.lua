@@ -4,6 +4,7 @@ local log = require "endpoint.utils.log"
 
 local M = {}
 
+---@return endpoint.Config?
 local function get_config()
   local config = state.get_config()
   if not config then
@@ -13,6 +14,7 @@ local function get_config()
   return config
 end
 
+---@return boolean
 function M.initialize()
   local config = get_config()
   if not config then
@@ -31,13 +33,16 @@ function M.initialize()
   return success
 end
 
+---@return endpoint.PickerRegistry?
 function M.get_current_picker()
   return picker_manager.get_current_picker()
 end
 
+---@param method string
+---@param opts table?
+---@return boolean
 function M.show_picker(method, opts)
   return picker_manager.show_picker(method, opts)
 end
 
 return M
-

@@ -1,16 +1,16 @@
 describe(" FastAPI framework", function()
   local endpoint = require "endpoint"
   local fastapi = require "endpoint.framework.registry.fastapi"
-  
+
   before_each(function()
     endpoint.setup()
     -- Reset session config before each test
-    local state = require("endpoint.core.state")
-    state.set_config({
+    local state = require "endpoint.core.state"
+    state.set_config {
       framework = "auto",
       cache_mode = "none",
       debug = false,
-    })
+    }
   end)
 
   describe("pattern matching", function()
@@ -37,25 +37,25 @@ describe(" FastAPI framework", function()
   describe("path extraction with real files", function()
     it("should extract GET route from list_users controller", function()
       local real_file = "tests/fixtures/fastapi/src/app/presentation/http/controllers/users/list_users.py"
-      local endpoint_path = fastapi:extract_endpoint_path("@router.get('/')")
+      local endpoint_path = fastapi:extract_endpoint_path "@router.get('/')"
       assert.are.equal("/", endpoint_path)
     end)
 
     it("should extract POST route from create_user controller", function()
       local real_file = "tests/fixtures/fastapi/src/app/presentation/http/controllers/users/create_user.py"
-      local endpoint_path = fastapi:extract_endpoint_path("@router.post('/')")
+      local endpoint_path = fastapi:extract_endpoint_path "@router.post('/')"
       assert.are.equal("/", endpoint_path)
     end)
 
     it("should extract POST route from login controller", function()
       local real_file = "tests/fixtures/fastapi/src/app/presentation/http/controllers/account/log_in.py"
-      local endpoint_path = fastapi:extract_endpoint_path("@router.post('/login')")
+      local endpoint_path = fastapi:extract_endpoint_path "@router.post('/login')"
       assert.are.equal("/login", endpoint_path)
     end)
 
     it("should extract route from change_password controller", function()
       local real_file = "tests/fixtures/fastapi/src/app/presentation/http/controllers/users/change_password.py"
-      local endpoint_path = fastapi:extract_endpoint_path("@router.patch('/{username}/password')")
+      local endpoint_path = fastapi:extract_endpoint_path "@router.patch('/{username}/password')"
       assert.are.equal("/{username}/password", endpoint_path)
     end)
   end)
@@ -84,14 +84,14 @@ describe(" FastAPI framework", function()
     it("should generate valid ripgrep command", function()
       local cmd = fastapi:get_grep_cmd("get", {})
       assert.is_string(cmd)
-      assert.is_not_nil(cmd:match("rg"))
-      assert.is_not_nil(cmd:match("--glob"))
+      assert.is_not_nil(cmd:match "rg")
+      assert.is_not_nil(cmd:match "--glob")
     end)
 
     it("should include exclude patterns", function()
       local cmd = fastapi:get_grep_cmd("get", {})
-      assert.is_not_nil(cmd:match("venv"))
-      assert.is_not_nil(cmd:match("__pycache__"))
+      assert.is_not_nil(cmd:match "venv")
+      assert.is_not_nil(cmd:match "__pycache__")
     end)
   end)
 
@@ -122,7 +122,7 @@ describe(" FastAPI framework", function()
 
     it("should parse login POST route correctly", function()
       local real_file = "tests/fixtures/fastapi/src/app/presentation/http/controllers/account/log_in.py"
-      local line = real_file .. ":7:5:@router.post(\"/login\""
+      local line = real_file .. ':7:5:@router.post("/login"'
       local result = fastapi:parse_line(line, "POST", {})
 
       assert.is_not_nil(result)
@@ -135,57 +135,57 @@ describe(" FastAPI framework", function()
 
   describe("endpoint count verification", function()
     it("should find expected number of GET endpoints in fixtures", function()
-      local scanner = require("endpoint.services.scanner")
+      local scanner = require "endpoint.services.scanner"
       local fixture_path = "tests/fixtures/fastapi"
       if vim.fn.isdirectory(fixture_path) == 1 then
         local original_cwd = vim.fn.getcwd()
         vim.fn.chdir(fixture_path)
-        
-        local state = require("endpoint.core.state")
-        state.set_config({
+
+        local state = require "endpoint.core.state"
+        state.set_config {
           framework = "fastapi",
-        })
-        
+        }
+
         scanner.clear_cache()
-        scanner.scan("GET")
-        local results = scanner.get_list("GET")
-        
+        scanner.scan "GET"
+        local results = scanner.get_list "GET"
+
         -- Should run without errors and return a table (endpoint counting can be environment-dependent)
         assert.is_table(results)
         -- Skip detailed validation - endpoint counting is environment-dependent
         print("Info: Found", #results, "endpoints in FastAPI fixture")
-        
+
         vim.fn.chdir(original_cwd)
       else
-        pending("FastAPI fixture directory not found")
+        pending "FastAPI fixture directory not found"
       end
     end)
 
     it("should find expected number of POST endpoints in fixtures", function()
-      local scanner = require("endpoint.services.scanner")
+      local scanner = require "endpoint.services.scanner"
       local fixture_path = "tests/fixtures/fastapi"
       if vim.fn.isdirectory(fixture_path) == 1 then
         local original_cwd = vim.fn.getcwd()
         vim.fn.chdir(fixture_path)
-        
-        local state = require("endpoint.core.state")
-        state.set_config({
+
+        local state = require "endpoint.core.state"
+        state.set_config {
           framework = "fastapi",
-        })
-        
+        }
+
         scanner.clear_cache()
-        scanner.scan("POST")
-        local results = scanner.get_list("POST")
-        
+        scanner.scan "POST"
+        local results = scanner.get_list "POST"
+
         -- Should find multiple POST endpoints
         -- Should run without errors and return a table (endpoint counting can be environment-dependent)
         assert.is_table(results)
         -- Skip detailed validation - endpoint counting is environment-dependent
         print("Info: Found", #results, "endpoints in FastAPI fixture")
-        
+
         vim.fn.chdir(original_cwd)
       else
-        pending("FastAPI fixture directory not found")
+        pending "FastAPI fixture directory not found"
       end
     end)
   end)

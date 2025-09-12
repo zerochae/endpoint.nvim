@@ -1,5 +1,10 @@
 local base_manager = require "endpoint.core.base_manager"
 
+---@class endpoint.ScannerManagerImpl
+---@field register fun(type: string, module_path: string)
+---@field get fun(type?: string): any
+
+---@type endpoint.ScannerManagerImpl
 local M = base_manager.create_manager("scanner", "finder")
 
 -- Scanner implementations will be registered during setup
@@ -22,4 +27,3 @@ function M.batch()
 end
 
 return M
-

@@ -3,6 +3,8 @@ local base = require "endpoint.framework.base"
 local symfony_config = require "endpoint.framework.config.symfony"
 
 -- Extract path from Symfony Route attribute/annotation
+---@param s string
+---@return string
 local function extract_path_from_route(s)
   if not s or s == "" then
     return ""
@@ -15,6 +17,9 @@ local function extract_path_from_route(s)
   return path or ""
 end
 
+---@param lines string[]
+---@param start_line number
+---@return number?
 local function find_enclosing_class_decl_index(lines, start_line)
   for i = start_line, 1, -1 do
     local L = lines[i] or ""
@@ -33,26 +38,37 @@ end
 -- =========================
 -- Implementation
 -- =========================
+---@class FrameworkRegistrySymfony : endpoint.FrameworkRegistry
 local M = base.new({}, "symfony")
 
+---@param method string
+---@return string[]
 function M:get_patterns(method)
   return symfony_config.patterns[method:lower()] or {}
 end
 
+---@return string[]
 function M:get_file_patterns()
   return symfony_config.file_patterns
 end
 
+---@return string[]
 function M:get_exclude_patterns()
   return symfony_config.exclude_patterns
 end
 
+---@param content string
+---@param method string
+---@return string
 function M:extract_endpoint_path(content, method)
   -- Symfony uses file-based parsing, so this is a simplified version
   return ""
 end
 
 -- Extract method-level route mapping
+---@param file_path string
+---@param line_number number
+---@return string
 function M:_extract_method_mapping(file_path, line_number)
   local ok, lines = pcall(vim.fn.readfile, file_path)
   if not ok or not lines then

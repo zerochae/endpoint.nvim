@@ -2,6 +2,7 @@
 local M = {}
 
 -- Get current config for debug setting
+---@return boolean
 local function should_log()
   local ok, state = pcall(require, "endpoint.core.state")
   if ok then
@@ -25,8 +26,8 @@ local function should_log()
 end
 
 -- Global debug log function
--- @param message string: Debug message
--- @param level number: vim.log.levels (optional, defaults to INFO)
+---@param message string Debug message
+---@param level number? vim.log.levels (optional, defaults to INFO)
 function M.debug_log(message, level)
   if not should_log() then
     return
@@ -35,28 +36,27 @@ function M.debug_log(message, level)
 end
 
 -- Log with INFO level
--- @param message string: Debug message
+---@param message string Debug message
 function M.info(message)
   M.debug_log(message, vim.log.levels.INFO)
 end
 
 -- Log with WARN level
--- @param message string: Warning message
+---@param message string Warning message
 function M.warn(message)
   M.debug_log(message, vim.log.levels.WARN)
 end
 
 -- Log with ERROR level
--- @param message string: Error message
+---@param message string Error message
 function M.error(message)
   M.debug_log(message, vim.log.levels.ERROR)
 end
 
 -- Log with DEBUG level
--- @param message string: Debug message
+---@param message string Debug message
 function M.debug(message)
   M.debug_log(message, vim.log.levels.DEBUG)
 end
 
 return M
-

@@ -20,4 +20,3 @@ local optional_methods = {
 local M = core_base.create_base(required_methods, optional_methods)
 
 return M
-

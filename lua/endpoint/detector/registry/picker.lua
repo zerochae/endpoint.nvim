@@ -95,5 +95,6 @@ function implementation:get_description()
 end
 
 -- Create the detector implementation instance
+---@class DetectorRegistryPicker : endpoint.DetectorRegistry
 local M = base.new(implementation, "picker")
 return M
