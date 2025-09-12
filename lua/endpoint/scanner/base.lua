@@ -113,10 +113,7 @@ end
 function M:save_to_cache(method, endpoints)
   -- Get current cache config through state
   local config = state.get_config()
-  if not config or config.cache_mode == "none" then
-    return -- Skip caching when cache mode is none
-  end
-
+  
   for _, endpoint in ipairs(endpoints) do
     cache.create_find_table_entry(endpoint.file_path, method)
     cache.insert_to_find_table {
@@ -127,8 +124,12 @@ function M:save_to_cache(method, endpoints)
       column = endpoint.column,
     }
   end
-  cache.update_cache_timestamp(method)
-  cache.save_to_file()
+  
+  -- Only skip persistent operations when cache mode is none
+  if config and config.cache_mode ~= "none" then
+    cache.update_cache_timestamp(method)
+    cache.save_to_file()
+  end
 end
 
 function M:get_cache_data()
