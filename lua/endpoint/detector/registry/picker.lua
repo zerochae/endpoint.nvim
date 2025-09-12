@@ -18,13 +18,17 @@ local picker_detectors = {
 }
 
 -- Create implementation object with all required methods
-local implementation = {}
+local M = {}
 
-function implementation:can_detect(picker_name)
+function M:is_available()
+  return true
+end
+
+function M:can_detect(picker_name)
   return picker_name ~= nil and type(picker_name) == "string"
 end
 
-function implementation:detect(picker_name)
+function M:detect(picker_name)
   local detector = picker_detectors[picker_name]
   if not detector then
     return false
@@ -35,7 +39,7 @@ function implementation:detect(picker_name)
 end
 
 -- Get all available pickers
-function implementation:get_available()
+function M:get_available()
   local available = {}
 
   for picker_name, _ in pairs(picker_detectors) do
@@ -48,7 +52,7 @@ function implementation:get_available()
 end
 
 -- Resolve picker with fallback logic
-function implementation:resolve_picker(requested_picker)
+function M:resolve_picker(requested_picker)
   -- If requested picker is available, use it
   if self:detect(requested_picker) then
     return requested_picker
@@ -59,7 +63,7 @@ function implementation:resolve_picker(requested_picker)
 end
 
 -- Get picker detection information
-function implementation:get_picker_info()
+function M:get_picker_info()
   local info = {}
 
   for picker_name, _ in pairs(picker_detectors) do
@@ -72,12 +76,12 @@ function implementation:get_picker_info()
 end
 
 -- Validate picker name
-function implementation:is_valid_picker_name(picker_name)
+function M:is_valid_picker_name(picker_name)
   return picker_detectors[picker_name] ~= nil
 end
 
 -- Get supported picker names
-function implementation:get_supported_pickers()
+function M:get_supported_pickers()
   local supported = {}
   for picker_name, _ in pairs(picker_detectors) do
     table.insert(supported, picker_name)
@@ -86,15 +90,14 @@ function implementation:get_supported_pickers()
   return supported
 end
 
-function implementation:get_priority()
+function M:get_priority()
   return 80
 end
 
-function implementation:get_description()
+function M:get_description()
   return "Picker detector"
 end
 
 -- Create the detector implementation instance
 ---@class DetectorRegistryPicker : endpoint.DetectorRegistry
-local M = base.new(implementation, "picker")
-return M
+return base.new(M, "picker")

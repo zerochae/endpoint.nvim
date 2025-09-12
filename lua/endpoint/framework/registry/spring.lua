@@ -130,28 +130,32 @@ end
 -- =========================
 -- 구현체
 -- =========================
-local implementation = {}
+local M = {}
+
+function M:is_available()
+  return true
+end
 
 ---@param method string
 ---@return string[]
-function implementation:get_patterns(method)
+function M:get_patterns(method)
   return spring_config.patterns[method:lower()] or {}
 end
 
 ---@return string[]
-function implementation:get_file_patterns()
+function M:get_file_patterns()
   return spring_config.file_patterns
 end
 
 ---@return string[]
-function implementation:get_exclude_patterns()
+function M:get_exclude_patterns()
   return spring_config.exclude_patterns
 end
 
 ---@param content string
 ---@param method string
 ---@return string
-function implementation:extract_endpoint_path(content, method)
+function M:extract_endpoint_path(content, method)
   -- Spring uses file-based parsing, so this is a simplified version
   -- The actual logic is in _extract_method_mapping which needs file_path and line_number
   return ""
@@ -161,7 +165,7 @@ end
 ---@param file_path string
 ---@param line_number number
 ---@return string
-function implementation:_extract_method_mapping(file_path, line_number)
+function M:_extract_method_mapping(file_path, line_number)
   local ok, lines = pcall(vim.fn.readfile, file_path)
   if not ok or not lines then
     return ""
@@ -220,7 +224,7 @@ function implementation:_extract_method_mapping(file_path, line_number)
 end
 
 -- 클래스 레벨 @RequestMapping 추출 (멀티라인/배열/코멘트 대응)
-function implementation:get_base_path(file_path, line_number)
+function M:get_base_path(file_path, line_number)
   local ok, lines = pcall(vim.fn.readfile, file_path)
   if not ok or not lines then
     return ""
@@ -271,7 +275,7 @@ function implementation:get_base_path(file_path, line_number)
 end
 
 -- rg 명령어 생성 (싱글패턴: 가장 구체적인 첫 패턴만)
-function implementation:get_grep_cmd(method, config)
+function M:get_grep_cmd(method, config)
   local patterns = self:get_patterns(method)
   if not patterns or #patterns == 0 then
     error("No patterns defined for method: " .. method)
@@ -298,7 +302,7 @@ function implementation:get_grep_cmd(method, config)
 end
 
 -- ripgrep 한 줄 "path:line:col:content" → 구조로 파싱
-function implementation:parse_line(line, method, _config)
+function M:parse_line(line, method, _config)
   -- Debug: parse_line 호출 확인
   local log = require "endpoint.utils.log"
   log.info("Spring parse_line called with line: " .. line)
@@ -344,5 +348,4 @@ function implementation:parse_line(line, method, _config)
 end
 
 -- Create the framework implementation instance
-local M = base.new(implementation, "spring")
-return M
+return base.new(M, "spring")

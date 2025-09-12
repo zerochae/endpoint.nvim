@@ -3,7 +3,11 @@ local log = require "endpoint.utils.log"
 local fs = require "endpoint.utils.fs"
 
 -- Create implementation object with all required methods
-local implementation = {}
+local M = {}
+
+function M:is_available()
+  return true
+end
 
 -- Check if any detection files exist in the project root
 local function check_detection_files(root_path, detection_files)
@@ -140,11 +144,11 @@ local function check_framework_paths(current_path, framework_paths)
   return nil
 end
 
-function implementation:can_detect(config)
+function M:can_detect(config)
   return config ~= nil
 end
 
-function implementation:detect(config)
+function M:detect(config)
   local root_path = fs.get_project_root()
 
   -- First check framework_paths for explicit overrides
@@ -176,15 +180,14 @@ function implementation:detect(config)
   end
 end
 
-function implementation:get_priority()
+function M:get_priority()
   return 100
 end
 
-function implementation:get_description()
+function M:get_description()
   return "Framework detector"
 end
 
 -- Create the detector implementation instance
 ---@class DetectorRegistryFramework : endpoint.DetectorRegistry
-local M = base.new(implementation, "framework")
-return M
+return base.new(M, "framework")

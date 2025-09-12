@@ -2,6 +2,7 @@ local core_base = require "endpoint.core.base"
 
 -- Required methods that detector implementations must provide
 local required_methods = {
+  "is_available",
   "detect",
   "can_detect",
 }

@@ -4,7 +4,11 @@ local nestjs_config = require "endpoint.framework.config.nestjs"
 
 -- Create a new NestJS framework object inheriting from base
 ---@class FrameworkRegistryNestJS : endpoint.FrameworkRegistry
-local M = base.new({}, "nestjs")
+local M = {}
+
+function M:is_available()
+  return true
+end
 
 ---@param method string
 ---@return string[]
@@ -214,4 +218,4 @@ function M:parse_line(line, method, config)
   }
 end
 
-return M
+return base.new(M, "nestjs")

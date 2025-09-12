@@ -6,6 +6,7 @@ local core_base = require "endpoint.core.base"
 
 -- Required methods that scanner implementations must provide
 local required_methods = {
+  "is_available",
   "process",
 }
 

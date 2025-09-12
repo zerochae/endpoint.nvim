@@ -3,9 +3,12 @@ local base = require "endpoint.scanner.base"
 local cache = require "endpoint.services.cache"
 
 -- Create scanner registry implementation that inherits from base
-local implementation = {}
 ---@class ScannerRegistryPreviewer : endpoint.ScannerRegistry
-local M = base.new(implementation, "previewer")
+local M = {}
+
+function M:is_available()
+  return true
+end
 
 -- Process method for preparing preview data
 function M:process(method, options)
@@ -60,4 +63,4 @@ function M:prepare_preview(method)
   return self:process(method)
 end
 
-return M
+return base.new(M, "previewer")

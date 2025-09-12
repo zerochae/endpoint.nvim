@@ -2,6 +2,7 @@ local core_base = require "endpoint.core.base"
 
 -- Required methods that framework implementations must provide
 local required_methods = {
+  "is_available",
   "get_patterns",
   "get_file_patterns",
   "get_exclude_patterns",

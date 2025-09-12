@@ -1,7 +1,7 @@
 local base = require "endpoint.picker.base"
 
 ---@class PickerRegistryVimUISelect : endpoint.PickerRegistry
-local M = base.new({}, "vim_ui_select")
+local M = {}
 
 function M:is_available()
   return vim.ui and vim.ui.select ~= nil
@@ -67,4 +67,4 @@ function M:format_method_display(method)
   return table.concat(parts, " ")
 end
 
-return M
+return base.new(M, "vim_ui_select")

@@ -3,9 +3,12 @@ local base = require "endpoint.scanner.base"
 local cache = require "endpoint.services.cache"
 
 -- Create scanner registry implementation that inherits from base
-local implementation = {}
 ---@class ScannerRegistryFinder : endpoint.ScannerRegistry
-local M = base.new(implementation, "finder")
+local M = {}
+
+function M:is_available()
+  return true
+end
 
 -- Process method for finding endpoints
 function M:process(method, options)
@@ -71,4 +74,4 @@ function M:get_list(method)
   return self:process(method, { format = "list" })
 end
 
-return M
+return base.new(M, "finder")

@@ -22,7 +22,11 @@ end
 -- Implementation
 -- =========================
 ---@class FrameworkRegistryFastAPI : endpoint.FrameworkRegistry
-local M = base.new({}, "fastapi")
+local M = {}
+
+function M:is_available()
+  return true
+end
 
 ---@param method string
 ---@return string[]
@@ -193,4 +197,4 @@ function M:parse_line(line, method, _config)
   }
 end
 
-return M
+return base.new(M, "fastapi")

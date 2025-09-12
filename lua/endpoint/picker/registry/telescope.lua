@@ -1,7 +1,7 @@
 local base = require "endpoint.picker.base"
 
 ---@class PickerRegistryTelescope : endpoint.PickerRegistry
-local M = base.new({}, "telescope")
+local M = {}
 
 function M:is_available()
   local ok, _ = pcall(require, "telescope.pickers")
@@ -164,4 +164,4 @@ function M:create_previewer(opts)
   }
 end
 
-return M
+return base.new(M, "telescope")

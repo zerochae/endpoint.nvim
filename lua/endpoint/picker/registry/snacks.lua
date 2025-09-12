@@ -2,7 +2,7 @@
 local base = require "endpoint.picker.base"
 
 ---@class PickerRegistrySnacks : endpoint.PickerRegistry
-local M = base.new({}, "snacks")
+local M = {}
 
 function M:is_available()
   local ok, snacks = pcall(require, "snacks")
@@ -61,4 +61,4 @@ function M:get_filetype_for_item(item)
   return "text"
 end
 
-return M
+return base.new(M, "snacks")

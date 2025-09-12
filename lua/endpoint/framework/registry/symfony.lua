@@ -39,7 +39,11 @@ end
 -- Implementation
 -- =========================
 ---@class FrameworkRegistrySymfony : endpoint.FrameworkRegistry
-local M = base.new({}, "symfony")
+local M = {}
+
+function M:is_available()
+  return true
+end
 
 ---@param method string
 ---@return string[]
@@ -193,4 +197,4 @@ function M:parse_line(line, method)
   }
 end
 
-return M
+return base.new(M, "symfony")
