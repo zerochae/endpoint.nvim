@@ -1,22 +1,22 @@
 local core_base = require "endpoint.core.base"
 
--- Required methods that picker implementations must provide
+-- Required methods that detector implementations must provide
 local required_methods = {
-  "is_available",
-  "create_picker",
+  "detect",
+  "can_detect",
 }
 
 -- Optional methods with default implementations
 local optional_methods = {
-  get_default_config = function()
-    return {}
+  get_priority = function()
+    return 50
   end,
-  validate_options = function()
-    return true
+  get_description = function()
+    return "Generic detector"
   end,
 }
 
--- Create base class for pickers
+-- Create base class for detector implementations
 local M = core_base.create_base(required_methods, optional_methods)
 
 return M

@@ -3,10 +3,10 @@
 local M = {
   -- Default picker to use (will fallback to vim_ui_select if not available)
   picker = "telescope",
-  
+
   -- Additional options to pass to the selected picker
   picker_opts = {},
-  
+
   -- Picker-specific default configurations
   telescope = {
     -- Telescope-specific options
@@ -16,7 +16,7 @@ local M = {
     },
     sorting_strategy = "ascending",
   },
-  
+
   snacks = {
     -- Snacks-specific options
     layout = {
@@ -25,7 +25,7 @@ local M = {
       },
     },
   },
-  
+
   vim_ui_select = {
     -- vim.ui.select-specific options
     kind = "endpoint",
@@ -33,3 +33,4 @@ local M = {
 }
 
 return M
+

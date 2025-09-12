@@ -1,4 +1,4 @@
-local base = require("endpoint.picker.base")
+local base = require "endpoint.picker.base"
 
 local M = base.new({}, "vim_ui_select")
 
@@ -10,7 +10,7 @@ function M:create_picker(opts)
   if not vim.ui or not vim.ui.select then
     return false
   end
-  
+
   local items = opts.items or {}
   local display_items = {}
   for _, item in ipairs(items) do
@@ -22,7 +22,7 @@ function M:create_picker(opts)
     end
     table.insert(display_items, display_text)
   end
-  
+
   vim.ui.select(display_items, {
     prompt = (opts.prompt_title or "Endpoint Finder") .. ": ",
     format_item = function(item)
@@ -37,33 +37,34 @@ function M:create_picker(opts)
       end
     end
   end)
-  
+
   return true
 end
 
 function M:format_method_display(method)
-  local session = require("endpoint.core.session")
-  local config = session.get_config()
-  local themes = require("endpoint.ui.themes")
-  
+  local state = require "endpoint.core.state"
+  local config = state.get_config()
+  local themes = require "endpoint.ui.themes"
+
   if not config then
     return method
   end
-  
+
   local parts = {}
-  
+
   if config.ui.show_icons then
     local icon = themes.get_method_icon(method, config)
     if icon and icon ~= "" then
       table.insert(parts, icon)
     end
   end
-  
+
   if config.ui.show_method then
     table.insert(parts, method)
   end
-  
+
   return table.concat(parts, " ")
 end
 
 return M
+

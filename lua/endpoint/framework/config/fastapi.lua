@@ -3,31 +3,31 @@ return {
   exclude_patterns = { "**/venv/**", "**/__pycache__/**", "**/site-packages/**", "**/.pytest_cache/**" },
   detection_files = { "main.py", "requirements.txt", "pyproject.toml" },
   patterns = {
-    get = { 
+    get = {
       "@app\\.get",
       "@router\\.get",
       "app\\.get\\(",
       "router\\.get\\(",
     },
-    post = { 
+    post = {
       "@app\\.post",
       "@router\\.post",
       "app\\.post\\(",
       "router\\.post\\(",
     },
-    put = { 
+    put = {
       "@app\\.put",
-      "@router\\.put", 
+      "@router\\.put",
       "app\\.put\\(",
       "router\\.put\\(",
     },
-    delete = { 
+    delete = {
       "@app\\.delete",
       "@router\\.delete",
       "app\\.delete\\(",
       "router\\.delete\\(",
     },
-    patch = { 
+    patch = {
       "@app\\.patch",
       "@router\\.patch",
       "app\\.patch\\(",
@@ -35,3 +35,4 @@ return {
     },
   },
 }
+

@@ -7,8 +7,8 @@ describe("Scanner service", function()
     -- Clear cache before each test
     scanner.clear_cache()
     -- Reset session config before each test
-    local session = require "endpoint.core.session"
-    session.set_config {
+    local state = require "endpoint.core.state"
+    state.set_config {
       framework = "auto",
       cache_mode = "none",
       debug = false,
@@ -36,8 +36,8 @@ describe("Scanner service", function()
   describe("Symfony framework integration", function()
     it("should scan Symfony endpoints correctly", function()
       local fixture_path = "tests/fixtures/symfony"
-      local session = require "endpoint.core.session"
-      session.set_config {
+      local state = require "endpoint.core.state"
+      state.set_config {
         framework = "symfony",
       }
       if vim.fn.isdirectory(fixture_path) == 1 then
@@ -139,7 +139,7 @@ describe("Scanner service", function()
   -- describe("Spring framework integration", function()
   --   it("should scan Spring endpoints correctly", function()
   --     local fixture_path = "tests/fixtures/spring"
-  --     local session = require "endpoint.core.session"
+  --     local session = require "endpoint.core.state"
   --     session.set_config {
   --       framework = "spring",
   --     }
@@ -163,7 +163,7 @@ describe("Scanner service", function()
   -- describe("NestJS framework integration", function()
   --   it("should scan NestJS endpoints correctly", function()
   --     local fixture_path = "tests/fixtures/nestjs"
-  --     local session = require "endpoint.core.session"
+  --     local session = require "endpoint.core.state"
   --     session.set_config {
   --       framework = "nestjs",
   --     }

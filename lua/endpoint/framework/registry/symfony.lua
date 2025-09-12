@@ -2,7 +2,6 @@
 local base = require "endpoint.framework.base"
 local symfony_config = require "endpoint.framework.config.symfony"
 
-
 -- Extract path from Symfony Route attribute/annotation
 local function extract_path_from_route(s)
   if not s or s == "" then
@@ -11,7 +10,7 @@ local function extract_path_from_route(s)
 
   -- Extract path from Route attribute/annotation
   -- Patterns to match: #[Route('/path')] or @Route("/path")
-  local path = s:match("#%[Route%(['\"](.-)['\"]") or s:match("@Route%(['\"](.-)['\"]")
+  local path = s:match "#%[Route%(['\"](.-)['\"]" or s:match "@Route%(['\"](.-)['\"]"
 
   return path or ""
 end
@@ -31,11 +30,10 @@ local function find_enclosing_class_decl_index(lines, start_line)
   return nil
 end
 
-
 -- =========================
 -- Implementation
 -- =========================
-local M = base.new {}
+local M = base.new({}, "symfony")
 
 function M:get_patterns(method)
   return symfony_config.patterns[method:lower()] or {}
@@ -47,6 +45,11 @@ end
 
 function M:get_exclude_patterns()
   return symfony_config.exclude_patterns
+end
+
+function M:extract_endpoint_path(content, method)
+  -- Symfony uses file-based parsing, so this is a simplified version
+  return ""
 end
 
 -- Extract method-level route mapping
@@ -93,7 +96,7 @@ function M:get_base_path(file_path, line_number)
   -- Find the last 'use' statement before class declaration
   for i = 1, class_decl_idx - 1 do
     local line = lines[i] or ""
-    if line:match("^use%s+") then
+    if line:match "^use%s+" then
       last_use_idx = i
     end
   end
@@ -102,7 +105,7 @@ function M:get_base_path(file_path, line_number)
   for i = last_use_idx + 1, class_decl_idx - 1 do
     local line = lines[i] or ""
 
-    if line:match("#%[Route") or line:match("@Route") then
+    if line:match "#%[Route" or line:match "@Route" then
       for _, pattern in ipairs(base_path_patterns) do
         local path = line:match(pattern)
         if path and path ~= "" then
@@ -175,4 +178,3 @@ function M:parse_line(line, method)
 end
 
 return M
-

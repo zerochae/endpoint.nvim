@@ -3,7 +3,7 @@ local base = require "endpoint.framework.base"
 local nestjs_config = require "endpoint.framework.config.nestjs"
 
 -- Create a new NestJS framework object inheriting from base
-local M = base.new {}
+local M = base.new({}, "nestjs")
 
 function M:get_patterns(method)
   return nestjs_config.patterns[method:lower()] or {}

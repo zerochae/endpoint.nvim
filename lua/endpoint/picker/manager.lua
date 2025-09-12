@@ -1,104 +1,85 @@
--- Picker Manager
--- Manages picker selection and provides a unified interface
+local base_manager = require "endpoint.core.base_manager"
+local detector = require "endpoint.services.detector"
+local log = require "endpoint.utils.log"
 
-local detector = require("endpoint.picker.detector")
-local log = require("endpoint.utils.log")
-local M = {}
+local M = base_manager.create_manager("picker", "vim_ui_select")
 
+-- Picker implementations will be registered during setup
+-- Temporary fallback: register immediately for compatibility
+M.register("telescope", "endpoint.picker.registry.telescope")
+M.register("vim_ui_select", "endpoint.picker.registry.vim_ui_select")
+M.register("snacks", "endpoint.picker.registry.snacks")
+
+-- Current picker state
 local current_picker = nil
 
--- Factory function to create picker instances
--- @param picker_name string: Name of the picker to create
--- @return BasePicker|nil: Picker instance or nil if not found
-local function create_picker(picker_name)
-  local picker_module = string.format("endpoint.picker.registry.%s", picker_name)
-  local ok, picker_instance = pcall(require, picker_module)
-  
-  if not ok then
+-- Override get method to handle picker availability
+local base_get = M.get
+function M.get(picker_type)
+  local picker = base_get(picker_type)
+
+  -- Check if picker is available
+  if picker and not picker:is_available() then
+    log.warn("Picker " .. picker_type .. " is not available")
     return nil
   end
-  
-  return picker_instance
+
+  return picker
 end
 
--- Initialize picker based on config
--- @param config table: User configuration
--- @return boolean: true if picker was successfully initialized
 function M.initialize(config)
   local requested_picker = config.picker or "vim_ui_select"
   local actual_picker = detector.resolve_picker(requested_picker)
-  
-  -- Warn if fallback occurred
+
   if actual_picker ~= requested_picker then
     log.warn(string.format("Picker '%s' not available, falling back to '%s'", requested_picker, actual_picker))
   end
-  
-  local picker = create_picker(actual_picker)
+
+  local picker = M.get(actual_picker)
   if not picker then
-    vim.notify("Failed to create picker: " .. actual_picker, vim.log.levels.ERROR)
+    log.error("Failed to create picker: " .. actual_picker)
     return false
   end
-  
-  -- This should always succeed since resolve_picker ensures availability
-  if not picker:is_available() then
-    vim.notify("Picker not available: " .. actual_picker, vim.log.levels.ERROR)
-    return false
-  end
-  
+
   current_picker = picker
   log.info("Initialized picker: " .. actual_picker)
-  
+
   return true
 end
 
--- Get current picker instance
--- @return PickerInterface|nil: Current picker or nil if not initialized
 function M.get_current_picker()
   return current_picker
 end
 
--- Create and show picker with endpoint data
--- @param method string: HTTP method (GET, POST, PUT, DELETE, PATCH, ALL)
--- @param opts table: Additional options
--- @return boolean: true if picker was successfully created
 function M.show_picker(method, opts)
   if not current_picker then
-    vim.notify("Picker not initialized. Call setup() first.", vim.log.levels.ERROR)
+    log.error "Picker not initialized. Call setup() first."
     return false
   end
-  
+
   opts = opts or {}
-  
-  -- Prepare picker data
+
   local picker_opts = M.prepare_picker_data(method, opts)
-  
+
   return current_picker:create_picker(picker_opts)
 end
 
--- Prepare data for picker
--- @param method string: HTTP method
--- @param opts table: Additional options
--- @return table: Prepared picker options
 function M.prepare_picker_data(method, opts)
-  local scanner = require("endpoint.services.scanner")
-  local themes = require("endpoint.ui.themes")
-  
-  -- Get endpoint data
+  local scanner = require "endpoint.services.scanner"
+
   if method == "ALL" then
-    scanner.prepare_preview("ALL")
+    scanner.prepare_preview "ALL"
   else
     scanner.scan(method)
   end
-  
+
   local cache_data = scanner.get_cache_data()
   local finder_table = cache_data.find_table
   local preview_table = cache_data.preview_table
   local items = {}
-  
-  -- Prepare items for picker
+
   if method == "ALL" then
-    -- Handle all endpoints
-    for file_path, mapping_object in pairs(finder_table) do
+    for _, mapping_object in pairs(finder_table) do
       for annotation, mappings in pairs(mapping_object) do
         for _, mapping_item in ipairs(mappings) do
           local endpoint_path = mapping_item.value or ""
@@ -113,8 +94,7 @@ function M.prepare_picker_data(method, opts)
       end
     end
   else
-    -- Handle specific method
-    for file_path, mapping_object in pairs(finder_table) do
+    for _, mapping_object in pairs(finder_table) do
       for annotation, mappings in pairs(mapping_object) do
         if annotation == method then
           for _, mapping_item in ipairs(mappings) do
@@ -131,7 +111,7 @@ function M.prepare_picker_data(method, opts)
       end
     end
   end
-  
+
   -- Remove duplicates
   local seen = {}
   local unique_items = {}
@@ -142,7 +122,7 @@ function M.prepare_picker_data(method, opts)
     end
   end
   items = unique_items
-  
+
   return {
     prompt_title = opts.prompt_title or "Endpoint Finder",
     preview_title = opts.preview_title or "Preview",
@@ -160,18 +140,14 @@ function M.prepare_picker_data(method, opts)
   }
 end
 
--- Format endpoint display text
--- @param method string: HTTP method
--- @param path string: Endpoint path
--- @return string: Formatted display text
 function M.format_endpoint_display(method, path)
-  local endpoint = require("endpoint.core")
+  local endpoint = require "endpoint.core"
   local config = endpoint.get_config()
-  local themes = require("endpoint.ui.themes")
-  
+  local themes = require "endpoint.ui.themes"
+
   local icon = themes.get_method_icon(method, config)
   local method_text = themes.get_method_text(method, config)
-  
+
   local parts = {}
   if icon ~= "" then
     table.insert(parts, icon)
@@ -180,76 +156,61 @@ function M.format_endpoint_display(method, path)
     table.insert(parts, method_text)
   end
   table.insert(parts, path)
-  
+
   return table.concat(parts, " ")
 end
 
--- Get preview content for an item
--- @param item table: Selected item
--- @param preview_table table: Preview data table
--- @return string: Preview content
 function M.get_preview_content(item, preview_table)
   local endpoint = item.value
   local preview_data = preview_table[endpoint]
-  
+
   if not preview_data then
     return "Preview not available"
   end
-  
+
   local file_path = preview_data.path
   local line_number = preview_data.line_number
-  
-  -- Read file content around the line
+
   local ok, lines = pcall(vim.fn.readfile, file_path)
   if not ok or not lines then
     return "Failed to read file: " .. file_path
   end
-  
+
   local preview_lines = {}
   local start_line = math.max(1, line_number - 5)
   local end_line = math.min(#lines, line_number + 5)
-  
+
   for i = start_line, end_line do
     local prefix = i == line_number and ">" or " "
     table.insert(preview_lines, string.format("%s %3d: %s", prefix, i, lines[i] or ""))
   end
-  
+
   return table.concat(preview_lines, "\n")
 end
 
--- Handle item selection
--- @param item table: Selected item
--- @param preview_table table: Preview data table
 function M.handle_selection(item, preview_table)
   local endpoint = item.value
   local preview_data = preview_table[endpoint]
-  
+
   if not preview_data then
-    vim.notify("Preview data not found for: " .. endpoint, vim.log.levels.ERROR)
+    log.error("Preview data not found for: " .. endpoint)
     return
   end
-  
+
   local file_path = preview_data.path
   local line_number = preview_data.line_number
   local column = preview_data.column
-  
-  -- Open file and navigate to position
+
   vim.cmd("edit " .. file_path)
   local bufnr = vim.fn.bufnr()
   vim.api.nvim_set_current_buf(bufnr)
-  
+
   vim.schedule(function()
-    local scanner = require("endpoint.services.scanner")
-    local cursor_entry = {
-      path = file_path,
-      lnum = line_number,
-      col = column,
-    }
-    -- Set cursor on entry
-    local lnum = cursor_entry.line_number or 1
-    pcall(vim.api.nvim_win_set_cursor, 0, { lnum, 0 })
-    vim.cmd("norm! zz")
+    local lnum = line_number or 1
+    pcall(vim.api.nvim_win_set_cursor, 0, { lnum, (column or 1) - 1 })
+    vim.cmd "norm! zz"
   end)
 end
 
 return M
+

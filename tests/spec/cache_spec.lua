@@ -71,14 +71,14 @@ describe("Cache system behavior", function()
       assert.is_false(should_use)
     end)
     
-    it("should use temp tables in none mode", function()
-      -- In "none" mode, get_find_table should return temp table
+    it("should use cache tables in none mode", function()
+      -- In "none" mode, get_find_table should return the cache table
       local find_table = cache.get_find_table()
       
-      -- Should be empty initially (temp table)
+      -- Should be empty initially
       assert.are.same({}, find_table)
       
-      -- Create entry in temp table mode
+      -- Create entry in cache
       cache.create_find_table_entry("test.rb", "GET")
       cache.insert_to_find_table({
         path = "test.rb",
@@ -88,7 +88,7 @@ describe("Cache system behavior", function()
         column = 1,
       })
       
-      -- Should now have data in temp table
+      -- Should now have data in cache
       local results = get_find_table_results("GET")
       assert.is_true(#results > 0)
     end)
@@ -255,11 +255,11 @@ describe("Cache system behavior", function()
     
     it("should handle fallback cache mode correctly", function()
       -- Test session fallback behavior
-      local session = require("endpoint.core.session")
+      local state = require("endpoint.core.state")
       
       -- Should use fallback logic (implementation depends on session.lua)
       assert.has_no_error(function()
-        local cache_config = session.get_config()
+        local cache_config = state.get_config()
         -- Session config can be nil if not initialized, which is valid
         -- The important thing is that it doesn't error
       end)

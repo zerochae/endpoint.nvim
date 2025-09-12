@@ -3,14 +3,14 @@ local M = {}
 
 -- Get current config for debug setting
 local function should_log()
-  local ok, session = pcall(require, "endpoint.core.session")
+  local ok, state = pcall(require, "endpoint.core.state")
   if ok then
-    local config = session.get_config()
+    local config = state.get_config()
     if config and config.debug ~= nil then
       return config.debug
     end
   end
-  
+
   -- Fallback to core config
   local core_ok, core = pcall(require, "endpoint.core")
   if core_ok and core.get_config then
@@ -19,7 +19,7 @@ local function should_log()
       return config.debug
     end
   end
-  
+
   -- Final fallback - don't log by default
   return false
 end
@@ -52,4 +52,11 @@ function M.error(message)
   M.debug_log(message, vim.log.levels.ERROR)
 end
 
+-- Log with DEBUG level
+-- @param message string: Debug message
+function M.debug(message)
+  M.debug_log(message, vim.log.levels.DEBUG)
+end
+
 return M
+

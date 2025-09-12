@@ -1,5 +1,5 @@
 local M = {}
-local fs = require(\"endpoint.utils.fs\")
+local fs = require "endpoint.utils.fs"
 
 local function create_ascii_title()
   return {
@@ -91,7 +91,8 @@ end
 
 M.show_cache_status = function()
   local cache = require "endpoint.services.cache"
-  local cache_config = require("endpoint.core.session").get_config()
+  local state = require "endpoint.core.state"
+  local cache_config = state.get_config()
 
   if not cache_config then
     local default_config = require "endpoint.core.config"

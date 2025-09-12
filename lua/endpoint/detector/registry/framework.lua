@@ -1,9 +1,9 @@
-local registry = require "endpoint.core.registry"
+local base = require "endpoint.detector.base"
 local log = require "endpoint.utils.log"
 local fs = require "endpoint.utils.fs"
 
-local M = {}
-
+-- Create implementation object with all required methods
+local implementation = {}
 
 -- Check if any detection files exist in the project root
 local function check_detection_files(root_path, detection_files)
@@ -48,7 +48,7 @@ end
 local function detect_python_framework(root_path)
   local pyproject_path = root_path .. "/pyproject.toml"
   local requirements_path = root_path .. "/requirements.txt"
-  
+
   -- Check pyproject.toml first for FastAPI
   if fs.file_exists(pyproject_path) then
     local ok, pyproject_content = pcall(vim.fn.readfile, pyproject_path)
@@ -64,7 +64,7 @@ local function detect_python_framework(root_path)
       end
     end
   end
-  
+
   -- Check requirements.txt
   if fs.file_exists(requirements_path) then
     local ok, requirements_content = pcall(vim.fn.readfile, requirements_path)
@@ -80,12 +80,12 @@ local function detect_python_framework(root_path)
       end
     end
   end
-  
+
   -- Check for Django-specific files
   if fs.file_exists(root_path .. "/manage.py") then
     return "django"
   end
-  
+
   return nil
 end
 
@@ -96,17 +96,21 @@ local function auto_detect_framework(root_path, frameworks_config)
   if nodejs_framework then
     return nodejs_framework
   end
-  
-  -- Special handling for Python frameworks  
+
+  -- Special handling for Python frameworks
   local python_framework = detect_python_framework(root_path)
   if python_framework then
     return python_framework
   end
-  
+
   -- Standard detection for other frameworks
   for framework_name, framework_config in pairs(frameworks_config) do
-    if framework_name ~= "nestjs" and framework_name ~= "express" 
-       and framework_name ~= "fastapi" and framework_name ~= "django" then
+    if
+      framework_name ~= "nestjs"
+      and framework_name ~= "express"
+      and framework_name ~= "fastapi"
+      and framework_name ~= "django"
+    then
       if check_detection_files(root_path, framework_config.detection_files) then
         return framework_name
       end
@@ -136,8 +140,11 @@ local function check_framework_paths(current_path, framework_paths)
   return nil
 end
 
--- Main function to detect the current framework
-function M.detect_framework(config)
+function implementation:can_detect(config)
+  return config ~= nil
+end
+
+function implementation:detect(config)
   local root_path = fs.get_project_root()
 
   -- First check framework_paths for explicit overrides
@@ -156,7 +163,8 @@ function M.detect_framework(config)
   end
 
   -- Auto-detect framework using dynamic config
-  local frameworks_config = registry.build_frameworks_config()
+  local manager = require "endpoint.framework.manager"
+  local frameworks_config = manager.build_frameworks_config()
   local detected_framework = auto_detect_framework(root_path, frameworks_config)
 
   if detected_framework then
@@ -168,27 +176,15 @@ function M.detect_framework(config)
   end
 end
 
--- Get framework-specific configuration
-function M.get_framework_config(config, framework_name)
-  local framework_config = registry.get_framework_config(framework_name)
-  if not framework_config then
-    if config.debug then
-      vim.notify("Unknown framework: " .. framework_name, vim.log.levels.WARN)
-    end
-  end
-
-  return framework_config
+function implementation:get_priority()
+  return 100
 end
 
--- Get current framework and its configuration
-function M.get_current_framework_config(config)
-  local framework_name = M.detect_framework(config)
-  if not framework_name then
-    error "No framework detected. Please specify a framework in your configuration."
-  end
-
-  local framework_config = M.get_framework_config(config, framework_name)
-  return framework_name, framework_config
+function implementation:get_description()
+  return "Framework detector"
 end
 
+-- Create the detector implementation instance
+local M = base.new(implementation, "framework")
 return M
+

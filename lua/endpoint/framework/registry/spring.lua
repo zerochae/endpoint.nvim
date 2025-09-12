@@ -1,9 +1,7 @@
--- Spring Boot framework implementation
 local base = require "endpoint.framework.base"
 local spring_config = require "endpoint.framework.config.spring"
 
 local function strip_inline_comments(s)
-  -- 간단히 // 주석만 제거. 필요시 /* ... */ 처리도 추가 가능.
   return (s:gsub("%s*//.*$", ""))
 end
 
@@ -66,7 +64,7 @@ local function find_enclosing_class_decl_index(lines, start_line)
   -- Find the outermost public class that could be a controller
   -- Spring controllers are typically public classes with @RequestMapping or @RestController
   local candidates = {}
-  
+
   for i = start_line, 1, -1 do
     local L = lines[i] or ""
     -- Look for class declarations
@@ -81,13 +79,13 @@ local function find_enclosing_class_decl_index(lines, start_line)
       break
     end
   end
-  
+
   -- Return the outermost public class (last in our backwards search)
   -- This should be the controller class, not inner classes
   if #candidates > 0 then
     return candidates[#candidates]
   end
-  
+
   return nil
 end
 
@@ -119,22 +117,28 @@ end
 -- =========================
 -- 구현체
 -- =========================
-local M = base.new {}
+local implementation = {}
 
-function M:get_patterns(method)
+function implementation:get_patterns(method)
   return spring_config.patterns[method:lower()] or {}
 end
 
-function M:get_file_patterns()
+function implementation:get_file_patterns()
   return spring_config.file_patterns
 end
 
-function M:get_exclude_patterns()
+function implementation:get_exclude_patterns()
   return spring_config.exclude_patterns
 end
 
+function implementation:extract_endpoint_path(content, method)
+  -- Spring uses file-based parsing, so this is a simplified version
+  -- The actual logic is in _extract_method_mapping which needs file_path and line_number
+  return ""
+end
+
 -- 메서드 레벨 매핑을 라인 기준으로 (멀티라인 포함) 파싱
-function M:_extract_method_mapping(file_path, line_number)
+function implementation:_extract_method_mapping(file_path, line_number)
   local ok, lines = pcall(vim.fn.readfile, file_path)
   if not ok or not lines then
     return ""
@@ -142,7 +146,7 @@ function M:_extract_method_mapping(file_path, line_number)
 
   local i = line_number
   local line = lines[i] or ""
-  
+
   -- Match all mapping annotations, but handle @RequestMapping specially
   if not line:match "@[%a]+Mapping" then
     -- 바로 위 줄이 어노테이션일 수도 있음
@@ -154,7 +158,7 @@ function M:_extract_method_mapping(file_path, line_number)
   if not line:match "@[%a]+Mapping" then
     return ""
   end
-  
+
   -- If this is @RequestMapping, treat it as class-level (return empty for method mapping)
   if line:match "@RequestMapping" then
     return ""
@@ -188,12 +192,12 @@ function M:_extract_method_mapping(file_path, line_number)
 
   local blob = concat_lines(lines, start_i, math.min(stop_i, #lines))
   local result = extract_first_path_from_str(blob)
-  
+
   return result
 end
 
--- 클래스 레벨 @RequestMapping 추출 (멀티라인/배열/코멘트 대응)  
-function M:get_base_path(file_path, line_number)
+-- 클래스 레벨 @RequestMapping 추출 (멀티라인/배열/코멘트 대응)
+function implementation:get_base_path(file_path, line_number)
   local ok, lines = pcall(vim.fn.readfile, file_path)
   if not ok or not lines then
     return ""
@@ -239,12 +243,12 @@ function M:get_base_path(file_path, line_number)
   -- 괄호 안만 추출 후 path/value/배열 첫 원소 추출
   local args = last_match:match "%((.*)%)"
   local base_path = extract_first_path_from_str(args or "")
-  
+
   return base_path or ""
 end
 
 -- rg 명령어 생성 (싱글패턴: 가장 구체적인 첫 패턴만)
-function M:get_grep_cmd(method, config)
+function implementation:get_grep_cmd(method, config)
   local patterns = self:get_patterns(method)
   if not patterns or #patterns == 0 then
     error("No patterns defined for method: " .. method)
@@ -271,18 +275,20 @@ function M:get_grep_cmd(method, config)
 end
 
 -- ripgrep 한 줄 "path:line:col:content" → 구조로 파싱
-function M:parse_line(line, method, _config)
+function implementation:parse_line(line, method, _config)
   -- Debug: parse_line 호출 확인
-  local log = require("endpoint.utils.log")
+  local log = require "endpoint.utils.log"
   log.info("Spring parse_line called with line: " .. line)
-  
+
   local file_path, line_number, column, content = line:match "([^:]+):(%d+):(%d+):(.*)"
   if not file_path then
-    log.info("Spring parse_line failed to parse line format")
+    log.info "Spring parse_line failed to parse line format"
     return nil
   end
-  
-  log.info("Spring parse_line parsed - file: " .. file_path .. ", line_num: " .. line_number .. ", content: " .. content)
+
+  log.info(
+    "Spring parse_line parsed - file: " .. file_path .. ", line_num: " .. line_number .. ", content: " .. content
+  )
 
   line_number = tonumber(line_number) or 1
   column = tonumber(column) or 1
@@ -290,10 +296,18 @@ function M:parse_line(line, method, _config)
   local endpoint_path = self:_extract_method_mapping(file_path, line_number)
   local base_path = self:get_base_path(file_path, line_number)
   local full_path = self:combine_paths(base_path, endpoint_path)
-  
+
   -- Debug: path combination 확인
-  local log = require("endpoint.utils.log")
-  log.info("Spring parse_line - base: '" .. (base_path or "nil") .. "', endpoint: '" .. (endpoint_path or "nil") .. "', full: '" .. (full_path or "nil") .. "'")
+  local log = require "endpoint.utils.log"
+  log.info(
+    "Spring parse_line - base: '"
+      .. (base_path or "nil")
+      .. "', endpoint: '"
+      .. (endpoint_path or "nil")
+      .. "', full: '"
+      .. (full_path or "nil")
+      .. "'"
+  )
 
   return {
     file_path = file_path,
@@ -306,4 +320,6 @@ function M:parse_line(line, method, _config)
   }
 end
 
+-- Create the framework implementation instance
+local M = base.new(implementation, "spring")
 return M

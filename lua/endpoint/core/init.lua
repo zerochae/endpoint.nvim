@@ -1,25 +1,20 @@
 local M = {}
 
 local default_config = require "endpoint.core.config"
-local registry = require "endpoint.core.registry"
-local session = require "endpoint.core.session"
-local picker_manager = require "endpoint.picker.manager"
+local manager = require "endpoint.framework.manager"
+local state = require "endpoint.core.state"
+local picker = require "endpoint.services.picker"
 local log = require "endpoint.utils.log"
 
--- Global config that will be used throughout the plugin
 M.config = vim.deepcopy(default_config)
 
--- Function to get current config
 function M.get_config()
   return M.config
 end
 
--- Generic picker function
 local function show_picker(method, opts)
   opts = opts or {}
-  
-  -- Use picker system
-  return picker_manager.show_picker(method, opts)
+  return picker.show_picker(method, opts)
 end
 
 -- HTTP method handlers (generated programmatically)
@@ -35,37 +30,33 @@ function M.pick_all_endpoints(opts)
   show_picker("ALL", opts)
 end
 
--- Setup function with validation
 function M.setup(opts)
   opts = opts or {}
 
-  -- Build dynamic frameworks config
-  local frameworks_config = registry.build_frameworks_config()
+  -- Setup all registries first (with error handling for incomplete migration)
+  local ok, registry_setup = pcall(require, "endpoint.core.registry_setup")
+  if ok then
+    pcall(registry_setup.setup_registries)
+  end
 
-  -- Merge with default config
+  local frameworks_config = manager.build_frameworks_config()
   local config_with_frameworks = vim.tbl_deep_extend("force", {}, default_config, { frameworks = frameworks_config })
   M.config = vim.tbl_deep_extend("force", {}, config_with_frameworks, opts)
 
-  -- Update session with the new config
-  session.set_config(M.config)
-  session.mark_setup_complete()
+  state.set_config(M.config)
+  state.mark_setup_complete()
 
-  -- Validate configuration
   M.validate_config(opts)
 
-  -- Initialize picker system
-  local picker_init_success = picker_manager.initialize(M.config)
+  local picker_init_success = picker.initialize()
   if not picker_init_success then
-    log.warn("Picker initialization failed, falling back to telescope")
+    log.warn "Picker initialization failed, falling back to telescope"
   end
 
-  -- Initialize persistent cache if needed
   if opts.cache_mode == "persistent" then
     require "endpoint.services.cache"
   end
 end
-
--- Configuration validation
 function M.validate_config(opts)
   -- Cache validation
   if opts.cache_ttl and type(opts.cache_ttl) ~= "number" then
@@ -105,7 +96,7 @@ function M.validate_config(opts)
   end
 
   -- Validate supported frameworks
-  local supported_frameworks = registry.get_available_frameworks()
+  local supported_frameworks = manager.get_available_frameworks()
   table.insert(supported_frameworks, "auto")
 
   if opts.framework and not vim.tbl_contains(supported_frameworks, opts.framework) then
@@ -123,7 +114,7 @@ function M.validate_config(opts)
     vim.notify("Warning: picker must be a string", vim.log.levels.WARN)
   end
 
-  local detector = require("endpoint.picker.detector")
+  local detector = require "endpoint.services.detector"
   local supported_pickers = detector.get_supported_pickers()
   if opts.picker and not detector.is_valid_picker_name(opts.picker) then
     vim.notify(

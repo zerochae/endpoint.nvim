@@ -10,16 +10,15 @@ local function extract_path_from_route(s)
 
   -- Extract path from FastAPI decorators
   -- Patterns: @app.get("/path") or app.get("/path")
-  local path = s:match("@%w+%.%w+%(['\"]([^'\"]*)['\"]") or 
-               s:match("%w+%.%w+%(['\"]([^'\"]*)['\"]")
-  
+  local path = s:match "@%w+%.%w+%(['\"]([^'\"]*)['\"]" or s:match "%w+%.%w+%(['\"]([^'\"]*)['\"]"
+
   return path or ""
 end
 
 -- =========================
 -- Implementation
 -- =========================
-local M = base.new {}
+local M = base.new({}, "fastapi")
 
 function M:get_patterns(method)
   return fastapi_config.patterns[method:lower()] or {}
@@ -46,7 +45,7 @@ function M:_extract_method_mapping(file_path, line_number)
   end
 
   local line = lines[line_number] or ""
-  
+
   -- Check if current line contains FastAPI route decorator
   if not line:match "@%w+%.%w+" and not line:match "%w+%.%w+%(" then
     -- Check lines above for decorator (within 5 lines)
@@ -58,10 +57,8 @@ function M:_extract_method_mapping(file_path, line_number)
       end
     end
   end
-  
-  -- For multiline decorators like @router.post(\n "/path",
+
   if line:match "@%w+%.%w+%(" and not line:match "['\"]" then
-    -- Look at next few lines for the path
     for j = line_number + 1, math.min(#lines, line_number + 3) do
       local next_line = lines[j] or ""
       local path = next_line:match "^%s*['\"]([^'\"]*)['\"]"
@@ -70,7 +67,7 @@ function M:_extract_method_mapping(file_path, line_number)
       end
     end
   end
-  
+
   return extract_path_from_route(line)
 end
 
@@ -78,31 +75,31 @@ end
 function M:get_base_path(file_path, line_number)
   -- For the test structure, we know the hierarchy:
   -- 1. Individual controller files (like list_users.py) -> no direct prefix
-  -- 2. Directory router.py (like users/router.py) -> /users prefix  
+  -- 2. Directory router.py (like users/router.py) -> /users prefix
   -- 3. api_v1_router.py -> /api/v1 prefix
-  
+
   local full_prefix = ""
-  
+
   -- Check if this file is in users/ or account/ directory
-  if file_path:match("/users/") then
+  if file_path:match "/users/" then
     full_prefix = "/api/v1/users"
-  elseif file_path:match("/account/") then
+  elseif file_path:match "/account/" then
     full_prefix = "/api/v1/account"
-  elseif file_path:match("/general/") then
+  elseif file_path:match "/general/" then
     full_prefix = "/api/v1/general"
   end
-  
+
   -- For other files, check if they have their own APIRouter prefix
   local ok, lines = pcall(vim.fn.readfile, file_path)
   if ok and lines then
     for _, line in ipairs(lines) do
-      local prefix = line:match('APIRouter%s*%(.-prefix%s*=%s*["\']([^"\']*)["\']')
+      local prefix = line:match "APIRouter%s*%(.-prefix%s*=%s*[\"']([^\"']*)[\"']"
       if prefix and prefix ~= "" then
         return prefix
       end
     end
   end
-  
+
   return full_prefix
 end
 
@@ -121,7 +118,7 @@ function M:get_grep_cmd(method, config)
   for _, pattern in ipairs(file_patterns) do
     cmd = cmd .. " --glob '" .. pattern .. "'"
   end
-  
+
   for _, ex in ipairs(exclude_patterns) do
     cmd = cmd .. " --glob '!" .. ex .. "'"
   end
@@ -160,3 +157,4 @@ function M:parse_line(line, method, _config)
 end
 
 return M
+

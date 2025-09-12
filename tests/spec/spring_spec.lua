@@ -5,8 +5,8 @@ describe(" Spring framework", function()
   before_each(function()
     endpoint.setup()
     -- Reset session config before each test
-    local session = require("endpoint.core.session")
-    session.set_config({
+    local state = require("endpoint.core.state")
+    state.set_config({
       framework = "auto",
       cache_mode = "none",
       debug = false,
@@ -130,8 +130,8 @@ describe(" Spring framework", function()
         local original_cwd = vim.fn.getcwd()
         vim.fn.chdir(fixture_path)
         
-        local session = require("endpoint.core.session")
-        session.set_config({
+        local state = require("endpoint.core.state")
+        state.set_config({
           framework = "spring",
         })
         
@@ -166,8 +166,8 @@ describe(" Spring framework", function()
         local original_cwd = vim.fn.getcwd()
         vim.fn.chdir(fixture_path)
         
-        local session = require("endpoint.core.session")
-        session.set_config({
+        local state = require("endpoint.core.state")
+        state.set_config({
           framework = "spring",
         })
         
