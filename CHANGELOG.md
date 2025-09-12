@@ -1,5 +1,36 @@
 # Changelog
 
+## [1.1.0](https://github.com/zerochae/endpoint.nvim/compare/v1.0.1...v1.1.0) (2025-09-12)
+
+
+### Features
+
+* enhance Symfony framework support and clean up legacy code ([fb0dafb](https://github.com/zerochae/endpoint.nvim/commit/fb0dafb155b15d2746aad2d293e85a1b66e241a4))
+* enhance test fixtures with comprehensive endpoint coverage ([bad5290](https://github.com/zerochae/endpoint.nvim/commit/bad5290e91064e35c7d6819bfc1d43c8b38cdcc7))
+* extract actual HTTP methods when searching with ALL ([89ba40d](https://github.com/zerochae/endpoint.nvim/commit/89ba40d49a9daf27a2f5e835acf678ea3b829566))
+* unify scanner service - merge duplicate utils ([ecf2165](https://github.com/zerochae/endpoint.nvim/commit/ecf21651a43ed9499fa7ec8fa6ec8d1a10eb7991))
+
+
+### Bug Fixes
+
+* allow memory caching when cache_mode is none for UI display ([f95ad3c](https://github.com/zerochae/endpoint.nvim/commit/f95ad3c395ebe8f00ef8241226491432fc7b00d0))
+* enhance Spring framework with comprehensive path parameter support ([6f1e537](https://github.com/zerochae/endpoint.nvim/commit/6f1e5373c695232246c421a9e230871a968b5b5b))
+* improve persistent mode cache performance and prevent duplicates ([e145e9c](https://github.com/zerochae/endpoint.nvim/commit/e145e9c72e050fddb057ca40f3de25a3f5d7ac75))
+* prevent data loss in session cache mode by disabling cleanup operations ([d54610b](https://github.com/zerochae/endpoint.nvim/commit/d54610bb025341d7a94b08c701546344619d4f03))
+* resolve 260+ Lua type errors and improve type safety ([4a05c70](https://github.com/zerochae/endpoint.nvim/commit/4a05c7084df677c2808b43065ea7cad1ce0517da))
+* resolve FastAPI framework multiline decorator and base path issues ([b7b2a06](https://github.com/zerochae/endpoint.nvim/commit/b7b2a068cf773778b65572d490104c532d15c402))
+* resolve framework test failures and improve pattern matching ([3783809](https://github.com/zerochae/endpoint.nvim/commit/37838096ec3fb1308014c0f679161e36dc7b1fb4))
+* resolve Lua linter warnings and errors ([d6a922a](https://github.com/zerochae/endpoint.nvim/commit/d6a922abb3c0417862073c0221c5cd52e6615a7c))
+* resolve NestJS path formatting and controller prefix issues ([60f059f](https://github.com/zerochae/endpoint.nvim/commit/60f059fa15e988132505cf713e57ee74fdf2c0d7))
+* skip cache operations when cache_mode is none ([bc7bfd6](https://github.com/zerochae/endpoint.nvim/commit/bc7bfd6e7a00e816f214a7c31f8756290b9c3452))
+* use all patterns in grep commands instead of just the first one ([41f384d](https://github.com/zerochae/endpoint.nvim/commit/41f384d22ec64e7a540c7571dc701729a0f6bdd4))
+* use endpoint.method instead of search method for cache table creation ([07c62e0](https://github.com/zerochae/endpoint.nvim/commit/07c62e093dca28b9052d627a8ed0ed0dd6a8d8ba))
+
+
+### Performance Improvements
+
+* optimize cache performance and previewer generation ([4b1a861](https://github.com/zerochae/endpoint.nvim/commit/4b1a8614b4fedf6ffda7d239a74e1a9bd880e46c))
+
 ## [1.0.1](https://github.com/zerochae/endpoint.nvim/compare/v1.0.0...v1.0.1) (2025-09-11)
 
 
