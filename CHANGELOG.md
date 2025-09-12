@@ -1,5 +1,20 @@
 # Changelog
 
+## [1.3.0](https://github.com/zerochae/endpoint.nvim/compare/v1.2.0...v1.3.0) (2025-09-12)
+
+
+### Features
+
+* add Rails framework support with endpoint detection ([8423ac0](https://github.com/zerochae/endpoint.nvim/commit/8423ac043ea4cde557902353f3bfe9162d9dac25))
+* enhance Rails framework with comprehensive routes.rb support ([327bc75](https://github.com/zerochae/endpoint.nvim/commit/327bc75a4d39597b63dd86d97ea8e0b1f34dfffc))
+* implement Rails action annotations with enhanced display format ([1579c3a](https://github.com/zerochae/endpoint.nvim/commit/1579c3add4328f55fd9789331c462bfeb63ae691))
+* improve picker UI with centering and display enhancements ([12115d8](https://github.com/zerochae/endpoint.nvim/commit/12115d88ea00be6c066fcce4f24fbaf17f8bb5c8))
+
+
+### Bug Fixes
+
+* improve test assertions across framework specs ([8700e26](https://github.com/zerochae/endpoint.nvim/commit/8700e262b315375b80163a68df5ffd84ac63cdb7))
+
 ## [1.2.0](https://github.com/zerochae/endpoint.nvim/compare/v1.1.0...v1.2.0) (2025-09-12)
 
 
