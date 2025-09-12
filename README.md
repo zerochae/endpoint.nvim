@@ -457,6 +457,94 @@ We'd love to include your framework! Please submit a PR with:
 
 Contributions are welcome! Please feel free to submit a Pull Request.
 
+## 🧪 Development & Testing
+
+### Running Tests
+
+The plugin includes comprehensive test suites for all supported frameworks. Tests use [plenary.nvim](https://github.com/nvim-lua/plenary.nvim) and can be run using the provided Makefile.
+
+#### Prerequisites
+```bash
+# Install test dependencies (done automatically by tests/minit.lua)
+# plenary.nvim and telescope.nvim are fetched automatically
+```
+
+#### Test Commands
+
+```bash
+# Run all tests
+make test
+
+# Test specific frameworks
+make test-spring      # Spring Boot framework tests
+make test-nestjs      # NestJS framework tests  
+make test-symfony     # Symfony framework tests
+make test-fastapi     # FastAPI framework tests
+make test-rails       # Rails framework tests
+make test-oas-rails   # Rails with OAS annotations tests
+
+# Run all framework tests together
+make test-frameworks
+
+# Test specific components
+make test-cache       # Cache functionality tests
+make test-pickers     # Picker interface tests
+
+# Test with timeout (useful for CI)
+timeout 60s make test
+```
+
+#### Test Structure
+
+```
+tests/
+├── fixtures/          # Test fixture projects for each framework
+│   ├── spring/        # Sample Spring Boot project
+│   ├── nestjs/        # Sample NestJS project  
+│   ├── symfony/       # Sample Symfony project
+│   ├── fastapi/       # Sample FastAPI project
+│   └── rails/         # Sample Rails project
+├── spec/              # Test specifications
+│   ├── spring_spec.lua
+│   ├── nestjs_spec.lua
+│   ├── symfony_spec.lua
+│   ├── fastapi_spec.lua
+│   ├── rails_spec.lua
+│   └── oas_rails_spec.lua
+└── minit.lua          # Test initialization
+```
+
+#### Adding Tests
+
+When contributing new features or framework support:
+
+1. **Framework Tests**: Add test cases to existing `*_spec.lua` files
+2. **New Framework**: Create new spec file following existing patterns
+3. **Test Fixtures**: Add sample project files to `tests/fixtures/your_framework/`
+4. **Makefile**: Add new test targets if needed
+
+#### Test Coverage
+
+Current test coverage by framework:
+- ✅ **Spring Boot**: 22+ test cases (mappings, paths, annotations)
+- ✅ **NestJS**: 18+ test cases (decorators, controllers, modules)  
+- ✅ **Symfony**: 21+ test cases (attributes, annotations, routes)
+- ✅ **FastAPI**: 15+ test cases (decorators, routers, dependencies)
+- ✅ **Rails**: 27+ test cases (actions, routes, annotations) - *New!*
+
+#### Debugging Tests
+
+```bash
+# Run single test with debug output  
+nvim --headless --noplugin -u tests/minit.lua -c "PlenaryBustedFile tests/spec/spring_spec.lua"
+
+# Check test fixtures
+ls tests/fixtures/spring/src/main/java/com/example/
+
+# Validate framework detection in fixture directory
+cd tests/fixtures/spring && nvim -c "lua print(require('endpoint.frameworks.spring').detect())"
+```
+
 
 ### Framework Detection
 
