@@ -90,16 +90,8 @@ function M.clear_cache()
 end
 
 function M.show_cache_stats()
-  local stats = scanner.get_cache_stats()
-  local lines = {
-    "=== Endpoint Cache Statistics ===",
-    "Mode: " .. stats.mode,
-    "Find entries: " .. stats.find_entries,
-    "Preview entries: " .. stats.preview_entries,
-    "Cached methods: " .. table.concat(stats.timestamps, ", "),
-  }
-
-  vim.notify(table.concat(lines, "\n"), vim.log.levels.INFO)
+  local cache_status_ui = require "endpoint.ui.cache_status"
+  cache_status_ui.show_cache_status()
 end
 
 -- Force refresh (bypass cache)
