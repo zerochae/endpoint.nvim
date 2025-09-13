@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.10.0](https://github.com/zerochae/endpoint.nvim/compare/v1.9.0...v1.10.0) (2025-09-13)
+
+
+### Features
+
+* add comprehensive .NET Core framework support ([b39c7b2](https://github.com/zerochae/endpoint.nvim/commit/b39c7b2a964f698e595b9c21ffa1f32353467e5c))
+
 ## [1.9.0](https://github.com/zerochae/endpoint.nvim/compare/v1.8.0...v1.9.0) (2025-09-13)
 
 
