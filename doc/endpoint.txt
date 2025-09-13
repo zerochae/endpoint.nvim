@@ -41,6 +41,7 @@ Supported Frameworks:~
   • FastAPI (Python) - @app.get(), @app.post(), @router.*, etc.
   • Rails (Ruby) - Full controller actions and routes.rb parsing
   • Express (Node.js) - app.method(), router.method(), and destructured patterns
+  • Ktor (Kotlin) - get(), post(), route() blocks with nested routing support
   • React Router (Client-side) - <Route> components with smart component resolution
 
 Features:~
@@ -116,13 +117,14 @@ endpoint.setup({config})
 The plugin provides commands to find API endpoints by HTTP method:
 
 Primary Commands:~
+    :Endpoint              " Find all endpoints (same as :Endpoint All)
     :Endpoint Get          " Find all GET endpoints
     :Endpoint Post         " Find all POST endpoints  
     :Endpoint Put          " Find all PUT endpoints
     :Endpoint Delete       " Find all DELETE endpoints
     :Endpoint Patch        " Find all PATCH endpoints
     :Endpoint Route        " Find route definitions (React Router)
-    :Endpoint All          " Find all endpoints (default)
+    :Endpoint All          " Find all endpoints
 
 Cache Management:~
     :Endpoint ClearCache   " Clear all cached data
@@ -310,6 +312,7 @@ The plugin automatically detects your framework based on these files:
   • FastAPI: `main.py`, `requirements.txt` (with FastAPI)
   • Rails: `Gemfile`, `config/routes.rb`, `config/application.rb`, `app/controllers`
   • Express: `package.json` (with express dependency)
+  • Ktor: `build.gradle`, `build.gradle.kts` (with ktor dependencies), Kotlin files with routing
   • React Router: `package.json` (with react-router or react-router-dom)
 
 Adding New Frameworks:~

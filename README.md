@@ -10,6 +10,7 @@ A powerful Neovim plugin for quickly finding and navigating web framework API en
 - ⚡ FastAPI (Python)
 - 💎 Rails (Ruby)
 - 🚀 Express (Node.js)
+- 🏗️ Ktor (Kotlin)
 - ⚛️ React Router (Client-side routing)
 
 ## ✨ Features
@@ -28,13 +29,14 @@ A powerful Neovim plugin for quickly finding and navigating web framework API en
 ### Primary Commands
 
 ```vim
+:Endpoint          " Find all endpoints (same as :Endpoint All)
 :Endpoint Get      " Find all GET endpoints
 :Endpoint Post     " Find all POST endpoints  
 :Endpoint Put      " Find all PUT endpoints
 :Endpoint Delete   " Find all DELETE endpoints
 :Endpoint Patch    " Find all PATCH endpoints
 :Endpoint Route    " Find route definitions (React Router)
-:Endpoint All      " Find all endpoints (default)
+:Endpoint All      " Find all endpoints
 ```
 
 ### Cache Management
