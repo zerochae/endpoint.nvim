@@ -107,38 +107,27 @@ function M.detect()
   return false
 end
 
+-- Create search command generator using utility function
+local search_utils = require "endpoint.utils.search"
+local get_search_cmd = search_utils.create_search_cmd_generator({
+  -- React Router doesn't use HTTP methods - all patterns are the same
+  ROUTE = { "Route", "path:" }, -- <Route> components and createBrowserRouter format
+  ALL = { "Route", "path:" }, -- Same patterns for all methods
+}, search_utils.common_globs.react, search_utils.common_excludes.node)
+
 -- Search command generation
----@param method string Any HTTP method - all will be treated as ROUTE
+---@param _ string Any HTTP method - ignored, all treated as ROUTE
 ---@return string
-function M.get_search_cmd(method)
-  -- React Router only searches for route definitions
-  local patterns = {
-    "Route", -- <Route> components
-    "path:", -- createBrowserRouter array format
-  }
-
-  local cmd = "rg --line-number --column --no-heading --color=never"
-  cmd = cmd .. " --glob '**/*.js'"
-  cmd = cmd .. " --glob '**/*.jsx'"
-  cmd = cmd .. " --glob '**/*.ts'"
-  cmd = cmd .. " --glob '**/*.tsx'"
-  cmd = cmd .. " --glob '!**/node_modules/**'"
-  cmd = cmd .. " --glob '!**/dist/**'"
-  cmd = cmd .. " --glob '!**/build/**'"
-
-  -- Add patterns
-  for _, pattern in ipairs(patterns) do
-    cmd = cmd .. " -e '" .. pattern .. "'"
-  end
-
-  return cmd
+function M.get_search_cmd(_)
+  -- React Router only searches for route definitions, method is ignored
+  return get_search_cmd "ROUTE"
 end
 
 -- Parse ripgrep output line
 ---@param line string
----@param method string Any HTTP method - ignored, always returns ROUTE
+---@param _ string Any HTTP method - ignored, always returns ROUTE
 ---@return table|nil
-function M.parse_line(line, method)
+function M.parse_line(line, _)
   if not line or line == "" then
     return nil
   end
