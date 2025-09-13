@@ -1,5 +1,22 @@
 # Changelog
 
+## [1.8.0](https://github.com/zerochae/endpoint.nvim/compare/v1.7.0...v1.8.0) (2025-09-13)
+
+
+### Features
+
+* Add comprehensive Snacks.nvim picker support with picker-specific configuration ([2916329](https://github.com/zerochae/endpoint.nvim/commit/2916329dc9f786678cc79f79d71324a11e3c8cd4))
+* add picker_opts support to snacks picker ([439c642](https://github.com/zerochae/endpoint.nvim/commit/439c64256897f641d13df4af41444f907f2ea7a3))
+* add picker_opts support to vim_ui_select picker ([a12fec8](https://github.com/zerochae/endpoint.nvim/commit/a12fec872c97ef77bff663ea122f7b524d13bf8d))
+* finalize snacks.nvim picker implementation with working navigation ([0035690](https://github.com/zerochae/endpoint.nvim/commit/0035690f01280bd452f6384ed69990e95b998db0))
+* implement comprehensive snacks.nvim picker support ([b014fb9](https://github.com/zerochae/endpoint.nvim/commit/b014fb9fe9205869ef67263a25ed02b839da359e))
+* implement picker-specific configuration structure ([2658b83](https://github.com/zerochae/endpoint.nvim/commit/2658b833ee0caa9d71c2fdaab5614b3168b874d9))
+
+
+### Bug Fixes
+
+* update vim_ui_select prompt text for consistency ([7f6dc12](https://github.com/zerochae/endpoint.nvim/commit/7f6dc12a415e62fe57aadf90c76836dc5cea2fd4))
+
 ## [1.7.0](https://github.com/zerochae/endpoint.nvim/compare/v1.6.0...v1.7.0) (2025-09-13)
 
 
