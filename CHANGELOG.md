@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.5.1](https://github.com/zerochae/endpoint.nvim/compare/v1.5.0...v1.5.1) (2025-09-13)
+
+
+### Bug Fixes
+
+* resolve Express destructured parsing and React Router pattern matching ([197605c](https://github.com/zerochae/endpoint.nvim/commit/197605c6d1c051ce9b076d0cdbf5fd5f199bc45f))
+
 ## [1.5.0](https://github.com/zerochae/endpoint.nvim/compare/v1.4.0...v1.5.0) (2025-09-13)
 
 
