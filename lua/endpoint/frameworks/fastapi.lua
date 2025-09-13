@@ -1,10 +1,11 @@
 ---@class endpoint.frameworks.fastapi
 local M = {}
 
+local fs = require "endpoint.utils.fs"
+
 -- Detection
 ---@return boolean
 function M.detect()
-  local fs = require "endpoint.utils.fs"
 
   -- Quick check for Python project files first
   if not fs.has_file { "requirements.txt", "pyproject.toml", "setup.py", "Pipfile" } then

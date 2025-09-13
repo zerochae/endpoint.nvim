@@ -62,8 +62,11 @@ function M.show(endpoints, opts)
             display = function(_)
               return display_text, { { { 0, highlight_length }, method_color } }
             end,
-            -- Include action name in search ordinal for Rails action annotations
-            ordinal = entry.endpoint_path .. " " .. entry.method .. (entry.action and (" " .. entry.action) or ""),
+            -- Include action name and controller name in search ordinal for Rails action annotations
+            ordinal = entry.endpoint_path .. " " .. entry.method 
+              .. (entry.action and (" " .. entry.action) or "")
+              .. (entry.controller and (" " .. entry.controller) or "")
+              .. (entry.display_value and (" " .. entry.display_value) or ""),
             filename = entry.file_path,
             lnum = entry.line_number,
             col = entry.column,

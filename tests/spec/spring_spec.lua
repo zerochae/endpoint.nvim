@@ -1,4 +1,8 @@
 describe("Spring framework", function()
+  -- Ensure package path is available for module loading
+  if _G.original_package_path then
+    package.path = _G.original_package_path
+  end
   local spring = require "endpoint.frameworks.spring"
 
   describe("framework detection", function()
@@ -7,6 +11,8 @@ describe("Spring framework", function()
       if vim.fn.isdirectory(fixture_path) == 1 then
         local original_cwd = vim.fn.getcwd()
         vim.fn.chdir(fixture_path)
+        -- Restore original package path after changing directories
+        package.path = _G.original_package_path
 
         local detected = spring.detect()
         assert.is_true(detected)
@@ -22,6 +28,8 @@ describe("Spring framework", function()
       vim.fn.mkdir(temp_dir, "p")
       local original_cwd = vim.fn.getcwd()
       vim.fn.chdir(temp_dir)
+      -- Restore original package path after changing directories
+      package.path = _G.original_package_path
 
       local detected = spring.detect()
       assert.is_false(detected)
@@ -197,6 +205,8 @@ describe("Spring framework", function()
       if vim.fn.isdirectory(fixture_path) == 1 then
         local original_cwd = vim.fn.getcwd()
         vim.fn.chdir(fixture_path)
+        -- Restore original package path after changing directories
+        package.path = _G.original_package_path
 
         -- Test that framework is detected
         assert.is_true(spring.detect())

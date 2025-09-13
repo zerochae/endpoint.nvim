@@ -29,6 +29,14 @@ local default_config = {
       PATCH = "TelescopeResultsFunction",
     },
   },
+
+  -- Framework-specific configuration
+  frameworks = {
+    rails = {
+      display_format = "smart", -- "action_only", "controller_action", "smart"
+      show_action_annotation = true, -- Show [controller#action] annotations
+    },
+  },
 }
 
 local current_config = vim.deepcopy(default_config)

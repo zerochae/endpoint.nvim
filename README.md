@@ -7,16 +7,17 @@ A powerful Neovim plugin for quickly finding and navigating web framework API en
 - 🐦 NestJS (TypeScript/JavaScript)
 - 🎼 Symfony (PHP)
 - ⚡ FastAPI (Python)
-- 💎 Rails (Ruby) - ⚠️ Experimental (basic support added but may be incomplete)
+- 💎 Rails (Ruby)
 
 ## ✨ Features
 
-- 🔍 **Multi-Framework Support**: Automatically detects and supports Spring Boot, NestJS, Symfony, FastAPI, and Rails (experimental)
+- 🔍 **Multi-Framework Support**: Automatically detects and supports Spring Boot, NestJS, Symfony, FastAPI, and Rails
 - 🎯 **Multiple Picker Interfaces**: Choose between Telescope, vim.ui.select, or Snacks.nvim pickers (Snacks picker in development)
 - ⚡ **Smart Caching**: Three cache modes - none (real-time), session, and persistent disk storage
 - 📍 **Precise Navigation**: Jump directly to the exact line where endpoints are defined
 - 🤖 **Auto-Detection**: Automatically detects your project's framework based on project files
 - 🎨 **Customizable UI**: Configurable icons, colors, and display options
+- 💎 **Rails Support**: Full controller actions and routes.rb parsing with customizable display formats
 - 🔧 **Simple Setup**: Just call `require("endpoint").setup()` to get started
 
 ## 🚀 Usage
@@ -189,8 +190,38 @@ require("endpoint").setup({
       PATCH = "TelescopeResultsFunction",
     },
   },
+  
+  -- Framework-specific configuration
+  frameworks = {
+    rails = {
+      display_format = "smart", -- "action_only", "controller_action", "smart"
+      show_action_annotation = true, -- Show [controller#action] annotations
+    },
+  },
 })
 ```
+
+### Rails Display Format
+
+Configure how Rails routes are displayed:
+
+```lua
+frameworks = {
+  rails = {
+    display_format = "smart", -- "action_only", "controller_action", "smart"
+    show_action_annotation = true, -- Show [controller#action] annotations
+  },
+}
+```
+
+**Display Format Options:**
+- `"action_only"`: Show only action name → `GET[#index] /users`
+- `"controller_action"`: Show controller#action → `GET[users#index] /users`  
+- `"smart"`: Smart formatting → Root routes: `GET[home#index] /`, Regular: `GET[users#index] /users`
+
+**Action Annotation Control:**
+- `show_action_annotation = true`: Show action annotations (default)
+- `show_action_annotation = false`: Hide annotations → `GET /users` (clean format)
 
 ### Display Options
 
@@ -580,7 +611,7 @@ The plugin uses these files to detect your framework:
 - **NestJS**: `package.json` (with @nestjs dependencies), `nest-cli.json`
 - **Symfony**: `composer.json` (with symfony framework), `symfony.lock`
 - **FastAPI**: `main.py`, `requirements.txt` (with FastAPI)
-- **Rails**: `Gemfile` (with Rails gem) - *⚠️ Experimental support*
+- **Rails**: `Gemfile`, `config/routes.rb`, `config/application.rb`, `app/controllers`
 
 ## 📄 License
 

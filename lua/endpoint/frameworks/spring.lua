@@ -1,10 +1,11 @@
 ---@class endpoint.frameworks.spring
 local M = {}
 
+local fs = require "endpoint.utils.fs"
+
 -- Detection
 ---@return boolean
 function M.detect()
-  local fs = require "endpoint.utils.fs"
   return fs.has_file {
     "pom.xml",
     "build.gradle",

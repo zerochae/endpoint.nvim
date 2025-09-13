@@ -1,10 +1,11 @@
 ---@class endpoint.frameworks.rails
 local M = {}
 
+local fs = require "endpoint.utils.fs"
+
 -- Detection
 ---@return boolean
 function M.detect()
-  local fs = require "endpoint.utils.fs"
   return fs.has_file {
     "Gemfile",
     "config/routes.rb",
@@ -184,6 +185,8 @@ function M.extract_controller_action(content, file_path, _)
     method = method,
     path = path,
     action = action,
+    controller = controller_name, -- Add controller name
+    file_path = file_path, -- Add file_path for display formatting
   }
 end
 
@@ -201,9 +204,21 @@ function M.extract_route_definition(content, file_path, line_number)
     local valid_methods =
       { get = true, post = true, put = true, delete = true, patch = true, head = true, options = true }
     if valid_methods[route_method:lower()] then
+      -- Try to extract controller#action from 'to:' parameter
+      local controller_action = content:match "to:%s*['\"]([^'\"]+)['\"]"
+      local controller, action = nil, nil
+      
+      if controller_action and controller_action:match "#" then
+        controller, action = controller_action:match "([^#]+)#(%w+)"
+      end
+      
       return {
         method = route_method:upper(),
         path = route_path,
+        controller = controller,
+        action = action,
+        controller_action = controller_action,
+        file_path = file_path,
       }
     end
   end
@@ -214,16 +229,21 @@ function M.extract_route_definition(content, file_path, line_number)
     local controller_action = content:match "root%s+['\"]([^'\"]+)['\"]"
       or content:match "root%s+to:%s+['\"]([^'\"]+)['\"]"
     local action = "root" -- Default action name for root routes
+    local controller = nil
 
     if controller_action and controller_action:match "#" then
-      -- Extract action from controller#action pattern
-      action = controller_action:match "#(%w+)" or "root"
+      -- Extract controller and action from controller#action pattern
+      controller, action = controller_action:match "([^#]+)#(%w+)"
+      action = action or "root"
     end
 
     return {
       method = "GET",
       path = "/",
       action = action,
+      controller = controller,
+      controller_action = controller_action, -- Keep original for display
+      file_path = file_path, -- Add file_path for controller name extraction
     }
   end
 
@@ -285,7 +305,7 @@ function M.extract_controller_name(file_path)
     return controller
   end
 
-  return "unknown"
+  return nil
 end
 
 -- Generate action path based on Rails conventions
@@ -377,7 +397,6 @@ end
 ---@return table|nil
 function M.find_resource_context(file_path, line_number)
   -- Check if file exists first
-  local fs = require "endpoint.utils.fs"
   if not fs.has_file(file_path) then
     return nil
   end
@@ -512,19 +531,112 @@ end
 ---@param file_path string
 ---@return string
 function M.format_display_value(endpoint_info, file_path)
+  -- Get display format configuration
+  local config = require "endpoint.config"
+  local rails_config = config.get_value("frameworks") and config.get_value("frameworks").rails or {}
+  local display_format = rails_config.display_format or "smart"
+  local show_action_annotation = rails_config.show_action_annotation
+  if show_action_annotation == nil then
+    show_action_annotation = true -- Default to true
+  end
+
+  -- If action annotations are disabled, return simple format
+  if not show_action_annotation then
+    return endpoint_info.method .. " " .. endpoint_info.path
+  end
+
   -- Add Rails action annotation for controller actions and special routes.rb entries
   if endpoint_info.action then
     if file_path:match "controller" then
-      -- Controller actions: show action in method brackets
-      return endpoint_info.method .. "[#" .. endpoint_info.action .. "] " .. endpoint_info.path
+      -- Controller actions: format based on configuration
+      return M.format_controller_action(endpoint_info, display_format)
     elseif file_path:match "routes%.rb" and endpoint_info.action then
-      -- Special routes.rb entries (like root routes): show action in method brackets
-      return endpoint_info.method .. "[#" .. endpoint_info.action .. "] " .. endpoint_info.path
+      -- Routes.rb entries: format based on configuration and route type
+      return M.format_route_entry(endpoint_info, display_format)
     end
   end
 
   -- Default format without action
   return endpoint_info.method .. " " .. endpoint_info.path
+end
+
+-- Format controller action based on display format setting
+---@param endpoint_info table
+---@param display_format string
+---@return string
+function M.format_controller_action(endpoint_info, display_format)
+  if display_format == "action_only" then
+    return endpoint_info.method .. "[#" .. endpoint_info.action .. "] " .. endpoint_info.path
+  elseif display_format == "controller_action" then
+    -- Extract controller name from path if available
+    local controller_name = endpoint_info.controller
+    if not controller_name and endpoint_info.file_path then
+      controller_name = M.extract_controller_name(endpoint_info.file_path)
+    end
+    if controller_name and controller_name ~= "unknown" then
+      return endpoint_info.method .. "[" .. controller_name .. "#" .. endpoint_info.action .. "] " .. endpoint_info.path
+    else
+      return endpoint_info.method .. "[#" .. endpoint_info.action .. "] " .. endpoint_info.path
+    end
+  elseif display_format == "smart" then
+    -- Smart format: use controller#action for clarity
+    local controller_name = endpoint_info.controller
+    if not controller_name and endpoint_info.file_path then
+      controller_name = M.extract_controller_name(endpoint_info.file_path)
+    end
+    if controller_name and controller_name ~= "unknown" then
+      return endpoint_info.method .. "[" .. controller_name .. "#" .. endpoint_info.action .. "] " .. endpoint_info.path
+    else
+      return endpoint_info.method .. "[#" .. endpoint_info.action .. "] " .. endpoint_info.path
+    end
+  end
+  
+  -- Default fallback
+  return endpoint_info.method .. "[#" .. endpoint_info.action .. "] " .. endpoint_info.path
+end
+
+-- Format routes.rb entry based on display format setting
+---@param endpoint_info table  
+---@param display_format string
+---@return string
+function M.format_route_entry(endpoint_info, display_format)
+  local is_root_route = endpoint_info.action == "root" or endpoint_info.path == "/"
+  
+  if display_format == "action_only" then
+    return endpoint_info.method .. "[#" .. endpoint_info.action .. "] " .. endpoint_info.path
+  elseif display_format == "controller_action" then
+    -- For root routes, try to show actual controller#action if available
+    if is_root_route and endpoint_info.controller_action then
+      return endpoint_info.method .. "[" .. endpoint_info.controller_action .. "] " .. endpoint_info.path
+    else
+      local controller_name = endpoint_info.controller
+      if controller_name then
+        return endpoint_info.method .. "[" .. controller_name .. "#" .. endpoint_info.action .. "] " .. endpoint_info.path
+      else
+        return endpoint_info.method .. "[#" .. endpoint_info.action .. "] " .. endpoint_info.path
+      end
+    end
+  elseif display_format == "smart" then
+    -- Smart format for routes.rb entries
+    if is_root_route then
+      -- For root routes, show controller#action directly without "root→" prefix
+      if endpoint_info.controller_action then
+        return endpoint_info.method .. "[" .. endpoint_info.controller_action .. "] " .. endpoint_info.path
+      else
+        return endpoint_info.method .. "[root] " .. endpoint_info.path
+      end
+    else
+      -- Regular routes: show full controller#action if available
+      if endpoint_info.controller_action then
+        return endpoint_info.method .. "[" .. endpoint_info.controller_action .. "] " .. endpoint_info.path
+      else
+        return endpoint_info.method .. "[#" .. endpoint_info.action .. "] " .. endpoint_info.path
+      end
+    end
+  end
+  
+  -- Default fallback
+  return endpoint_info.method .. "[#" .. endpoint_info.action .. "] " .. endpoint_info.path
 end
 
 return M

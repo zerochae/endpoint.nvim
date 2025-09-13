@@ -39,7 +39,7 @@ Supported Frameworks:~
   • NestJS (TypeScript/JavaScript) - @Get(), @Post(), @Controller(), etc.
   • Symfony (PHP) - @Route annotations and attributes
   • FastAPI (Python) - @app.get(), @app.post(), @router.*, etc.
-  • Rails (Ruby) - In Development
+  • Rails (Ruby) - Full controller actions and routes.rb parsing
 
 Features:~
   • 🔍 Multi-framework endpoint discovery
@@ -48,6 +48,7 @@ Features:~
   • 📍 Precise navigation to exact line where endpoints are defined
   • 🤖 Automatic framework detection
   • 🎨 Customizable icons, colors, and display options
+  • 💎 Rails support with customizable display formats
   • 🔧 Simple setup with minimal configuration
 
 ==============================================================================
@@ -177,6 +178,14 @@ Default Configuration:~
           PATCH = "TelescopeResultsFunction",
         },
       },
+      
+      -- Framework-specific configuration
+      frameworks = {
+        rails = {
+          display_format = "smart", -- "action_only", "controller_action", "smart"
+          show_action_annotation = true, -- Show [controller#action] annotations
+        },
+      },
     })
 <
 
@@ -195,6 +204,16 @@ Configuration Options:~
     picker_opts (table): Additional options passed to picker.
         Note: Only effective when using Telescope picker
         Default: {}
+    
+    frameworks.rails.display_format (string): Rails route display format. Options:
+        "action_only"      - Show only action name (GET[#index] /users)
+        "controller_action" - Show controller#action (GET[users#index] /users) 
+        "smart"            - Smart formatting (GET[home#index] /, GET[users#index] /users)
+        Default: "smart"
+        
+    frameworks.rails.show_action_annotation (boolean): Show controller#action annotations.
+        true  - Show annotations like GET[users#index] /users (default)
+        false - Hide annotations, show clean format like GET /users
 
 ==============================================================================
 8. PICKER OPTIONS                               *endpoint-pickers*
@@ -282,7 +301,7 @@ The plugin automatically detects your framework based on these files:
   • NestJS: `package.json` (with @nestjs dependencies), `nest-cli.json`
   • Symfony: `composer.json` (with symfony framework), `symfony.lock`
   • FastAPI: `main.py`, `requirements.txt` (with FastAPI)
-  • Rails: `Gemfile` (with Rails gem) - In Development
+  • Rails: `Gemfile`, `config/routes.rb`, `config/application.rb`, `app/controllers`
 
 Adding New Frameworks:~
 
@@ -322,6 +341,7 @@ Q: No endpoints found
 A: Check that:
    • You're in a supported project (Spring Boot, NestJS, Symfony, FastAPI, Rails)
    • Source files contain the appropriate annotations (@GetMapping, @Get(), etc.)
+   • For Rails: Ensure you have controller files in app/controllers/ or routes in config/routes.rb
    • Try running `:Endpoint ClearCache` to refresh the cache
 
 Q: Cache not working as expected  
@@ -343,6 +363,13 @@ A: Check your `picker` setting:
    • "vim_ui_select": works without external dependencies
    • "snacks": requires snacks.nvim dependency
    • Plugin will fall back to vim.ui.select if selected picker is not available
+
+Q: Rails endpoints not displaying correctly
+A: Configure Rails display format in your setup:
+   • Use `display_format = "smart"` for smart root route formatting
+   • Use `display_format = "controller_action"` to always show controller#action  
+   • Set `show_action_annotation = false` for clean display without annotations
+   • Example: `frameworks = { rails = { display_format = "smart" } }`
 
 Debug Information:~
     View current config: `lua print(vim.inspect(require("endpoint").get_config()))`

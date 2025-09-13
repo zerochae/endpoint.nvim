@@ -3,7 +3,12 @@ load(vim.fn.system "curl -s https://raw.githubusercontent.com/folke/lazy.nvim/ma
 
 -- Add absolute paths to Lua package path for tests
 local current_dir = vim.fn.getcwd()
-package.path = package.path .. ";" .. current_dir .. "/lua/?.lua" .. ";" .. current_dir .. "/lua/?/init.lua"
+local lua_path = current_dir .. "/lua/?.lua"
+local lua_init_path = current_dir .. "/lua/?/init.lua"
+package.path = package.path .. ";" .. lua_path .. ";" .. lua_init_path
+
+-- Store original package path globally for tests that need to change directories
+_G.original_package_path = package.path
 
 require("lazy.minit").setup {
   spec = {

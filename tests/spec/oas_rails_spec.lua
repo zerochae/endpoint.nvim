@@ -136,7 +136,7 @@ describe("OAS Rails patterns", function()
       assert.is_not_nil(result)
       assert.equals("GET", result and result.method)
       assert.equals("/api/v1/users", result and result.endpoint_path)
-      assert.equals("GET[#index] /api/v1/users", result and result.display_value)
+      assert.equals("GET[api/v1/users#index] /api/v1/users", result and result.display_value)
     end)
 
     it("should extract endpoints from documented standard controller", function()
