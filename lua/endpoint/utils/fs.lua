@@ -61,10 +61,19 @@ function M.has_file(files)
   return false
 end
 
+-- Escape special Lua pattern characters for literal string matching
+-- This allows searching for strings with hyphens, dots, etc. without treating them as pattern syntax
+---@param str string String to escape
+---@return string Escaped string safe for use in Lua patterns
+local function escape_pattern(str)
+  return str:gsub("([%-%^%$%(%)%%%.%[%]%*%+%?])", "%%%1")
+end
+
 -- Check if a file contains specific pattern(s)
 -- Use this for framework dependency detection in config files
+-- Automatically escapes special pattern characters for literal string matching
 ---@param filepath string Path to the file to check
----@param patterns string|string[] Pattern(s) to search for
+---@param patterns string|string[] Pattern(s) to search for (will be escaped for literal matching)
 ---@return boolean True if file exists and contains at least one pattern
 function M.file_contains(filepath, patterns)
   if not M.has_file(filepath) then
@@ -76,12 +85,14 @@ function M.file_contains(filepath, patterns)
 
   -- Handle single pattern
   if type(patterns) == "string" then
-    return file_str:match(patterns) ~= nil
+    local escaped_pattern = escape_pattern(patterns)
+    return file_str:match(escaped_pattern) ~= nil
   end
 
   -- Handle multiple patterns (OR logic)
   for _, pattern in ipairs(patterns) do
-    if file_str:match(pattern) then
+    local escaped_pattern = escape_pattern(pattern)
+    if file_str:match(escaped_pattern) then
       return true
     end
   end

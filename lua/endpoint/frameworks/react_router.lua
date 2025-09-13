@@ -12,8 +12,7 @@ function M.detect()
   end
 
   -- Check for React Router in package.json dependencies
-  -- Note: hyphens must be escaped in Lua patterns
-  if fs.file_contains("package.json", "react%-router") or fs.file_contains("package.json", "react%-router%-dom") then
+  if fs.file_contains("package.json", "react-router") or fs.file_contains("package.json", "react-router-dom") then
     return true
   end
 
