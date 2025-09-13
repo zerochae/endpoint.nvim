@@ -20,6 +20,7 @@ local default_config = {
       PUT = "✏️",
       DELETE = "🗑️",
       PATCH = "🔧",
+      -- React Router method types
       ROUTE = "🔗",
     },
     method_colors = {
@@ -28,6 +29,7 @@ local default_config = {
       PUT = "TelescopeResultsKeyword",
       DELETE = "TelescopeResultsSpecialChar",
       PATCH = "TelescopeResultsFunction",
+      -- React Router method types
       ROUTE = "TelescopeResultsIdentifier",
     },
   },

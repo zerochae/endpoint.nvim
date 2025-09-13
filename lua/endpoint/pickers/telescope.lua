@@ -81,8 +81,22 @@ function M.show(endpoints, opts)
           local selection = action_state.get_selected_entry()
           if selection then
             local endpoint = selection.value
-            vim.cmd("edit " .. endpoint.file_path)
-            vim.api.nvim_win_set_cursor(0, { endpoint.line_number, endpoint.column - 1 })
+            
+            -- For React Router with component, navigate to component file
+            if endpoint.component_file_path and vim.fn.filereadable(endpoint.component_file_path) == 1 then
+              vim.cmd("edit " .. endpoint.component_file_path)
+              -- Go to the component definition (typically first line or export line)
+              vim.cmd "normal! gg"
+              -- Try to find component definition
+              local component_name = endpoint.component_name
+              if component_name then
+                vim.fn.search("\\(const\\|function\\|export default\\).*" .. component_name, "w")
+              end
+            else
+              -- Default behavior: navigate to route definition
+              vim.cmd("edit " .. endpoint.file_path)
+              vim.api.nvim_win_set_cursor(0, { endpoint.line_number, endpoint.column - 1 })
+            end
             -- Center the line in the window
             vim.cmd "normal! zz"
           end
@@ -113,30 +127,69 @@ function M.create_endpoint_previewer()
         return
       end
 
+      -- For React Router with component, preview component file instead of route definition
+      local preview_file = endpoint.file_path
+      local preview_line = endpoint.line_number
+      local preview_col = endpoint.column
+      
+      if endpoint.component_file_path and vim.fn.filereadable(endpoint.component_file_path) == 1 then
+        preview_file = endpoint.component_file_path
+        preview_line = 1 -- Start at the top of component file
+        preview_col = 1
+      end
+
       -- Read file content
-      conf.buffer_previewer_maker(endpoint.file_path, self.state.bufnr, {
+      conf.buffer_previewer_maker(preview_file, self.state.bufnr, {
         bufname = self.state.bufname,
         winid = self.state.winid,
         callback = function(bufnr)
           -- Clear previous highlights first
           vim.api.nvim_buf_clear_namespace(bufnr, highlight_ns, 0, -1)
 
-          -- Highlight the endpoint line
-          if endpoint.line_number then
-            vim.api.nvim_buf_add_highlight(
-              bufnr,
-              highlight_ns,
-              "TelescopePreviewMatch",
-              endpoint.line_number - 1,
-              math.max(0, (endpoint.column or 1) - 1),
-              -1
-            )
+          -- For component preview, highlight the component definition
+          if endpoint.component_file_path and endpoint.component_name then
+            -- Try to find and highlight component definition
+            vim.defer_fn(function()
+              if vim.api.nvim_buf_is_valid(bufnr) then
+                local lines = vim.api.nvim_buf_get_lines(bufnr, 0, -1, false)
+                for line_idx, line in ipairs(lines) do
+                  -- Look for component definition patterns
+                  if line:match("const%s+" .. endpoint.component_name) or
+                     line:match("function%s+" .. endpoint.component_name) or
+                     line:match("export%s+default%s+" .. endpoint.component_name) or
+                     line:match("export%s+default%s+function%s+" .. endpoint.component_name) then
+                    vim.api.nvim_buf_add_highlight(
+                      bufnr,
+                      highlight_ns,
+                      "TelescopePreviewMatch", 
+                      line_idx - 1,
+                      0,
+                      -1
+                    )
+                    preview_line = line_idx
+                    break
+                  end
+                end
+              end
+            end, 50)
+          else
+            -- Default: highlight the endpoint line
+            if preview_line then
+              vim.api.nvim_buf_add_highlight(
+                bufnr,
+                highlight_ns,
+                "TelescopePreviewMatch",
+                preview_line - 1,
+                math.max(0, (preview_col or 1) - 1),
+                -1
+              )
+            end
           end
 
-          -- Set cursor to the endpoint line and center it
+          -- Set cursor to the target line and center it
           if self.state.winid and vim.api.nvim_win_is_valid(self.state.winid) then
-            local target_line = endpoint.line_number or 1
-            local target_col = math.max(0, (endpoint.column or 1) - 1)
+            local target_line = preview_line or 1
+            local target_col = math.max(0, (preview_col or 1) - 1)
 
             vim.api.nvim_win_set_cursor(self.state.winid, { target_line, target_col })
 

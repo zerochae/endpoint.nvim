@@ -41,6 +41,7 @@ Supported Frameworks:~
   • FastAPI (Python) - @app.get(), @app.post(), @router.*, etc.
   • Rails (Ruby) - Full controller actions and routes.rb parsing
   • Express (Node.js) - app.method(), router.method(), and destructured patterns
+  • React Router (Client-side) - <Route> components with smart component resolution
 
 Features:~
   • 🔍 Multi-framework endpoint discovery
@@ -120,6 +121,7 @@ Primary Commands:~
     :Endpoint Put          " Find all PUT endpoints
     :Endpoint Delete       " Find all DELETE endpoints
     :Endpoint Patch        " Find all PATCH endpoints
+    :Endpoint Route        " Find route definitions (React Router)
     :Endpoint All          " Find all endpoints (default)
 
 Cache Management:~
@@ -304,6 +306,7 @@ The plugin automatically detects your framework based on these files:
   • FastAPI: `main.py`, `requirements.txt` (with FastAPI)
   • Rails: `Gemfile`, `config/routes.rb`, `config/application.rb`, `app/controllers`
   • Express: `package.json` (with express dependency)
+  • React Router: `package.json` (with react-router or react-router-dom)
 
 Adding New Frameworks:~
 
@@ -341,9 +344,12 @@ A: Make sure you called `require("endpoint").setup()` in your config function.
 
 Q: No endpoints found
 A: Check that:
-   • You're in a supported project (Spring Boot, NestJS, Symfony, FastAPI, Rails)
-   • Source files contain the appropriate annotations (@GetMapping, @Get(), etc.)
-   • For Rails: Ensure you have controller files in app/controllers/ or routes in config/routes.rb
+   • You're in a supported project (Spring Boot, NestJS, Symfony, FastAPI, Rails, Express, React Router)
+   • Source files contain the appropriate patterns:
+     - Spring Boot: @GetMapping, @PostMapping, @RequestMapping, etc.
+     - NestJS: @Get(), @Post(), @Controller(), etc.
+     - Rails: Controller files in app/controllers/ or routes in config/routes.rb
+     - React Router: <Route> components in .js/.jsx/.ts/.tsx files
    • Try running `:Endpoint ClearCache` to refresh the cache
 
 Q: Cache not working as expected  

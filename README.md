@@ -9,10 +9,11 @@ A powerful Neovim plugin for quickly finding and navigating web framework API en
 - ⚡ FastAPI (Python)
 - 💎 Rails (Ruby)
 - 🚀 Express (Node.js)
+- ⚛️ React Router (Client-side routing)
 
 ## ✨ Features
 
-- 🔍 **Multi-Framework Support**: Automatically detects and supports Spring Boot, NestJS, Symfony, FastAPI, Rails, and Express
+- 🔍 **Multi-Framework Support**: Automatically detects and supports Spring Boot, NestJS, Symfony, FastAPI, Rails, Express, and React Router
 - 🎯 **Multiple Picker Interfaces**: Choose between Telescope, vim.ui.select, or Snacks.nvim pickers (Snacks picker in development)
 - ⚡ **Smart Caching**: Three cache modes - none (real-time), session, and persistent disk storage
 - 📍 **Precise Navigation**: Jump directly to the exact line where endpoints are defined
@@ -31,6 +32,7 @@ A powerful Neovim plugin for quickly finding and navigating web framework API en
 :Endpoint Put      " Find all PUT endpoints
 :Endpoint Delete   " Find all DELETE endpoints
 :Endpoint Patch    " Find all PATCH endpoints
+:Endpoint Route    " Find route definitions (React Router)
 :Endpoint All      " Find all endpoints (default)
 ```
 
@@ -127,6 +129,8 @@ require("endpoint").setup({
       PUT = "✏️",
       DELETE = "🗑️",
       PATCH = "🔧",
+      -- React Router method types
+      ROUTE = "🔗",
     },
     
     -- Method colors (highlight groups)
@@ -136,6 +140,8 @@ require("endpoint").setup({
       PUT = "TelescopeResultsKeyword",
       DELETE = "TelescopeResultsSpecialChar",
       PATCH = "TelescopeResultsFunction",
+      -- React Router method types
+      ROUTE = "TelescopeResultsIdentifier",
     },
   }
 })
@@ -181,6 +187,8 @@ require("endpoint").setup({
     method_icons = {
       GET = "📥", POST = "📤", PUT = "✏️", 
       DELETE = "🗑️", PATCH = "🔧",
+      -- React Router method types
+      ROUTE = "🔗",
     },
     
     method_colors = {
@@ -189,6 +197,8 @@ require("endpoint").setup({
       PUT = "TelescopeResultsKeyword",
       DELETE = "TelescopeResultsSpecialChar",
       PATCH = "TelescopeResultsFunction",
+      -- React Router method types
+      ROUTE = "TelescopeResultsIdentifier",
     },
   },
   
@@ -473,6 +483,56 @@ We'd love to include your framework! Please submit a PR with:
 - Registration in `lua/endpoint/scanner.lua`
 - Basic test cases
 - Update to the supported frameworks list in README
+
+### React Router Support
+
+The plugin supports client-side routing with React Router, focusing on route definitions and their components:
+
+**Supported Patterns:**
+- `<Route>` components: `<Route path="/users" element={<Users />} />`
+- Router configuration: `{ path: "/users", element: <Users /> }`
+- Nested and parameterized routes: `<Route path="/users/:id" element={<UserDetail />} />`
+- Wildcard routes: `<Route path="/dashboard/*" element={<Dashboard />} />`
+
+**Key Features:**
+- **Smart Component Resolution**: Automatically finds component files with support for:
+  - Index files: `Home` → `src/components/Home/index.tsx`
+  - Direct files: `About` → `src/components/About.tsx`
+  - Nested directories: `Users` → `src/pages/Users/index.jsx`
+  - Root level files: `Contact` → `Contact.js`
+- **Component Preview**: Telescope preview shows the actual component code instead of route definition
+- **Component Navigation**: Pressing Enter navigates to the component file, not the route definition
+
+**Commands:**
+```vim
+:Endpoint Route    " Find route definitions
+:Endpoint All      " Find all routes (default for React Router projects)
+```
+
+**Display Format:**
+- Clean route paths: `ROUTE /users`, `ROUTE /about`, `ROUTE /dashboard/*`
+- Component information available in preview and navigation
+
+**Component File Resolution:**
+The plugin searches for components in this order:
+1. Current directory: `./ComponentName.{tsx,jsx,ts,js}`
+2. Index files: `./ComponentName/index.{tsx,jsx,ts,js}`
+3. Common directories: `src/`, `app/`, `components/`, `pages/`
+4. Nested patterns: `src/components/`, `src/pages/`, `src/views/`, `src/containers/`
+
+**Configuration:**
+```lua
+require("endpoint").setup({
+  ui = {
+    method_icons = {
+      ROUTE = "🔗",    -- Route definitions
+    },
+    method_colors = {
+      ROUTE = "TelescopeResultsIdentifier",
+    },
+  },
+})
+```
 
 ### Express.js Support
 

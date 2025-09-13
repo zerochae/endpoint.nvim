@@ -47,11 +47,26 @@ function M.scan(method, options)
 
   -- Execute search
   local cmd = framework.get_search_cmd(method)
+  if vim.g.endpoint_debug then
+    vim.notify("[Scanner Debug] Executing command: " .. cmd, vim.log.levels.INFO)
+  end
+  
   local output = vim.fn.system(cmd)
   local exit_code = vim.v.shell_error
 
+  if vim.g.endpoint_debug then
+    vim.notify(string.format("[Scanner Debug] Command exit code: %d", exit_code), vim.log.levels.INFO)
+    vim.notify(string.format("[Scanner Debug] Raw output length: %d", string.len(output)), vim.log.levels.INFO)
+    if string.len(output) > 0 then
+      vim.notify("[Scanner Debug] Output preview: " .. output:sub(1, 300), vim.log.levels.INFO)
+    end
+  end
+
   if exit_code ~= 0 then
     if exit_code == 1 then
+      if vim.g.endpoint_debug then
+        vim.notify("[Scanner Debug] No results found (exit code 1)", vim.log.levels.WARN)
+      end
       return {} -- No results found
     else
       vim.notify("Search command failed: " .. cmd, vim.log.levels.ERROR)
@@ -61,8 +76,13 @@ function M.scan(method, options)
 
   -- Parse results
   local endpoints = {}
+  local line_count = 0
   for line in vim.gsplit(output, "\n") do
+    line_count = line_count + 1
     if line ~= "" then
+      if vim.g.endpoint_debug then
+        vim.notify(string.format("[Scanner Debug] Processing line %d: %s", line_count, line), vim.log.levels.INFO)
+      end
       local result = framework.parse_line(line, method)
       if result then
         -- Check if result is a single endpoint or array of endpoints
@@ -101,11 +121,37 @@ end
 -- Framework detection
 ---@return endpoint.framework?
 function M.detect_framework()
-  for _, framework in pairs(frameworks) do
-    if framework.detect() then
-      return framework
+  if vim.g.endpoint_debug then
+    vim.notify("[Scanner Debug] Starting framework detection...", vim.log.levels.INFO)
+  end
+  
+  local detected_frameworks = {}
+  
+  -- Check all frameworks and collect detected ones
+  for name, framework in pairs(frameworks) do
+    local is_detected = framework.detect()
+    if vim.g.endpoint_debug then
+      vim.notify(string.format("[Scanner Debug] Framework %s: %s", name, tostring(is_detected)), vim.log.levels.INFO)
+    end
+    
+    if is_detected then
+      table.insert(detected_frameworks, {name = name, framework = framework})
     end
   end
+  
+  if vim.g.endpoint_debug then
+    vim.notify(string.format("[Scanner Debug] Detected frameworks count: %d", #detected_frameworks), vim.log.levels.INFO)
+  end
+  
+  -- Return the first detected framework (for now)
+  if #detected_frameworks > 0 then
+    local selected = detected_frameworks[1]
+    if vim.g.endpoint_debug then
+      vim.notify(string.format("[Scanner Debug] Using framework: %s", selected.name), vim.log.levels.INFO)
+    end
+    return selected.framework
+  end
+  
   return nil
 end
 

@@ -35,6 +35,8 @@ M.DEFAULT_METHOD_COLORS = {
   PUT = "TelescopeResultsKeyword",
   DELETE = "TelescopeResultsSpecialChar",
   PATCH = "TelescopeResultsFunction",
+  -- React Router method types
+  ROUTE = "TelescopeResultsIdentifier",
 }
 M.DEFAULT_METHOD_ICONS = {
   GET = "📥",
@@ -42,6 +44,8 @@ M.DEFAULT_METHOD_ICONS = {
   PUT = "✏️",
   DELETE = "🗑️",
   PATCH = "🔧",
+  -- React Router method types
+  ROUTE = "🔗",
 }
 
 return M
