@@ -10,11 +10,8 @@
 -- Core Configuration
 ---@class endpoint.config
 ---@field cache_mode "none" | "session" | "persistent"
----@field debug boolean
 ---@field picker "telescope" | "vim_ui_select" | "snacks"
 ---@field picker_opts table
----@field methods string[]
----@field rg_additional_args string
 ---@field ui endpoint.ui.config
 
 -- Endpoint Entry

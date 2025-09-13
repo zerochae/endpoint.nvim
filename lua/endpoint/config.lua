@@ -4,11 +4,8 @@ local M = {}
 -- Default configuration
 local default_config = {
   cache_mode = "none", -- "none", "session", "persistent"
-  debug = false,
   picker = "telescope", -- "telescope", "vim_ui_select", "snacks"
   picker_opts = {},
-  methods = { "GET", "POST", "PUT", "DELETE", "PATCH" },
-  rg_additional_args = "",
   ui = {
     method_colors = {
       GET = "TelescopeResultsNumber",
