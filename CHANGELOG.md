@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.6.0](https://github.com/zerochae/endpoint.nvim/compare/v1.5.1...v1.6.0) (2025-09-13)
+
+
+### Features
+
+* add Java Servlet framework support ([a986092](https://github.com/zerochae/endpoint.nvim/commit/a9860927c3dbcf5d1a56fedff5c2c83a2d7adcec))
+
 ## [1.5.1](https://github.com/zerochae/endpoint.nvim/compare/v1.5.0...v1.5.1) (2025-09-13)
 
 
