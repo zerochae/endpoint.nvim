@@ -22,4 +22,3 @@ return require("telescope").register_extension {
     patch = endpoint_picker "PATCH",
   },
 }
-

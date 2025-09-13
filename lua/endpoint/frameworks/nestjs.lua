@@ -6,7 +6,6 @@ local fs = require "endpoint.utils.fs"
 -- Detection
 ---@return boolean
 function M.detect()
-
   -- Quick check for Node.js project files first
   if not fs.has_file { "package.json", "tsconfig.json", "nest-cli.json" } then
     return false

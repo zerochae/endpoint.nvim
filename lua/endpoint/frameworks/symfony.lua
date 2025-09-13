@@ -6,7 +6,6 @@ local fs = require "endpoint.utils.fs"
 -- Detection
 ---@return boolean
 function M.detect()
-
   -- Quick check for PHP project files first
   if not fs.has_file { "composer.json", "composer.lock" } then
     return false

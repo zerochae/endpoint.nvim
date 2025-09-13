@@ -63,7 +63,9 @@ function M.show(endpoints, opts)
               return display_text, { { { 0, highlight_length }, method_color } }
             end,
             -- Include action name and controller name in search ordinal for Rails action annotations
-            ordinal = entry.endpoint_path .. " " .. entry.method 
+            ordinal = entry.endpoint_path
+              .. " "
+              .. entry.method
               .. (entry.action and (" " .. entry.action) or "")
               .. (entry.controller and (" " .. entry.controller) or "")
               .. (entry.display_value and (" " .. entry.display_value) or ""),
@@ -81,7 +83,7 @@ function M.show(endpoints, opts)
           local selection = action_state.get_selected_entry()
           if selection then
             local endpoint = selection.value
-            
+
             -- For React Router with component, navigate to component file
             if endpoint.component_file_path and vim.fn.filereadable(endpoint.component_file_path) == 1 then
               vim.cmd("edit " .. endpoint.component_file_path)
@@ -131,7 +133,7 @@ function M.create_endpoint_previewer()
       local preview_file = endpoint.file_path
       local preview_line = endpoint.line_number
       local preview_col = endpoint.column
-      
+
       if endpoint.component_file_path and vim.fn.filereadable(endpoint.component_file_path) == 1 then
         preview_file = endpoint.component_file_path
         preview_line = 1 -- Start at the top of component file
@@ -154,18 +156,13 @@ function M.create_endpoint_previewer()
                 local lines = vim.api.nvim_buf_get_lines(bufnr, 0, -1, false)
                 for line_idx, line in ipairs(lines) do
                   -- Look for component definition patterns
-                  if line:match("const%s+" .. endpoint.component_name) or
-                     line:match("function%s+" .. endpoint.component_name) or
-                     line:match("export%s+default%s+" .. endpoint.component_name) or
-                     line:match("export%s+default%s+function%s+" .. endpoint.component_name) then
-                    vim.api.nvim_buf_add_highlight(
-                      bufnr,
-                      highlight_ns,
-                      "TelescopePreviewMatch", 
-                      line_idx - 1,
-                      0,
-                      -1
-                    )
+                  if
+                    line:match("const%s+" .. endpoint.component_name)
+                    or line:match("function%s+" .. endpoint.component_name)
+                    or line:match("export%s+default%s+" .. endpoint.component_name)
+                    or line:match("export%s+default%s+function%s+" .. endpoint.component_name)
+                  then
+                    vim.api.nvim_buf_add_highlight(bufnr, highlight_ns, "TelescopePreviewMatch", line_idx - 1, 0, -1)
                     preview_line = line_idx
                     break
                   end

@@ -6,6 +6,7 @@ local M = {}
 -- Available frameworks
 local frameworks = {
   spring = require "endpoint.frameworks.spring",
+  servlet = require "endpoint.frameworks.servlet",
   fastapi = require "endpoint.frameworks.fastapi",
   nestjs = require "endpoint.frameworks.nestjs",
   symfony = require "endpoint.frameworks.symfony",
@@ -50,7 +51,7 @@ function M.scan(method, options)
   if vim.g.endpoint_debug then
     vim.notify("[Scanner Debug] Executing command: " .. cmd, vim.log.levels.INFO)
   end
-  
+
   local output = vim.fn.system(cmd)
   local exit_code = vim.v.shell_error
 
@@ -124,25 +125,28 @@ function M.detect_framework()
   if vim.g.endpoint_debug then
     vim.notify("[Scanner Debug] Starting framework detection...", vim.log.levels.INFO)
   end
-  
+
   local detected_frameworks = {}
-  
+
   -- Check all frameworks and collect detected ones
   for name, framework in pairs(frameworks) do
     local is_detected = framework.detect()
     if vim.g.endpoint_debug then
       vim.notify(string.format("[Scanner Debug] Framework %s: %s", name, tostring(is_detected)), vim.log.levels.INFO)
     end
-    
+
     if is_detected then
-      table.insert(detected_frameworks, {name = name, framework = framework})
+      table.insert(detected_frameworks, { name = name, framework = framework })
     end
   end
-  
+
   if vim.g.endpoint_debug then
-    vim.notify(string.format("[Scanner Debug] Detected frameworks count: %d", #detected_frameworks), vim.log.levels.INFO)
+    vim.notify(
+      string.format("[Scanner Debug] Detected frameworks count: %d", #detected_frameworks),
+      vim.log.levels.INFO
+    )
   end
-  
+
   -- Return the first detected framework (for now)
   if #detected_frameworks > 0 then
     local selected = detected_frameworks[1]
@@ -151,7 +155,7 @@ function M.detect_framework()
     end
     return selected.framework
   end
-  
+
   return nil
 end
 

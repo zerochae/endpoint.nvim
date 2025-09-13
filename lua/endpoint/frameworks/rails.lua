@@ -207,11 +207,11 @@ function M.extract_route_definition(content, file_path, line_number)
       -- Try to extract controller#action from 'to:' parameter
       local controller_action = content:match "to:%s*['\"]([^'\"]+)['\"]"
       local controller, action = nil, nil
-      
+
       if controller_action and controller_action:match "#" then
         controller, action = controller_action:match "([^#]+)#(%w+)"
       end
-      
+
       return {
         method = route_method:upper(),
         path = route_path,
@@ -533,7 +533,7 @@ end
 function M.format_display_value(endpoint_info, file_path)
   -- Get display format configuration
   local config = require "endpoint.config"
-  local rails_config = config.get_value("frameworks") and config.get_value("frameworks").rails or {}
+  local rails_config = config.get_value "frameworks" and config.get_value("frameworks").rails or {}
   local display_format = rails_config.display_format or "smart"
   local show_action_annotation = rails_config.show_action_annotation
   if show_action_annotation == nil then
@@ -590,18 +590,18 @@ function M.format_controller_action(endpoint_info, display_format)
       return endpoint_info.method .. "[#" .. endpoint_info.action .. "] " .. endpoint_info.path
     end
   end
-  
+
   -- Default fallback
   return endpoint_info.method .. "[#" .. endpoint_info.action .. "] " .. endpoint_info.path
 end
 
 -- Format routes.rb entry based on display format setting
----@param endpoint_info table  
+---@param endpoint_info table
 ---@param display_format string
 ---@return string
 function M.format_route_entry(endpoint_info, display_format)
   local is_root_route = endpoint_info.action == "root" or endpoint_info.path == "/"
-  
+
   if display_format == "action_only" then
     return endpoint_info.method .. "[#" .. endpoint_info.action .. "] " .. endpoint_info.path
   elseif display_format == "controller_action" then
@@ -611,7 +611,13 @@ function M.format_route_entry(endpoint_info, display_format)
     else
       local controller_name = endpoint_info.controller
       if controller_name then
-        return endpoint_info.method .. "[" .. controller_name .. "#" .. endpoint_info.action .. "] " .. endpoint_info.path
+        return endpoint_info.method
+          .. "["
+          .. controller_name
+          .. "#"
+          .. endpoint_info.action
+          .. "] "
+          .. endpoint_info.path
       else
         return endpoint_info.method .. "[#" .. endpoint_info.action .. "] " .. endpoint_info.path
       end
@@ -634,7 +640,7 @@ function M.format_route_entry(endpoint_info, display_format)
       end
     end
   end
-  
+
   -- Default fallback
   return endpoint_info.method .. "[#" .. endpoint_info.action .. "] " .. endpoint_info.path
 end
