@@ -307,6 +307,12 @@ require("endpoint").setup({
 ```lua
 require("endpoint").setup({
   picker = "vim_ui_select", -- Use native vim.ui.select
+  picker_opts = {
+    vim_ui_select = {
+      prompt = "Choose endpoint: ",
+      kind = "endpoint", -- Useful for dressing.nvim theming
+    }
+  }
 })
 ```
 - Native Neovim interface

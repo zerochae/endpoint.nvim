@@ -18,13 +18,19 @@ function M.show(endpoints, opts)
     return
   end
 
-  vim.ui.select(endpoints, {
-    prompt = "Select endpoint:",
+  -- Default vim.ui.select configuration
+  local default_config = {
+    prompt = "Endpoint: ",
     format_item = function(item)
       -- Use display_value if available (for Rails action annotations), otherwise use default format
       return item.display_value or (item.method .. " " .. item.endpoint_path)
     end,
-  }, function(choice)
+  }
+
+  -- Merge user opts with defaults (user options override defaults)
+  local final_config = vim.tbl_deep_extend("force", default_config, opts)
+
+  vim.ui.select(endpoints, final_config, function(choice)
     if choice then
       vim.cmd("edit " .. choice.file_path)
       vim.api.nvim_win_set_cursor(0, { choice.line_number, choice.column - 1 })
