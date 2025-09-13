@@ -42,6 +42,7 @@ Supported Frameworks:~
   • Rails (Ruby) - Full controller actions and routes.rb parsing
   • Express (Node.js) - app.method(), router.method(), and destructured patterns
   • Ktor (Kotlin) - get(), post(), route() blocks with nested routing support
+  • .NET Core (C#) - [HttpGet], [HttpPost], Minimal API (app.MapGet), endpoint routing
   • React Router (Client-side) - <Route> components with smart component resolution
 
 Features:~
@@ -313,6 +314,7 @@ The plugin automatically detects your framework based on these files:
   • Rails: `Gemfile`, `config/routes.rb`, `config/application.rb`, `app/controllers`
   • Express: `package.json` (with express dependency)
   • Ktor: `build.gradle`, `build.gradle.kts` (with ktor dependencies), Kotlin files with routing
+  • .NET Core: `*.csproj`, `*.sln`, `Program.cs`, `appsettings.json`, Controllers directory
   • React Router: `package.json` (with react-router or react-router-dom)
 
 Adding New Frameworks:~
