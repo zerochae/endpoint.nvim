@@ -10,7 +10,6 @@ function M.file_exists(filepath)
   return stat ~= nil and stat.type == "file"
 end
 
-
 -- Get the current working directory (project root)
 ---@return string
 function M.get_project_root()
@@ -39,7 +38,6 @@ function M.read_file(filepath)
   end
   return lines
 end
-
 
 -- Check if any of the specified files/directories exist (readable files or accessible directories)
 -- Use this for framework detection or general file/directory existence checks

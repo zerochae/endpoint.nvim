@@ -117,4 +117,3 @@ M._scanner = scanner
 M._config = config
 
 return M
-

@@ -6,7 +6,6 @@ local fs = require "endpoint.utils.fs"
 -- Detection
 ---@return boolean
 function M.detect()
-
   -- Quick check for Python project files first
   if not fs.has_file { "requirements.txt", "pyproject.toml", "setup.py", "Pipfile" } then
     return false
