@@ -15,9 +15,11 @@ function M.detect()
   local has_ktor_deps = fs.file_contains("build.gradle", {
     "ktor-server",
     "io.ktor",
+    "io.ktor.plugin",
   }) or fs.file_contains("build.gradle.kts", {
     "ktor-server",
     "io.ktor",
+    "io.ktor.plugin",
   })
 
   -- Check for Kotlin files with Ktor routing
