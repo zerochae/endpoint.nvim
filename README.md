@@ -8,10 +8,11 @@ A powerful Neovim plugin for quickly finding and navigating web framework API en
 - 🎼 Symfony (PHP)
 - ⚡ FastAPI (Python)
 - 💎 Rails (Ruby)
+- 🚀 Express (Node.js)
 
 ## ✨ Features
 
-- 🔍 **Multi-Framework Support**: Automatically detects and supports Spring Boot, NestJS, Symfony, FastAPI, and Rails
+- 🔍 **Multi-Framework Support**: Automatically detects and supports Spring Boot, NestJS, Symfony, FastAPI, Rails, and Express
 - 🎯 **Multiple Picker Interfaces**: Choose between Telescope, vim.ui.select, or Snacks.nvim pickers (Snacks picker in development)
 - ⚡ **Smart Caching**: Three cache modes - none (real-time), session, and persistent disk storage
 - 📍 **Precise Navigation**: Jump directly to the exact line where endpoints are defined
@@ -473,6 +474,38 @@ We'd love to include your framework! Please submit a PR with:
 - Basic test cases
 - Update to the supported frameworks list in README
 
+### Express.js Support
+
+The plugin supports various Express.js route patterns:
+
+**Standard Patterns:**
+```javascript
+// app.method() patterns
+app.get('/users', handler)
+app.post('/api/users', handler)
+app.put('/users/:id', handler)
+
+// router.method() patterns  
+router.get('/', handler)
+router.delete('/:id', handler)
+```
+
+**Destructured Patterns:**
+```javascript
+// Destructured methods
+const { get, post, put, delete: del } = app;
+
+get('/users', handler)          // Detected as GET /users
+post('/api/users', handler)     // Detected as POST /api/users  
+del('/users/:id', handler)      // Detected as DELETE /users/:id (del alias supported)
+```
+
+**Complex Routes:**
+```javascript
+app.get('/api/v1/users/:userId/posts/:postId', handler)  // Multi-parameter routes
+router.patch('/users/:id/profile', handler)             // Nested resource routes
+```
+
 ## 🤝 Contributing
 
 Contributions are welcome! Please feel free to submit a Pull Request.
@@ -612,6 +645,7 @@ The plugin uses these files to detect your framework:
 - **Symfony**: `composer.json` (with symfony framework), `symfony.lock`
 - **FastAPI**: `main.py`, `requirements.txt` (with FastAPI)
 - **Rails**: `Gemfile`, `config/routes.rb`, `config/application.rb`, `app/controllers`
+- **Express**: `package.json` (with express dependency)
 
 ## 📄 License
 

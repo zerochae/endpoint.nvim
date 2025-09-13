@@ -1,0 +1,18 @@
+{
+  "name": "express-test-fixture",
+  "version": "1.0.0",
+  "description": "Test fixture for Express framework detection",
+  "main": "app.js",
+  "dependencies": {
+    "express": "^4.18.2",
+    "cors": "^2.8.5",
+    "helmet": "^7.0.0"
+  },
+  "devDependencies": {
+    "nodemon": "^3.0.1"
+  },
+  "scripts": {
+    "start": "node app.js",
+    "dev": "nodemon app.js"
+  }
+}

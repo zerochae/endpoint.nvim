@@ -10,6 +10,7 @@ local frameworks = {
   nestjs = require "endpoint.frameworks.nestjs",
   symfony = require "endpoint.frameworks.symfony",
   rails = require "endpoint.frameworks.rails",
+  express = require "endpoint.frameworks.express",
 }
 
 -- Main scan function

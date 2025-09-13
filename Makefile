@@ -1,6 +1,6 @@
 # Endpoint.nvim Development Makefile
 
-.PHONY: test test-symfony test-nestjs test-spring test-fastapi test-rails test-oas-rails test-cache test-scanner test-picker-centering test-all-rails test-frameworks
+.PHONY: test test-symfony test-nestjs test-spring test-fastapi test-rails test-oas-rails test-express test-cache test-scanner test-picker-centering test-all-rails test-frameworks
 
 test:
 	nvim --headless --noplugin -u tests/minit.lua -c "PlenaryBustedDirectory tests/spec/"
@@ -16,6 +16,9 @@ test-spring:
 
 test-fastapi:
 	nvim --headless --noplugin -u tests/minit.lua -c "PlenaryBustedDirectory tests/spec/fastapi_spec.lua"
+
+test-express:
+	nvim --headless --noplugin -u tests/minit.lua -c "PlenaryBustedDirectory tests/spec/express_spec.lua"
 
 test-cache:
 	nvim --headless --noplugin -u tests/minit.lua -c "PlenaryBustedDirectory tests/spec/cache_spec.lua"
@@ -35,5 +38,5 @@ test-picker-centering:
 test-all-rails: test-rails test-oas-rails
 	@echo "Rails tests completed"
 
-test-frameworks: test-symfony test-nestjs test-spring test-fastapi test-rails
+test-frameworks: test-symfony test-nestjs test-spring test-fastapi test-rails test-express
 	@echo "Framework tests completed"

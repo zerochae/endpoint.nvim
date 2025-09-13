@@ -40,6 +40,7 @@ Supported Frameworks:~
   • Symfony (PHP) - @Route annotations and attributes
   • FastAPI (Python) - @app.get(), @app.post(), @router.*, etc.
   • Rails (Ruby) - Full controller actions and routes.rb parsing
+  • Express (Node.js) - app.method(), router.method(), and destructured patterns
 
 Features:~
   • 🔍 Multi-framework endpoint discovery
@@ -302,6 +303,7 @@ The plugin automatically detects your framework based on these files:
   • Symfony: `composer.json` (with symfony framework), `symfony.lock`
   • FastAPI: `main.py`, `requirements.txt` (with FastAPI)
   • Rails: `Gemfile`, `config/routes.rb`, `config/application.rb`, `app/controllers`
+  • Express: `package.json` (with express dependency)
 
 Adding New Frameworks:~
 
