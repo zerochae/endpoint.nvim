@@ -1,6 +1,6 @@
 # Endpoint.nvim Development Makefile
 
-.PHONY: test test-symfony test-nestjs test-spring test-servlet test-fastapi test-rails test-oas-rails test-express test-react-router test-cache test-scanner test-picker-centering test-all-rails test-frameworks
+.PHONY: test test-symfony test-nestjs test-spring test-servlet test-fastapi test-rails test-oas-rails test-express test-react-router test-dotnet test-ktor test-cache test-scanner test-picker-centering test-all-rails test-frameworks
 
 test:
 	nvim --headless --noplugin -u tests/minit.lua -c "PlenaryBustedDirectory tests/spec/"
@@ -26,6 +26,12 @@ test-express:
 test-react-router:
 	nvim --headless --noplugin -u tests/minit.lua -c "PlenaryBustedDirectory tests/spec/react_router_spec.lua"
 
+test-dotnet:
+	nvim --headless --noplugin -u tests/minit.lua -c "PlenaryBustedFile tests/spec/dotnet_spec.lua"
+
+test-ktor:
+	nvim --headless --noplugin -u tests/minit.lua -c "PlenaryBustedFile tests/spec/ktor_spec.lua"
+
 test-cache:
 	nvim --headless --noplugin -u tests/minit.lua -c "PlenaryBustedDirectory tests/spec/cache_spec.lua"
 
@@ -44,5 +50,5 @@ test-picker-centering:
 test-all-rails: test-rails test-oas-rails
 	@echo "Rails tests completed"
 
-test-frameworks: test-symfony test-nestjs test-spring test-servlet test-fastapi test-rails test-express test-react-router
+test-frameworks: test-symfony test-nestjs test-spring test-servlet test-fastapi test-rails test-express test-react-router test-dotnet test-ktor
 	@echo "Framework tests completed"
