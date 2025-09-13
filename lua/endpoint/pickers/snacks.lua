@@ -65,8 +65,8 @@ function M.show(endpoints, opts)
     end
   end
 
-  -- Use official snacks.picker.pick API with explicit keymaps
-  snacks.picker.pick {
+  -- Default snacks picker configuration
+  local default_config = {
     source = "endpoints",
     items = items,
     prompt = "Endpoints ",
@@ -78,6 +78,12 @@ function M.show(endpoints, opts)
       file_pos = true, -- Support patterns like `file:line:col`
     },
   }
+
+  -- Merge user picker_opts with defaults (user options override defaults)
+  local final_config = vim.tbl_deep_extend("force", default_config, opts or {})
+  
+  -- Use official snacks.picker.pick API with merged configuration
+  snacks.picker.pick(final_config)
 end
 
 return M
