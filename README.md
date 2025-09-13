@@ -3,15 +3,16 @@
 A powerful Neovim plugin for quickly finding and navigating web framework API endpoints with multiple picker interfaces and smart caching.
 
 **Supported Frameworks:**
-- 🍃 Spring Boot (Java)
-- ☕ Java Servlet (Java)
-- 🐦 NestJS (TypeScript/JavaScript)
-- 🎼 Symfony (PHP)
-- ⚡ FastAPI (Python)
-- 💎 Rails (Ruby)
-- 🚀 Express (Node.js)
-- 🏗️ Ktor (Kotlin)
-- ⚛️ React Router (Client-side routing)
+- Spring Boot (Java)
+- Java Servlet (Java)
+- NestJS (TypeScript/JavaScript)
+- Symfony (PHP)
+- FastAPI (Python)
+- Rails (Ruby)
+- Express (Node.js)
+- Ktor (Kotlin)
+- .NET Core (C#)
+- React Router (Client-side routing)
 
 ## ✨ Features
 
@@ -67,116 +68,12 @@ A powerful Neovim plugin for quickly finding and navigating web framework API en
 {
   "zerochae/endpoint.nvim",
   dependencies = {
-    "nvim-telescope/telescope.nvim", -- Optional: only needed if using telescope picker
+    -- Choose one or more pickers (all optional):
+    "nvim-telescope/telescope.nvim", -- For telescope picker
+    "folke/snacks.nvim",            -- For snacks picker
+    -- vim.ui.select picker works without dependencies
   },
   cmd = { "Endpoint" },
-  config = function()
-    require("endpoint").setup({
-      -- Cache configuration
-      cache_mode = "none", -- "none" (real-time), "session", "persistent"
-      
-      -- Picker configuration
-      picker = "telescope", -- "telescope", "vim_ui_select", "snacks"
-      picker_opts = {
-        telescope = {},     -- Telescope-specific options
-        snacks = {},       -- Snacks.nvim-specific options
-        vim_ui_select = {}, -- vim.ui.select-specific options
-      },
-      
-      -- UI configuration
-      ui = {
-        show_icons = true,     -- Show method icons
-        show_method = true,    -- Show method text (GET, POST, etc.)
-        
-        -- Method icons
-        method_icons = {
-          GET    = "📥",
-          POST   = "📤", 
-          PUT    = "✏️",
-          DELETE = "🗑️",
-          PATCH  = "🔧",
-        },
-        
-        -- Method colors (highlight groups)
-        method_colors = {
-          GET    = "TelescopeResultsNumber",
-          POST   = "TelescopeResultsConstant",
-          PUT    = "TelescopeResultsKeyword",
-          DELETE = "TelescopeResultsSpecialChar",
-          PATCH  = "TelescopeResultsFunction",
-        },
-      },
-    })
-  end,
-}
-```
-
-## ⚙️ Configuration Options
-
-Configure all settings via setup():
-
-```lua
-require("endpoint").setup({
-  -- Cache configuration
-  cache_mode = "session", -- "none" (real-time), "session", "persistent"
-  
-  -- Picker selection
-  picker = "telescope", -- "telescope", "vim_ui_select", "snacks"
-  picker_opts = {
-    telescope = {},     -- Telescope-specific options
-    snacks = {},       -- Snacks.nvim-specific options  
-    vim_ui_select = {}, -- vim.ui.select-specific options
-  },
-  
-  -- UI customization
-  ui = {
-    show_icons = true,        -- Show method icons
-    show_method = true,       -- Show method text (GET, POST, etc.)
-    
-    -- Method icons
-    method_icons = {
-      GET = "📥",
-      POST = "📤",
-      PUT = "✏️",
-      DELETE = "🗑️",
-      PATCH = "🔧",
-      -- React Router method types
-      ROUTE = "🔗",
-    },
-    
-    -- Method colors (highlight groups)
-    method_colors = {
-      GET = "TelescopeResultsNumber",
-      POST = "TelescopeResultsConstant",
-      PUT = "TelescopeResultsKeyword",
-      DELETE = "TelescopeResultsSpecialChar",
-      PATCH = "TelescopeResultsFunction",
-      -- React Router method types
-      ROUTE = "TelescopeResultsIdentifier",
-    },
-  }
-})
-```
-
-### Quick Start
-
-```lua
-{
-  "zerochae/endpoint.nvim",
-  dependencies = { "nvim-telescope/telescope.nvim" },
-  cmd = { "Endpoint" },
-  config = function()
-    require("endpoint").setup()
-  end,
-}
-```
-
-### packer.nvim
-
-```lua
-use {
-  "zerochae/endpoint.nvim",
-  requires = { "nvim-telescope/telescope.nvim" },
   config = function()
     require("endpoint").setup()
   end,
@@ -283,7 +180,7 @@ ui = {
 -- Result: /api/users
 ```
 
-## 🎯 Picker Options
+## Picker Options
 
 The plugin supports multiple UI interfaces for endpoint selection:
 
@@ -520,88 +417,6 @@ We'd love to include your framework! Please submit a PR with:
 - Registration in `lua/endpoint/scanner.lua`
 - Basic test cases
 - Update to the supported frameworks list in README
-
-### React Router Support
-
-The plugin supports client-side routing with React Router, focusing on route definitions and their components:
-
-**Supported Patterns:**
-- `<Route>` components: `<Route path="/users" element={<Users />} />`
-- Router configuration: `{ path: "/users", element: <Users /> }`
-- Nested and parameterized routes: `<Route path="/users/:id" element={<UserDetail />} />`
-- Wildcard routes: `<Route path="/dashboard/*" element={<Dashboard />} />`
-
-**Key Features:**
-- **Smart Component Resolution**: Automatically finds component files with support for:
-  - Index files: `Home` → `src/components/Home/index.tsx`
-  - Direct files: `About` → `src/components/About.tsx`
-  - Nested directories: `Users` → `src/pages/Users/index.jsx`
-  - Root level files: `Contact` → `Contact.js`
-- **Component Preview**: Telescope preview shows the actual component code instead of route definition
-- **Component Navigation**: Pressing Enter navigates to the component file, not the route definition
-
-**Commands:**
-```vim
-:Endpoint Route    " Find route definitions
-:Endpoint All      " Find all routes (default for React Router projects)
-```
-
-**Display Format:**
-- Clean route paths: `ROUTE /users`, `ROUTE /about`, `ROUTE /dashboard/*`
-- Component information available in preview and navigation
-
-**Component File Resolution:**
-The plugin searches for components in this order:
-1. Current directory: `./ComponentName.{tsx,jsx,ts,js}`
-2. Index files: `./ComponentName/index.{tsx,jsx,ts,js}`
-3. Common directories: `src/`, `app/`, `components/`, `pages/`
-4. Nested patterns: `src/components/`, `src/pages/`, `src/views/`, `src/containers/`
-
-**Configuration:**
-```lua
-require("endpoint").setup({
-  ui = {
-    method_icons = {
-      ROUTE = "🔗",    -- Route definitions
-    },
-    method_colors = {
-      ROUTE = "TelescopeResultsIdentifier",
-    },
-  },
-})
-```
-
-### Express.js Support
-
-The plugin supports various Express.js route patterns:
-
-**Standard Patterns:**
-```javascript
-// app.method() patterns
-app.get('/users', handler)
-app.post('/api/users', handler)
-app.put('/users/:id', handler)
-
-// router.method() patterns  
-router.get('/', handler)
-router.delete('/:id', handler)
-```
-
-**Destructured Patterns:**
-```javascript
-// Destructured methods
-const { get, post, put, delete: del } = app;
-
-get('/users', handler)          // Detected as GET /users
-post('/api/users', handler)     // Detected as POST /api/users  
-del('/users/:id', handler)      // Detected as DELETE /users/:id (del alias supported)
-```
-
-**Complex Routes:**
-```javascript
-app.get('/api/v1/users/:userId/posts/:postId', handler)  // Multi-parameter routes
-router.patch('/users/:id/profile', handler)             // Nested resource routes
-```
 
 ## 🤝 Contributing
 
