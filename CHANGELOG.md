@@ -1,5 +1,17 @@
 # Changelog
 
+## [1.7.0](https://github.com/zerochae/endpoint.nvim/compare/v1.6.0...v1.7.0) (2025-09-13)
+
+
+### Features
+
+* add common test utilities and refactor framework specs ([4608366](https://github.com/zerochae/endpoint.nvim/commit/4608366dfba182329b7e759f0ee53b9bff8a528f))
+
+
+### Bug Fixes
+
+* improve Spring framework detection to avoid conflicts with servlet ([0f52453](https://github.com/zerochae/endpoint.nvim/commit/0f52453eb4085a9f901cfe5e1b1636965953c3ba))
+
 ## [1.6.0](https://github.com/zerochae/endpoint.nvim/compare/v1.5.1...v1.6.0) (2025-09-13)
 
 
