@@ -1,64 +1,19 @@
 describe("Rails framework", function()
+  local test_helpers = require "tests.utils.framework_test_helpers"
   local rails = require "endpoint.frameworks.rails"
 
-  describe("framework detection", function()
-    it("should detect Rails project", function()
-      local fixture_path = "tests/fixtures/rails"
-      if vim.fn.isdirectory(fixture_path) == 1 then
-        local original_cwd = vim.fn.getcwd()
-        vim.fn.chdir(fixture_path)
+  describe("framework detection", test_helpers.create_detection_test_suite(rails, "rails"))
 
-        local detected = rails.detect()
-        assert.is_true(detected)
+  describe(
+    "search command generation",
+    test_helpers.create_search_cmd_test_suite(rails, {
+      GET = { "def index", "def show", "get " },
+      POST = { "def create", "post " },
+      ALL = { "def index", "def create", "def update", "get ", "post " },
+    })
+  )
 
-        vim.fn.chdir(original_cwd)
-      else
-        pending "Rails fixture directory not found"
-      end
-    end)
-
-    it("should not detect Rails in non-Rails directory", function()
-      local temp_dir = "/tmp/non-rails-test"
-      vim.fn.mkdir(temp_dir, "p")
-
-      local original_cwd = vim.fn.getcwd()
-      vim.fn.chdir(temp_dir)
-
-      local detected = rails.detect()
-      assert.is_false(detected)
-
-      vim.fn.chdir(original_cwd)
-      vim.fn.delete(temp_dir, "rf")
-    end)
-  end)
-
-  describe("search command generation", function()
-    it("should generate correct search command for GET method", function()
-      local cmd = rails.get_search_cmd "GET"
-      assert.is_string(cmd)
-      assert.is_not_nil(cmd:match "rg")
-      assert.is_not_nil(cmd:match "def index")
-      assert.is_not_nil(cmd:match "def show")
-      assert.is_not_nil(cmd:match "get ")
-    end)
-
-    it("should generate correct search command for POST method", function()
-      local cmd = rails.get_search_cmd "POST"
-      assert.is_string(cmd)
-      assert.is_not_nil(cmd:match "def create")
-      assert.is_not_nil(cmd:match "post ")
-    end)
-
-    it("should generate correct search command for ALL methods", function()
-      local cmd = rails.get_search_cmd "ALL"
-      assert.is_string(cmd)
-      assert.is_not_nil(cmd:match "def index")
-      assert.is_not_nil(cmd:match "def create")
-      assert.is_not_nil(cmd:match "def update")
-      assert.is_not_nil(cmd:match "get ")
-      assert.is_not_nil(cmd:match "post ")
-    end)
-
+  describe("search command file globs", function()
     it("should include proper file globs", function()
       local cmd = rails.get_search_cmd "GET"
       assert.is_not_nil(cmd:match "%-%-glob '%*%*/%*%.rb'")
@@ -68,48 +23,61 @@ describe("Rails framework", function()
     end)
   end)
 
-  describe("line parsing", function()
-    it("should parse controller action lines", function()
-      local line = "app/controllers/users_controller.rb:5:3:  def index"
-      local result = rails.parse_line(line, "GET")
+  describe(
+    "line parsing",
+    test_helpers.create_line_parsing_test_suite(rails, {
+      {
+        description = "should parse controller action lines",
+        line = "app/controllers/users_controller.rb:5:3:  def index",
+        method = "GET",
+        expected = {
+          method = "GET",
+          endpoint_path = "/users",
+          file_path = "app/controllers/users_controller.rb",
+          line_number = 5,
+          column = 3,
+        },
+      },
+      {
+        description = "should parse API controller action lines",
+        line = "app/controllers/api/v1/users_controller.rb:10:3:  def show",
+        method = "GET",
+        expected = {
+          method = "GET",
+          endpoint_path = "/api/v1/users/:id",
+          file_path = "app/controllers/api/v1/users_controller.rb",
+          line_number = 10,
+          column = 3,
+        },
+      },
+      {
+        description = "should parse routes.rb lines",
+        line = "config/routes.rb:5:3:  get '/health', to: 'health#check'",
+        method = "ALL",
+        expected = {
+          method = "GET",
+          endpoint_path = "/health",
+          file_path = "config/routes.rb",
+          line_number = 5,
+          column = 3,
+        },
+      },
+      {
+        description = "should parse root routes with action annotation",
+        line = "config/routes.rb:1:3:  root 'home#index'",
+        method = "ALL",
+        expected = {
+          method = "GET",
+          endpoint_path = "/",
+          file_path = "config/routes.rb",
+          line_number = 1,
+          column = 3,
+        },
+      },
+    })
+  )
 
-      assert.is_not_nil(result)
-      assert.equals("app/controllers/users_controller.rb", result and result.file_path)
-      assert.equals(5, result and result.line_number)
-      assert.equals(3, result and result.column)
-      assert.equals("GET", result and result.method)
-      assert.equals("/users", result and result.endpoint_path)
-      assert.equals("GET[users#index] /users", result and result.display_value)
-    end)
-
-    it("should parse API controller action lines", function()
-      local line = "app/controllers/api/v1/users_controller.rb:10:3:  def show"
-      local result = rails.parse_line(line, "GET")
-
-      assert.is_not_nil(result)
-      assert.equals("GET", result and result.method)
-      assert.equals("/api/v1/users/:id", result and result.endpoint_path)
-    end)
-
-    it("should parse routes.rb lines", function()
-      local line = "config/routes.rb:5:3:  get '/health', to: 'health#check'"
-      local result = rails.parse_line(line, "ALL")
-
-      assert.is_not_nil(result)
-      assert.equals("GET", result and result.method)
-      assert.equals("/health", result and result.endpoint_path)
-    end)
-
-    it("should parse root routes with action annotation", function()
-      local line = "config/routes.rb:1:3:  root 'home#index'"
-      local result = rails.parse_line(line, "ALL")
-
-      assert.is_not_nil(result)
-      assert.equals("GET", result and result.method)
-      assert.equals("/", result and result.endpoint_path)
-      assert.equals("GET[home#index] /", result and result.display_value)
-    end)
-
+  describe("additional parsing tests", function()
     it("should skip non-controller/routes files", function()
       local line = "app/models/user.rb:5:3:  def index"
       local result = rails.parse_line(line, "GET")
@@ -305,4 +273,3 @@ describe("Rails framework", function()
     end)
   end)
 end)
-

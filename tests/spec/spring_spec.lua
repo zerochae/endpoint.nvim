@@ -1,140 +1,88 @@
 describe("Spring framework", function()
-  -- Ensure package path is available for module loading
-  if _G.original_package_path then
-    package.path = _G.original_package_path
-  end
+  local test_helpers = require "tests.utils.framework_test_helpers"
   local spring = require "endpoint.frameworks.spring"
 
-  describe("framework detection", function()
-    it("should detect Spring Boot project", function()
-      local fixture_path = "tests/fixtures/spring"
-      if vim.fn.isdirectory(fixture_path) == 1 then
-        local original_cwd = vim.fn.getcwd()
-        vim.fn.chdir(fixture_path)
-        -- Restore original package path after changing directories
-        package.path = _G.original_package_path
+  describe("framework detection", test_helpers.create_detection_test_suite(spring, "spring"))
 
-        local detected = spring.detect()
-        assert.is_true(detected)
+  describe(
+    "search command generation",
+    test_helpers.create_search_cmd_test_suite(spring, {
+      GET = { "@GetMapping" },
+      POST = { "@PostMapping" },
+      PUT = { "@PutMapping" },
+      DELETE = { "@DeleteMapping" },
+      PATCH = { "@PatchMapping" },
+      ALL = { "@GetMapping", "@PostMapping" },
+    })
+  )
 
-        vim.fn.chdir(original_cwd)
-      else
-        pending "Spring fixture directory not found"
-      end
-    end)
+  describe(
+    "line parsing",
+    test_helpers.create_line_parsing_test_suite(spring, {
+      {
+        description = "should parse simple @GetMapping line",
+        line = 'src/main/java/com/example/Controller.java:10:5:    @GetMapping("/api/users")',
+        method = "GET",
+        expected = {
+          method = "GET",
+          endpoint_path = "/api/users",
+          file_path = "src/main/java/com/example/Controller.java",
+          line_number = 10,
+          column = 5,
+        },
+      },
+      {
+        description = "should parse @PostMapping with value parameter",
+        line = 'src/main/java/com/example/Controller.java:15:5:    @PostMapping(value = "/api/create")',
+        method = "POST",
+        expected = {
+          method = "POST",
+          endpoint_path = "/api/create",
+          file_path = "src/main/java/com/example/Controller.java",
+          line_number = 15,
+          column = 5,
+        },
+      },
+      {
+        description = "should parse @RequestMapping with method parameter",
+        line = 'src/main/java/com/example/Controller.java:20:5:    @RequestMapping(value = "/api/test", method = RequestMethod.GET)',
+        method = "GET",
+        expected = {
+          method = "GET",
+          endpoint_path = "/api/test",
+          file_path = "src/main/java/com/example/Controller.java",
+          line_number = 20,
+          column = 5,
+        },
+      },
+      {
+        description = "should handle path parameter instead of value",
+        line = 'src/main/java/com/example/Controller.java:25:5:    @GetMapping(path = "/api/version")',
+        method = "GET",
+        expected = {
+          method = "GET",
+          endpoint_path = "/api/version",
+          file_path = "src/main/java/com/example/Controller.java",
+          line_number = 25,
+          column = 5,
+        },
+      },
+      {
+        description = "should handle path variables",
+        line = 'src/main/java/com/example/Controller.java:30:5:    @GetMapping("/api/users/{id}")',
+        method = "GET",
+        expected = {
+          method = "GET",
+          endpoint_path = "/api/users/{id}",
+          file_path = "src/main/java/com/example/Controller.java",
+          line_number = 30,
+          column = 5,
+        },
+      },
+    })
+  )
 
-    it("should not detect Spring in non-Spring directory", function()
-      local temp_dir = "/tmp/non_spring_" .. os.time()
-      vim.fn.mkdir(temp_dir, "p")
-      local original_cwd = vim.fn.getcwd()
-      vim.fn.chdir(temp_dir)
-      -- Restore original package path after changing directories
-      package.path = _G.original_package_path
-
-      local detected = spring.detect()
-      assert.is_false(detected)
-
-      vim.fn.chdir(original_cwd)
-      vim.fn.delete(temp_dir, "rf")
-    end)
-  end)
-
-  describe("search command generation", function()
-    it("should generate search command for GET method", function()
-      local cmd = spring.get_search_cmd "GET"
-      assert.is_string(cmd)
-      assert.is_true(cmd:match "rg" ~= nil)
-      assert.is_true(cmd:match "@GetMapping" ~= nil)
-    end)
-
-    it("should generate search command for POST method", function()
-      local cmd = spring.get_search_cmd "POST"
-      assert.is_string(cmd)
-      assert.is_true(cmd:match "@PostMapping" ~= nil)
-    end)
-
-    it("should generate search command for PUT method", function()
-      local cmd = spring.get_search_cmd "PUT"
-      assert.is_string(cmd)
-      assert.is_true(cmd:match "@PutMapping" ~= nil)
-    end)
-
-    it("should generate search command for DELETE method", function()
-      local cmd = spring.get_search_cmd "DELETE"
-      assert.is_string(cmd)
-      assert.is_true(cmd:match "@DeleteMapping" ~= nil)
-    end)
-
-    it("should generate search command for PATCH method", function()
-      local cmd = spring.get_search_cmd "PATCH"
-      assert.is_string(cmd)
-      assert.is_true(cmd:match "@PatchMapping" ~= nil)
-    end)
-
-    it("should generate search command for ALL method", function()
-      local cmd = spring.get_search_cmd "ALL"
-      assert.is_string(cmd)
-      -- Should contain multiple mapping annotations
-      assert.is_true(cmd:match "@GetMapping" ~= nil)
-      assert.is_true(cmd:match "@PostMapping" ~= nil)
-    end)
-  end)
-
-  describe("line parsing", function()
-    it("should parse simple @GetMapping line", function()
-      local line = 'src/main/java/com/example/Controller.java:10:5:    @GetMapping("/api/users")'
-      local result = spring.parse_line(line, "GET")
-
-      assert.is_not_nil(result)
-      assert.is_table(result)
-      assert.are.equal("GET", result and result.method)
-      assert.are.equal("/api/users", result and result.endpoint_path)
-      assert.are.equal("src/main/java/com/example/Controller.java", result and result.file_path)
-      assert.are.equal(10, result and result.line_number)
-      assert.are.equal(5, result and result.column)
-    end)
-
-    it("should parse @PostMapping with value parameter", function()
-      local line = 'src/main/java/com/example/Controller.java:15:5:    @PostMapping(value = "/api/create")'
-      local result = spring.parse_line(line, "POST")
-
-      assert.is_not_nil(result)
-      assert.is_table(result)
-      assert.are.equal("POST", result and result.method)
-      assert.are.equal("/api/create", result and result.endpoint_path)
-    end)
-
-    it("should parse @RequestMapping with method parameter", function()
-      local line =
-        'src/main/java/com/example/Controller.java:20:5:    @RequestMapping(value = "/api/test", method = RequestMethod.GET)'
-      local result = spring.parse_line(line, "GET")
-
-      assert.is_not_nil(result)
-      assert.is_table(result)
-      assert.are.equal("GET", result and result.method)
-      assert.are.equal("/api/test", result and result.endpoint_path)
-    end)
-
-    it("should handle path parameter instead of value", function()
-      local line = 'src/main/java/com/example/Controller.java:25:5:    @GetMapping(path = "/api/version")'
-      local result = spring.parse_line(line, "GET")
-
-      assert.is_not_nil(result)
-      assert.is_table(result)
-      assert.are.equal("GET", result and result.method)
-      assert.are.equal("/api/version", result and result.endpoint_path)
-    end)
-
-    it("should handle path variables", function()
-      local line = 'src/main/java/com/example/Controller.java:30:5:    @GetMapping("/api/users/{id}")'
-      local result = spring.parse_line(line, "GET")
-
-      assert.is_not_nil(result)
-      assert.is_table(result)
-      assert.are.equal("GET", result and result.method)
-      assert.are.equal("/api/users/{id}", result and result.endpoint_path)
-    end)
-
+  describe("additional parsing tests", function()
     it("should combine controller base path with method path", function()
       -- This would need to be tested with actual fixture files that have @RequestMapping on controller
       local line = "tests/fixtures/spring/src/main/java/com/example/OrderController.java:11:5:    @GetMapping"
@@ -147,18 +95,6 @@ describe("Spring framework", function()
       else
         pending "Controller base path parsing needs fixture file context"
       end
-    end)
-
-    it("should return nil for invalid lines", function()
-      local line = "invalid line format"
-      local result = spring.parse_line(line, "GET")
-      assert.is_nil(result)
-    end)
-
-    it("should return nil for empty lines", function()
-      local line = ""
-      local result = spring.parse_line(line, "GET")
-      assert.is_nil(result)
     end)
   end)
 
@@ -199,39 +135,21 @@ describe("Spring framework", function()
     end)
   end)
 
-  describe("integration with fixtures", function()
-    it("should correctly parse real Spring fixture files", function()
-      local fixture_path = "tests/fixtures/spring"
-      if vim.fn.isdirectory(fixture_path) == 1 then
-        local original_cwd = vim.fn.getcwd()
-        vim.fn.chdir(fixture_path)
-        -- Restore original package path after changing directories
-        package.path = _G.original_package_path
+  describe(
+    "integration with fixtures",
+    test_helpers.create_integration_test_suite(spring, "spring", function(spring_module)
+      -- Additional Spring-specific integration test
+      local sample_line = 'src/main/java/com/example/UserController.java:42:5:    @GetMapping("/{id}")'
+      local result = spring_module.parse_line(sample_line, "GET")
 
-        -- Test that framework is detected
-        assert.is_true(spring.detect())
-
-        -- Test that search command works
-        local cmd = spring.get_search_cmd "GET"
-        assert.is_string(cmd)
-
-        -- Test parsing with actual fixture data
-        local sample_line = 'src/main/java/com/example/UserController.java:42:5:    @GetMapping("/{id}")'
-        local result = spring.parse_line(sample_line, "GET")
-
-        if result then
-          assert.is_table(result)
-          assert.are.equal("GET", result and result.method)
-          assert.is_string(result.endpoint_path)
-          assert.is_string(result.file_path)
-        end
-
-        vim.fn.chdir(original_cwd)
-      else
-        pending "Spring fixture directory not found"
+      if result then
+        assert.is_table(result)
+        assert.are.equal("GET", result and result.method)
+        assert.is_string(result.endpoint_path)
+        assert.is_string(result.file_path)
       end
     end)
-  end)
+  )
 
   describe("edge cases", function()
     it("should handle lines with extra whitespace", function()

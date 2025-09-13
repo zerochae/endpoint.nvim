@@ -1,39 +1,8 @@
 describe("React Router framework", function()
-  -- Ensure package path is available for module loading
-  if _G.original_package_path then
-    package.path = _G.original_package_path
-  end
+  local test_helpers = require "tests.utils.framework_test_helpers"
   local react_router = require "endpoint.frameworks.react_router"
 
-  describe("framework detection", function()
-    it("should detect React Router project", function()
-      local fixture_path = "tests/fixtures/react_router"
-      if vim.fn.isdirectory(fixture_path) == 1 then
-        local original_cwd = vim.fn.getcwd()
-        vim.fn.chdir(fixture_path)
-
-        local detected = react_router.detect()
-        assert.is_true(detected)
-
-        vim.fn.chdir(original_cwd)
-      else
-        pending "React Router fixture directory not found"
-      end
-    end)
-
-    it("should not detect React Router in non-React directory", function()
-      local temp_dir = "/tmp/non_react_" .. os.time()
-      vim.fn.mkdir(temp_dir, "p")
-      local original_cwd = vim.fn.getcwd()
-      vim.fn.chdir(temp_dir)
-
-      local detected = react_router.detect()
-      assert.is_false(detected)
-
-      vim.fn.chdir(original_cwd)
-      vim.fn.delete(temp_dir, "rf")
-    end)
-  end)
+  describe("framework detection", test_helpers.create_detection_test_suite(react_router, "react_router"))
 
   describe("search command generation", function()
     it("should generate search command for ROUTE method", function()
@@ -70,7 +39,7 @@ describe("React Router framework", function()
       local post_cmd = react_router.get_search_cmd "POST"
       local put_cmd = react_router.get_search_cmd "PUT"
       local delete_cmd = react_router.get_search_cmd "DELETE"
-      
+
       -- All commands should be identical since they all map to ALL
       assert.are.equal(get_cmd, post_cmd)
       assert.are.equal(post_cmd, put_cmd)
@@ -81,18 +50,18 @@ describe("React Router framework", function()
       local route_cmd = react_router.get_search_cmd "ROUTE"
       local all_cmd = react_router.get_search_cmd "ALL"
       local get_cmd = react_router.get_search_cmd "GET"
-      
+
       -- All commands should be identical (ROUTE patterns only)
       assert.are.equal(route_cmd, all_cmd)
       assert.are.equal(all_cmd, get_cmd)
-      
+
       -- Should contain Route and path patterns
-      assert.is_true(route_cmd:match("Route") ~= nil)
-      assert.is_true(route_cmd:match("path:") ~= nil)
-      
+      assert.is_true(route_cmd:match "Route" ~= nil)
+      assert.is_true(route_cmd:match "path:" ~= nil)
+
       -- Should not contain link/navigate patterns
-      assert.is_false(route_cmd:match("Link") ~= nil)
-      assert.is_false(route_cmd:match("navigate") ~= nil)
+      assert.is_false(route_cmd:match "Link" ~= nil)
+      assert.is_false(route_cmd:match "navigate" ~= nil)
     end)
   end)
 
@@ -122,10 +91,9 @@ describe("React Router framework", function()
       assert.are.equal("/about", result and result.endpoint_path)
       -- Display value should be clean (no component info)
       assert.are.equal("ROUTE /about", result.display_value)
-      -- Component info should be available separately  
+      -- Component info should be available separately
       assert.are.equal("About", result.component_name)
     end)
-
 
     it("should handle routes with parameters", function()
       local line = 'App.jsx:15:5:<Route path="/users/:id" element={<UserDetail />} />'
@@ -225,16 +193,16 @@ describe("React Router framework", function()
 
     it("should always return ROUTE method regardless of input method", function()
       local line = 'App.jsx:10:5:<Route path="/users" element={<Users />} />'
-      
+
       local result_get = react_router.parse_line(line, "GET")
       local result_post = react_router.parse_line(line, "POST")
       local result_route = react_router.parse_line(line, "ROUTE")
-      
+
       -- All should return ROUTE as method regardless of input
       assert.are.equal("ROUTE", result_get and result_get.method)
       assert.are.equal("ROUTE", result_post and result_post.method)
       assert.are.equal("ROUTE", result_route and result_route.method)
-      
+
       -- All results should be identical
       if result_get and result_post then
         assert.are.equal(result_get.endpoint_path, result_post.endpoint_path)
@@ -247,7 +215,7 @@ describe("React Router framework", function()
       -- This test will verify component resolution in actual fixture environment
       local line = 'App.jsx:10:5:<Route path="/users" element={<Home />} />'
       local result = react_router.parse_line(line, "ROUTE")
-      
+
       assert.is_table(result)
       assert.are.equal("ROUTE", result.method)
       assert.are.equal("/users", result.endpoint_path)
@@ -256,3 +224,4 @@ describe("React Router framework", function()
     end)
   end)
 end)
+

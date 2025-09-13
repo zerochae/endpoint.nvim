@@ -1,35 +1,8 @@
 describe("Symfony framework", function()
+  local test_helpers = require "tests.utils.framework_test_helpers"
   local symfony = require "endpoint.frameworks.symfony"
 
-  describe("framework detection", function()
-    it("should detect Symfony project", function()
-      local fixture_path = "tests/fixtures/symfony"
-      if vim.fn.isdirectory(fixture_path) == 1 then
-        local original_cwd = vim.fn.getcwd()
-        vim.fn.chdir(fixture_path)
-
-        local detected = symfony.detect()
-        assert.is_true(detected)
-
-        vim.fn.chdir(original_cwd)
-      else
-        pending "Symfony fixture directory not found"
-      end
-    end)
-
-    it("should not detect Symfony in non-PHP directory", function()
-      local temp_dir = "/tmp/non_symfony_" .. os.time()
-      vim.fn.mkdir(temp_dir, "p")
-      local original_cwd = vim.fn.getcwd()
-      vim.fn.chdir(temp_dir)
-
-      local detected = symfony.detect()
-      assert.is_false(detected)
-
-      vim.fn.chdir(original_cwd)
-      vim.fn.delete(temp_dir, "rf")
-    end)
-  end)
+  describe("framework detection", test_helpers.create_detection_test_suite(symfony, "symfony"))
 
   describe("search command generation", function()
     it("should generate search command for GET method", function()
