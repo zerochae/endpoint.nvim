@@ -10,7 +10,7 @@ local M = {}
 function M.create_search_cmd_generator(method_patterns, file_globs, exclude_globs, extra_flags)
   exclude_globs = exclude_globs or {}
   extra_flags = extra_flags or {}
-  
+
   return function(method)
     local patterns = method_patterns[method:upper()] or method_patterns.ALL
     if not patterns then
@@ -19,27 +19,27 @@ function M.create_search_cmd_generator(method_patterns, file_globs, exclude_glob
 
     -- Base ripgrep command
     local cmd = "rg --line-number --column --no-heading --color=never"
-    
+
     -- Add extra flags
     for _, flag in ipairs(extra_flags) do
       cmd = cmd .. " " .. flag
     end
-    
+
     -- Add file include patterns
     for _, glob in ipairs(file_globs) do
       cmd = cmd .. " --glob '" .. glob .. "'"
     end
-    
+
     -- Add file exclude patterns
     for _, glob in ipairs(exclude_globs) do
       cmd = cmd .. " --glob '!" .. glob .. "/**'"
     end
-    
+
     -- Add search patterns
     for _, pattern in ipairs(patterns) do
       cmd = cmd .. " -e '" .. pattern .. "'"
     end
-    
+
     return cmd
   end
 end
@@ -64,3 +64,4 @@ M.common_globs = {
 }
 
 return M
+

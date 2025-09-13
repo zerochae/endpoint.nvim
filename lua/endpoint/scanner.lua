@@ -13,6 +13,7 @@ local frameworks = {
   rails = require "endpoint.frameworks.rails",
   express = require "endpoint.frameworks.express",
   react_router = require "endpoint.frameworks.react_router",
+  ktor = require "endpoint.frameworks.ktor",
 }
 
 -- Main scan function
