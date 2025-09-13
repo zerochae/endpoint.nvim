@@ -15,9 +15,11 @@ function M.detect()
   local has_ktor_deps = fs.file_contains("build.gradle", {
     "ktor-server",
     "io.ktor",
+    "io.ktor.plugin",
   }) or fs.file_contains("build.gradle.kts", {
     "ktor-server",
     "io.ktor",
+    "io.ktor.plugin",
   })
 
   -- Check for Kotlin files with Ktor routing
@@ -73,7 +75,7 @@ function M.parse_line(line, method)
   end
 
   -- Extract HTTP method and path from various Ktor patterns
-  local http_method, endpoint_path = M.extract_route_info(content, method)
+  local http_method, endpoint_path = M.extract_route_info(content, method, file_path, tonumber(line_number))
   if not http_method or not endpoint_path then
     return nil
   end
@@ -91,33 +93,36 @@ end
 -- Extract route information from Ktor patterns
 ---@param content string
 ---@param search_method string
+---@param file_path string?
+---@param line_number number?
 ---@return string?, string?
-function M.extract_route_info(content, search_method)
+function M.extract_route_info(content, search_method, file_path, line_number)
   -- Pattern 1: Basic routing - get("/path") { }
   local method, path = content:match '(%w+)%("([^"]+)"'
   if method and path then
-    return method:upper(), path
+    -- Get full path with context
+    local full_path = M.get_full_path(path, file_path, line_number)
+    return method:upper(), full_path
   end
 
   -- Pattern 2: Basic routing with single quotes - get('/path') { }
   method, path = content:match "(%w+)%('([^']+)'"
   if method and path then
-    return method:upper(), path
+    local full_path = M.get_full_path(path, file_path, line_number)
+    return method:upper(), full_path
   end
 
   -- Pattern 3: Empty path - get() { } within route("prefix") block
   method = content:match "(%w+)%(%)%s*{"
   if method then
-    -- Try to extract base path from surrounding route() context
-    local base_path = M.get_route_base_path(content) or "/"
-    return method:upper(), base_path
+    local full_path = M.get_full_path("", file_path, line_number)
+    return method:upper(), full_path
   end
 
   -- Pattern 4: Parameter-only path - get("{id}") { }
   method, path = content:match '(%w+)%("([^"]*)"'
   if method and path and path:match "^{" then
-    local base_path = M.get_route_base_path(content) or ""
-    local full_path = base_path == "/" and ("/" .. path) or (base_path .. "/" .. path)
+    local full_path = M.get_full_path(path, file_path, line_number)
     return method:upper(), full_path
   end
 
@@ -138,7 +143,97 @@ function M.extract_route_info(content, search_method)
   return nil, nil
 end
 
--- Extract base path from route() context
+-- Get full path by analyzing file context for nested routing
+---@param path string The path segment from the current line
+---@param file_path string? Path to the file being analyzed
+---@param line_number number? Line number of the current route
+---@return string The full constructed path
+function M.get_full_path(path, file_path, line_number)
+  if not file_path or not line_number then
+    return path ~= "" and path or "/"
+  end
+
+  local base_paths = M.extract_base_paths_from_file(file_path, line_number)
+  local full_path = ""
+  
+  -- Build full path from base paths
+  for _, base_path in ipairs(base_paths) do
+    full_path = full_path .. base_path
+  end
+  
+  -- Add the current path segment
+  if path ~= "" then
+    if not path:match "^/" then
+      full_path = full_path .. "/" .. path
+    else
+      full_path = full_path .. path
+    end
+  end
+  
+  -- Ensure path starts with /
+  if full_path == "" then
+    full_path = "/"
+  elseif not full_path:match "^/" then
+    full_path = "/" .. full_path
+  end
+  
+  return full_path
+end
+
+-- Extract base paths from nested route() blocks
+---@param file_path string
+---@param target_line number
+---@return string[] Array of base path segments
+function M.extract_base_paths_from_file(file_path, target_line)
+  local base_paths = {}
+  
+  -- Read file content
+  local file = io.open(file_path, "r")
+  if not file then
+    return base_paths
+  end
+  
+  local lines = {}
+  for line in file:lines() do
+    table.insert(lines, line)
+  end
+  file:close()
+  
+  -- Track nesting level and extract route paths
+  local bracket_depth = 0
+  local route_stack = {}
+  
+  for i = 1, target_line - 1 do
+    local line = lines[i]
+    if line then
+      -- Count opening and closing brackets to track nesting
+      local _, open_count = line:gsub("{", "")
+      local _, close_count = line:gsub("}", "")
+      
+      -- Check for route("path") declarations
+      local route_path = line:match 'route%("([^"]+)"' or line:match "route%('([^']+)'"
+      if route_path then
+        table.insert(route_stack, { path = route_path, depth = bracket_depth })
+      end
+      
+      bracket_depth = bracket_depth + open_count - close_count
+      
+      -- Remove routes that are no longer in scope
+      while #route_stack > 0 and route_stack[#route_stack].depth >= bracket_depth do
+        table.remove(route_stack)
+      end
+    end
+  end
+  
+  -- Extract paths from current scope
+  for _, route_info in ipairs(route_stack) do
+    table.insert(base_paths, route_info.path)
+  end
+  
+  return base_paths
+end
+
+-- Extract base path from route() context (legacy function, kept for compatibility)
 ---@param content string
 ---@return string?
 function M.get_route_base_path(content)
