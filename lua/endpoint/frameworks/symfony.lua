@@ -73,12 +73,10 @@ function M.get_search_cmd(method)
     },
   }
 
-  local method_patterns = patterns[method:upper()] or patterns.ALL
-
   -- Use utility function for search command generation
   local search_utils = require "endpoint.utils.search"
   local search_cmd_generator = search_utils.create_search_cmd_generator(
-    method_patterns,
+    patterns,
     search_utils.common_globs.php,
     { "**/vendor", "**/var" }, -- Symfony-specific excludes  
     { "--case-sensitive" } -- Symfony routes are case-sensitive
