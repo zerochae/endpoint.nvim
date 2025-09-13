@@ -47,7 +47,10 @@ function M.find_endpoints(method, opts)
   end
 
   -- Show endpoints in picker
-  local picker_opts = vim.tbl_extend("force", config.get_value "picker_opts", opts.picker_opts or {})
+  local all_picker_opts = config.get_value "picker_opts"
+  local current_picker_opts = all_picker_opts[picker_name] or {}
+  local user_picker_opts = (opts.picker_opts and opts.picker_opts[picker_name]) or opts.picker_opts or {}
+  local picker_opts = vim.tbl_deep_extend("force", current_picker_opts, user_picker_opts)
   picker.show(endpoints, picker_opts)
 end
 
