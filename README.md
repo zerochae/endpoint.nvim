@@ -4,6 +4,7 @@ A powerful Neovim plugin for quickly finding and navigating web framework API en
 
 **Supported Frameworks:**
 - 🍃 Spring Boot (Java)
+- ☕ Java Servlet (Java)
 - 🐦 NestJS (TypeScript/JavaScript)
 - 🎼 Symfony (PHP)
 - ⚡ FastAPI (Python)
@@ -13,7 +14,7 @@ A powerful Neovim plugin for quickly finding and navigating web framework API en
 
 ## ✨ Features
 
-- 🔍 **Multi-Framework Support**: Automatically detects and supports Spring Boot, NestJS, Symfony, FastAPI, Rails, Express, and React Router
+- 🔍 **Multi-Framework Support**: Automatically detects and supports multiple web frameworks (see supported frameworks above)
 - 🎯 **Multiple Picker Interfaces**: Choose between Telescope, vim.ui.select, or Snacks.nvim pickers (Snacks picker in development)
 - ⚡ **Smart Caching**: Three cache modes - none (real-time), session, and persistent disk storage
 - 📍 **Precise Navigation**: Jump directly to the exact line where endpoints are defined
@@ -589,15 +590,8 @@ The plugin includes comprehensive test suites for all supported frameworks. Test
 make test
 
 # Test specific frameworks
-make test-spring      # Spring Boot framework tests
-make test-nestjs      # NestJS framework tests  
-make test-symfony     # Symfony framework tests
-make test-fastapi     # FastAPI framework tests
-make test-rails       # Rails framework tests
-make test-oas-rails   # Rails with OAS annotations tests
-
-# Run all framework tests together
-make test-frameworks
+make test-frameworks  # Run all framework tests together
+# Individual framework tests: make test-spring, make test-servlet, etc.
 
 # Test specific components
 make test-cache       # Cache functionality tests
@@ -609,18 +603,9 @@ make test-pickers     # Picker interface tests
 ```text
 tests/
 ├── fixtures/          # Test fixture projects for each framework
-│   ├── spring/        # Sample Spring Boot project
-│   ├── nestjs/        # Sample NestJS project  
-│   ├── symfony/       # Sample Symfony project
-│   ├── fastapi/       # Sample FastAPI project
-│   └── rails/         # Sample Rails project
+│   └── [framework]/   # Sample projects for each supported framework
 ├── spec/              # Test specifications
-│   ├── spring_spec.lua
-│   ├── nestjs_spec.lua
-│   ├── symfony_spec.lua
-│   ├── fastapi_spec.lua
-│   ├── rails_spec.lua
-│   └── oas_rails_spec.lua
+│   └── [framework]_spec.lua # Tests for each framework
 └── minit.lua          # Test initialization
 ```
 
@@ -698,14 +683,7 @@ This helps us:
 
 ### Framework Detection
 
-The plugin uses these files to detect your framework:
-
-- **Spring Boot**: `pom.xml`, `build.gradle`, `build.gradle.kts`, `application.properties`, `application.yml`
-- **NestJS**: `package.json` (with @nestjs dependencies), `nest-cli.json`
-- **Symfony**: `composer.json` (with symfony framework), `symfony.lock`
-- **FastAPI**: `main.py`, `requirements.txt` (with FastAPI)
-- **Rails**: `Gemfile`, `config/routes.rb`, `config/application.rb`, `app/controllers`
-- **Express**: `package.json` (with express dependency)
+Each framework is automatically detected based on project files and dependencies. The plugin scans for framework-specific configuration files, dependency declarations, and code patterns to determine which frameworks are present in your project.
 
 ## 📄 License
 
