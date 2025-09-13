@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.5.0](https://github.com/zerochae/endpoint.nvim/compare/v1.4.0...v1.5.0) (2025-09-13)
+
+
+### Features
+
+* **express:** add comprehensive Express.js framework support ([6e54749](https://github.com/zerochae/endpoint.nvim/commit/6e54749f0687d6b673d187ae406a3fb2b31861d2))
+
 ## [1.4.0](https://github.com/zerochae/endpoint.nvim/compare/v1.3.1...v1.4.0) (2025-09-13)
 
 
