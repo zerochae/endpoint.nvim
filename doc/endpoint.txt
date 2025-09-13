@@ -245,14 +245,16 @@ Vim UI Select:~
   • Integrates with vim.ui.select overrides (like dressing.nvim)
   • Lightweight and simple
 
-Snacks Picker (In Development):~
+Snacks Picker:~
 >lua
     require("endpoint").setup({
-      picker = "snacks", -- Coming soon
+      picker = "snacks",
     })
 <
   • Modern picker interface using Snacks.nvim
-  • Currently in development
+  • File preview with precise line highlighting
+  • Fuzzy matching with file position patterns (`file:line:col`)
+  • Clean, fast interface
 
 ==============================================================================
 9. CACHING                                        *endpoint-caching*
