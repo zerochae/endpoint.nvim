@@ -2,30 +2,30 @@
 local M = {}
 
 -- Detection
+---@return boolean
 function M.detect()
-  -- Check for FastAPI-related files
-  if vim.fn.filereadable "requirements.txt" == 1 then
-    local content = vim.fn.readfile "requirements.txt"
-    for _, line in ipairs(content) do
-      if line:match "fastapi" then
-        return true
-      end
-    end
+  local fs = require "endpoint.utils.fs"
+
+  -- Quick check for Python project files first
+  if not fs.has_file { "requirements.txt", "pyproject.toml", "setup.py", "Pipfile" } then
+    return false
   end
 
-  if vim.fn.filereadable "pyproject.toml" == 1 then
-    local content = vim.fn.readfile "pyproject.toml"
-    for _, line in ipairs(content) do
-      if line:match "fastapi" then
-        return true
-      end
-    end
+  -- Check for FastAPI dependencies
+  if fs.file_contains("requirements.txt", "fastapi") then
+    return true
+  end
+
+  if fs.file_contains("pyproject.toml", "fastapi") then
+    return true
   end
 
   return false
 end
 
 -- Search command generation
+---@param method string
+---@return string
 function M.get_search_cmd(method)
   local patterns = {
     GET = { "@app.get", "@router.get" },
@@ -63,21 +63,26 @@ function M.get_search_cmd(method)
 end
 
 -- Line parsing
+---@param line string
+---@param method string
+---@return endpoint.entry?
 function M.parse_line(line, method)
   local file_path, line_number, column, content = line:match "([^:]+):(%d+):(%d+):(.*)"
   if not file_path then
     return nil
   end
 
+  line_number = tonumber(line_number)
+
   -- Extract endpoint path (handle multiline decorators)
-  local endpoint_path = M.extract_path_multiline(file_path, tonumber(line_number), content)
+  local endpoint_path = line_number and M.extract_path_multiline(file_path, line_number, content)
   if not endpoint_path then
     return nil
   end
 
   -- Try to get base path from router prefix
-  local base_path = M.get_base_path(file_path, tonumber(line_number))
-  local full_path = M.combine_paths(base_path, endpoint_path)
+  local base_path = line_number and M.get_base_path(file_path, line_number)
+  local full_path = base_path and M.combine_paths(base_path, endpoint_path)
 
   -- Extract HTTP method
   local parsed_method = M.extract_method(content, method)
@@ -93,6 +98,8 @@ function M.parse_line(line, method)
 end
 
 -- Extract path from FastAPI decorators (single line)
+---@param content string
+---@return string?
 function M.extract_path(content)
   -- @app.get("/path"), @router.post("/path"), etc.
   local path = content:match "@[^%.]*%.%w+%s*%(%s*[\"']([^\"']*)[\"']"
@@ -104,6 +111,10 @@ function M.extract_path(content)
 end
 
 -- Extract path handling multiline decorators
+---@param file_path string
+---@param start_line number
+---@param content string
+---@return string?
 function M.extract_path_multiline(file_path, start_line, content)
   -- First try single line extraction
   local path = M.extract_path(content)
@@ -146,6 +157,9 @@ function M.extract_path_multiline(file_path, start_line, content)
 end
 
 -- Extract HTTP method
+---@param content string
+---@param search_method string
+---@return string
 function M.extract_method(content, search_method)
   -- If searching for specific method, return it
   if search_method ~= "ALL" then
@@ -162,6 +176,9 @@ function M.extract_method(content, search_method)
 end
 
 -- Get base path from router prefix
+---@param file_path string
+---@param line_number number
+---@return string
 function M.get_base_path(file_path, line_number)
   -- First try to find prefix in current file
   local prefix = M.find_router_prefix(file_path, line_number)
@@ -174,6 +191,9 @@ function M.get_base_path(file_path, line_number)
 end
 
 -- Get router prefix (alias for find_router_prefix for testing compatibility)
+---@param file_path string
+---@param line_number? number
+---@return string
 function M.get_router_prefix(file_path, line_number)
   -- If line_number is not provided, scan the entire file
   if not line_number then
@@ -183,6 +203,9 @@ function M.get_router_prefix(file_path, line_number)
 end
 
 -- Find router prefix in current file
+---@param file_path string
+---@param line_number number
+---@return string
 function M.find_router_prefix(file_path, line_number)
   local file = io.open(file_path, "r")
   if not file then
@@ -244,6 +267,8 @@ function M.find_router_prefix(file_path, line_number)
 end
 
 -- Infer prefix from file path
+---@param file_path string
+---@return string
 function M.infer_prefix_from_path(file_path)
   -- Look for common FastAPI directory patterns
   -- e.g., /controllers/users/create_user.py -> /users
@@ -283,6 +308,9 @@ function M.infer_prefix_from_path(file_path)
 end
 
 -- Combine base path with endpoint path
+---@param base string
+---@param endpoint string
+---@return string
 function M.combine_paths(base, endpoint)
   if not base or base == "" then
     return endpoint

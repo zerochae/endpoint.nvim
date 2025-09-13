@@ -13,6 +13,9 @@ local frameworks = {
 }
 
 -- Main scan function
+---@param method? string
+---@param options? table
+---@return endpoint.entry[]
 function M.scan(method, options)
   method = method or "ALL"
   options = options or {}
@@ -94,6 +97,7 @@ function M.scan(method, options)
 end
 
 -- Framework detection
+---@return endpoint.framework?
 function M.detect_framework()
   for _, framework in pairs(frameworks) do
     if framework.detect() then
@@ -104,6 +108,7 @@ function M.detect_framework()
 end
 
 -- Prepare preview data for picker
+---@param endpoints endpoint.entry[]
 function M.prepare_preview(endpoints)
   for _, endpoint in ipairs(endpoints) do
     local preview_key = endpoint.method .. " " .. endpoint.endpoint_path
@@ -112,11 +117,15 @@ function M.prepare_preview(endpoints)
 end
 
 -- Get cached endpoints for a method
+---@param method string
+---@return endpoint.entry[]
 function M.get_cached_endpoints(method)
   return cache.get_endpoints(method)
 end
 
 -- Get preview data for an endpoint
+---@param endpoint_key string
+---@return endpoint.cache.preview?
 function M.get_preview_data(endpoint_key)
   return cache.get_preview(endpoint_key)
 end
@@ -127,11 +136,13 @@ function M.clear_cache()
 end
 
 -- Get cache statistics
+---@return endpoint.cache.stats
 function M.get_cache_stats()
   return cache.get_stats()
 end
 
 -- Initialize scanner with config
+---@param config table
 function M.setup(config)
   config = config or {}
   cache.set_mode(config.cache_mode or "session")

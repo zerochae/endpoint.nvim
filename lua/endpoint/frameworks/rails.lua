@@ -2,14 +2,20 @@
 local M = {}
 
 -- Detection
+---@return boolean
 function M.detect()
-  return vim.fn.filereadable "Gemfile" == 1
-    or vim.fn.filereadable "config/routes.rb" == 1
-    or vim.fn.filereadable "config/application.rb" == 1
-    or vim.fn.isdirectory "app/controllers" == 1
+  local fs = require "endpoint.utils.fs"
+  return fs.has_file {
+    "Gemfile",
+    "config/routes.rb",
+    "config/application.rb",
+    "app/controllers",
+  }
 end
 
 -- Search command generation
+---@param method string
+---@return string
 function M.get_search_cmd(method)
   local controller_patterns = {
     GET = { "def index", "def show", "def new", "def edit" },
@@ -71,6 +77,9 @@ function M.get_search_cmd(method)
 end
 
 -- Line parsing
+---@param line string
+---@param method string
+---@return endpoint.entry|nil
 function M.parse_line(line, method)
   local file_path, line_number, column, content = line:match "([^:]+):(%d+):(%d+):(.*)"
   if not file_path then
@@ -85,7 +94,9 @@ function M.parse_line(line, method)
     return nil
   end
 
-  local endpoint_info = M.extract_endpoint_info(content, file_path, tonumber(line_number))
+  line_number = tonumber(line_number)
+
+  local endpoint_info = line_number and M.extract_endpoint_info(content, file_path, line_number)
   if not endpoint_info then
     return nil
   end
@@ -110,6 +121,10 @@ function M.parse_line(line, method)
 end
 
 -- Extract endpoint information from Rails code
+---@param content string
+---@param file_path string
+---@param line_number number
+---@return table|nil
 function M.extract_endpoint_info(content, file_path, line_number)
   -- Handle controller actions
   if file_path:match "controller" then
@@ -125,6 +140,10 @@ function M.extract_endpoint_info(content, file_path, line_number)
 end
 
 -- Extract controller action information
+---@param content string
+---@param file_path string
+---@param _ any
+---@return table|nil
 function M.extract_controller_action(content, file_path, _)
   local action = content:match "def ([%w_]+)"
   if not action then
@@ -159,7 +178,7 @@ function M.extract_controller_action(content, file_path, _)
 
   -- Generate path based on controller and action
   local controller_name = M.extract_controller_name(file_path)
-  local path = M.generate_action_path(controller_name, action, file_path)
+  local path = controller_name and M.generate_action_path(controller_name, action, file_path)
 
   return {
     method = method,
@@ -169,6 +188,10 @@ function M.extract_controller_action(content, file_path, _)
 end
 
 -- Extract route definition from routes.rb
+---@param content string
+---@param file_path string
+---@param line_number number
+---@return table|nil
 function M.extract_route_definition(content, file_path, line_number)
   -- Handle explicit route definitions like: get '/users', to: 'users#index'
   -- Match HTTP verbs followed by quoted paths (with single or double quotes)
@@ -246,6 +269,8 @@ function M.extract_route_definition(content, file_path, line_number)
 end
 
 -- Extract controller name from file path
+---@param file_path string
+---@return string|nil
 function M.extract_controller_name(file_path)
   -- Handle standard controllers: app/controllers/users_controller.rb
   local controller = file_path:match "app/controllers/(.*)_controller%.rb$"
@@ -264,6 +289,10 @@ function M.extract_controller_name(file_path)
 end
 
 -- Generate action path based on Rails conventions
+---@param controller_name string
+---@param action string
+---@param file_path string
+---@return string
 function M.generate_action_path(controller_name, action, file_path)
   -- Handle API controllers: app/controllers/api/v1/users_controller.rb -> /api/v1/users
   if file_path:match "app/controllers/api/" then
@@ -325,6 +354,8 @@ function M.generate_action_path(controller_name, action, file_path)
 end
 
 -- Get suffix for custom actions (member vs collection)
+---@param action string
+---@return string
 function M.get_action_suffix(action)
   -- These are typically member actions (require ID)
   local member_actions = { "profile", "update_status", "like", "unlike", "share" }
@@ -341,9 +372,13 @@ end
 -- Helper functions for context-aware route parsing
 
 -- Find the resource context (parent resources block) for a given line
+---@param file_path string
+---@param line_number number
+---@return table|nil
 function M.find_resource_context(file_path, line_number)
   -- Check if file exists first
-  if vim.fn.filereadable(file_path) ~= 1 then
+  local fs = require "endpoint.utils.fs"
+  if not fs.has_file(file_path) then
     return nil
   end
 
@@ -372,6 +407,9 @@ function M.find_resource_context(file_path, line_number)
 end
 
 -- Find namespace context for a given line
+---@param file_path string
+---@param line_number number
+---@return string|nil
 function M.find_namespace_context(file_path, line_number)
   local file_lines = vim.fn.readfile(file_path)
   if not file_lines or line_number > #file_lines then
@@ -396,6 +434,9 @@ function M.find_namespace_context(file_path, line_number)
 end
 
 -- Check if a line is within a member block
+---@param file_path string
+---@param line_number number
+---@return boolean
 function M.is_in_member_block(file_path, line_number)
   local file_lines = vim.fn.readfile(file_path)
   if not file_lines or line_number > #file_lines then
@@ -430,6 +471,9 @@ function M.is_in_member_block(file_path, line_number)
 end
 
 -- Check if a line is within a collection block
+---@param file_path string
+---@param line_number number
+---@return boolean
 function M.is_in_collection_block(file_path, line_number)
   local file_lines = vim.fn.readfile(file_path)
   if not file_lines or line_number > #file_lines then
@@ -464,6 +508,9 @@ function M.is_in_collection_block(file_path, line_number)
 end
 
 -- Format display value with Rails action annotation
+---@param endpoint_info table
+---@param file_path string
+---@return string
 function M.format_display_value(endpoint_info, file_path)
   -- Add Rails action annotation for controller actions and special routes.rb entries
   if endpoint_info.action then

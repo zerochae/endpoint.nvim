@@ -3,17 +3,17 @@ local M = {}
 
 -- Default configuration
 local default_config = {
+  -- Cache configuration
   cache_mode = "none", -- "none", "session", "persistent"
+
+  -- Picker configuration
   picker = "telescope", -- "telescope", "vim_ui_select", "snacks"
-  picker_opts = {},
+  picker_opts = {}, -- Additional options passed to picker (Telescope only)
+
+  -- UI configuration
   ui = {
-    method_colors = {
-      GET = "TelescopeResultsNumber",
-      POST = "TelescopeResultsConstant",
-      PUT = "TelescopeResultsKeyword",
-      DELETE = "TelescopeResultsSpecialChar",
-      PATCH = "TelescopeResultsFunction",
-    },
+    show_icons = true,
+    show_method = true,
     method_icons = {
       GET = "📥",
       POST = "📤",
@@ -21,8 +21,13 @@ local default_config = {
       DELETE = "🗑️",
       PATCH = "🔧",
     },
-    show_icons = true,
-    show_method = true,
+    method_colors = {
+      GET = "TelescopeResultsNumber",
+      POST = "TelescopeResultsConstant",
+      PUT = "TelescopeResultsKeyword",
+      DELETE = "TelescopeResultsSpecialChar",
+      PATCH = "TelescopeResultsFunction",
+    },
   },
 }
 
@@ -43,16 +48,21 @@ function M.setup(user_config)
 end
 
 -- Get current configuration
+---@return table
 function M.get()
   return current_config
 end
 
 -- Get specific config value
+---@param key string
+---@return any
 function M.get_value(key)
   return current_config[key]
 end
 
 -- Set specific config value
+---@param key string
+---@param value any
 function M.set_value(key, value)
   current_config[key] = value
 end
@@ -63,4 +73,3 @@ function M.reset()
 end
 
 return M
-

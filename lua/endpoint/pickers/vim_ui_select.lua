@@ -2,11 +2,14 @@
 local M = {}
 
 -- Always available (built into Neovim)
+---@return boolean
 function M.is_available()
   return true
 end
 
 -- Show endpoints in vim.ui.select
+---@param endpoints endpoint.entry[]
+---@param opts? table
 function M.show(endpoints, opts)
   opts = opts or {}
 
@@ -26,10 +29,9 @@ function M.show(endpoints, opts)
       vim.cmd("edit " .. choice.file_path)
       vim.api.nvim_win_set_cursor(0, { choice.line_number, choice.column - 1 })
       -- Center the line in the window
-      vim.cmd("normal! zz")
+      vim.cmd "normal! zz"
     end
   end)
 end
 
 return M
-

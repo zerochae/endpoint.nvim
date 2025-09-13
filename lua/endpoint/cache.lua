@@ -15,11 +15,14 @@ function M.set_mode(cache_mode)
   end
 end
 
+---@return string
 function M.get_mode()
   return mode
 end
 
 -- Cache validation
+---@param key string
+---@return boolean
 function M.is_valid(key)
   if mode == "none" then
     return false
@@ -80,6 +83,8 @@ function M.is_valid(key)
 end
 
 -- Data operations
+---@param method string
+---@param endpoint endpoint.entry
 function M.save_endpoint(method, endpoint)
   if mode == "none" then
     return
@@ -149,6 +154,8 @@ function M.save_preview(endpoint_key, file_path, line_number, column)
   }
 end
 
+---@param method string
+---@return endpoint.entry[]
 function M.get_endpoints(method)
   local results = {}
 
@@ -211,10 +218,8 @@ function M.save_to_file()
 
   local fs = require "endpoint.utils.fs"
   local project_root = fs.get_project_root()
-  local project_name = vim.fn.fnamemodify(project_root, ":t")
-  local cache_dir = vim.fn.stdpath "data" .. "/endpoint.nvim/" .. project_name
-
-  vim.fn.mkdir(cache_dir, "p")
+  local cache_dir = fs.get_cache_dir(project_root)
+  fs.mkdir(cache_dir)
 
   -- Save find table
   local find_file = io.open(cache_dir .. "/find_cache.lua", "w")
@@ -242,8 +247,7 @@ function M.load_from_file()
 
   local fs = require "endpoint.utils.fs"
   local project_root = fs.get_project_root()
-  local project_name = vim.fn.fnamemodify(project_root, ":t")
-  local cache_dir = vim.fn.stdpath "data" .. "/endpoint.nvim/" .. project_name
+  local cache_dir = fs.get_cache_dir(project_root)
 
   -- Load find table
   local find_file = cache_dir .. "/find_cache.lua"
@@ -285,23 +289,23 @@ function M.clear_persistent_cache()
   if mode == "persistent" then
     local fs = require "endpoint.utils.fs"
     local project_root = fs.get_project_root()
-    local project_name = vim.fn.fnamemodify(project_root, ":t")
-    local cache_dir = vim.fn.stdpath "data" .. "/endpoint.nvim/" .. project_name
+    local cache_dir = fs.get_cache_dir(project_root)
 
     -- Remove cache files
     local find_file = cache_dir .. "/find_cache.lua"
     local meta_file = cache_dir .. "/metadata.lua"
 
     if fs.file_exists(find_file) then
-      vim.fn.delete(find_file)
+      fs.delete_file(find_file)
     end
 
     if fs.file_exists(meta_file) then
-      vim.fn.delete(meta_file)
+      fs.delete_file(meta_file)
     end
   end
 end
 
+---@return endpoint.cache.stats
 function M.get_stats()
   local find_count = 0
   local preview_count = 0

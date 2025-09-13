@@ -73,5 +73,14 @@
 
 -- Picker Implementations
 ---@class endpoint.pickers.telescope : endpoint.picker
+---@field is_available fun(): boolean
+---@field show fun(endpoints: endpoint.entry[], opts?: table)
+---@field create_endpoint_previewer fun(): table
+
 ---@class endpoint.pickers.vim_ui_select : endpoint.picker
+---@field is_available fun(): boolean
+---@field show fun(endpoints: endpoint.entry[], opts?: table)
+
 ---@class endpoint.pickers.snacks : endpoint.picker
+---@field is_available fun(): boolean
+---@field show fun(endpoints: endpoint.entry[], opts?: table)

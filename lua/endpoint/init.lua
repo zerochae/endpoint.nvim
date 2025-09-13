@@ -12,11 +12,14 @@ local pickers = {
 }
 
 -- Setup function
+---@param user_config? table
 function M.setup(user_config)
   config.setup(user_config)
 end
 
 -- Main function to find and show endpoints
+---@param method? string
+---@param opts? table
 function M.find_endpoints(method, opts)
   method = method or "ALL"
   opts = opts or {}
@@ -93,11 +96,13 @@ function M.show_cache_stats()
 end
 
 -- Force refresh (bypass cache)
+---@param method? string
 function M.refresh(method)
   M.find_endpoints(method, { force_refresh = true })
 end
 
 -- Get configuration
+---@return table
 function M.get_config()
   return config.get()
 end

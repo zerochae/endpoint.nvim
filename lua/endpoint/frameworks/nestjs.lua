@@ -2,19 +2,25 @@
 local M = {}
 
 -- Detection
+---@return boolean
 function M.detect()
-  if vim.fn.filereadable "package.json" == 1 then
-    local content = vim.fn.readfile "package.json"
-    local package_str = table.concat(content, "\n")
-    if package_str:match "@nestjs" then
-      return true
-    end
+  local fs = require "endpoint.utils.fs"
+
+  -- Quick check for Node.js project files first
+  if not fs.has_file { "package.json", "tsconfig.json", "nest-cli.json" } then
+    return false
+  end
+
+  if fs.file_contains("package.json", "@nestjs") then
+    return true
   end
 
   return false
 end
 
 -- Search command generation
+---@param method string
+---@return string
 function M.get_search_cmd(method)
   local patterns = {
     GET = { "@Get", "@HttpCode.-@Get" },
@@ -42,6 +48,9 @@ function M.get_search_cmd(method)
 end
 
 -- Line parsing
+---@param line string
+---@param method string
+---@return endpoint.entry|nil
 function M.parse_line(line, method)
   local file_path, line_number, column, content = line:match "([^:]+):(%d+):(%d+):(.*)"
   if not file_path then
@@ -72,6 +81,8 @@ function M.parse_line(line, method)
 end
 
 -- Extract path from NestJS decorators
+---@param content string
+---@return string|nil
 function M.extract_path(content)
   -- @Get('path'), @Post("path"), etc.
   local path = content:match "@%w+%s*%(%s*[\"']([^\"']+)[\"']"
@@ -93,6 +104,9 @@ function M.extract_path(content)
 end
 
 -- Extract HTTP method
+---@param content string
+---@param search_method string
+---@return string
 function M.extract_method(content, search_method)
   -- If searching for specific method, return it
   if search_method ~= "ALL" then
@@ -109,6 +123,8 @@ function M.extract_method(content, search_method)
 end
 
 -- Get controller base path from @Controller decorator
+---@param file_path string
+---@return string
 function M.get_controller_path(file_path)
   local file = io.open(file_path, "r")
   if not file then
@@ -137,6 +153,9 @@ function M.get_controller_path(file_path)
 end
 
 -- Combine controller path with endpoint path
+---@param base string|nil
+---@param endpoint string|nil
+---@return string
 function M.combine_paths(base, endpoint)
   if not base or base == "" then
     return endpoint or "/"

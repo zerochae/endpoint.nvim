@@ -2,32 +2,31 @@
 local M = {}
 
 -- Detection
+---@return boolean
 function M.detect()
-  -- Check for composer.json first
-  if vim.fn.filereadable "composer.json" == 0 then
+  local fs = require "endpoint.utils.fs"
+
+  -- Quick check for PHP project files first
+  if not fs.has_file { "composer.json", "composer.lock" } then
     return false
   end
 
   -- Check for vendor/symfony directory (real projects)
-  if vim.fn.isdirectory "vendor/symfony" == 1 then
+  if fs.is_directory "vendor/symfony" then
     return true
   end
 
   -- Check composer.json content for symfony dependencies (fallback)
-  local composer_file = io.open("composer.json", "r")
-  if composer_file then
-    local content = composer_file:read "*all"
-    composer_file:close()
-
-    if content and content:match "symfony" then
-      return true
-    end
+  if fs.file_contains("composer.json", "symfony") then
+    return true
   end
 
   return false
 end
 
 -- Search command generation
+---@param method string
+---@return string
 function M.get_search_cmd(method)
   local patterns = {
     GET = {
@@ -90,6 +89,9 @@ function M.get_search_cmd(method)
 end
 
 -- Line parsing - can return multiple endpoints for multiple methods
+---@param line string
+---@param method string
+---@return endpoint.entry|endpoint.entry[]|nil
 function M.parse_line(line, method)
   local file_path, line_number, column, content = line:match "([^:]+):(%d+):(%d+):(.*)"
   if not file_path then
@@ -141,6 +143,8 @@ function M.parse_line(line, method)
 end
 
 -- Extract path from Symfony Route annotations/attributes
+---@param content string
+---@return string|nil
 function M.extract_path(content)
   -- #[Route('/path', methods: ['GET'])] (PHP 8 attributes)
   local path = content:match "#%[Route%(%s*[\"']([^\"']+)[\"']"
@@ -164,6 +168,9 @@ function M.extract_path(content)
 end
 
 -- Extract HTTP methods (can be multiple)
+---@param content string
+---@param search_method string
+---@return string[]
 function M.extract_methods(content, search_method)
   -- Handle case where search_method is not provided
   if not search_method then
@@ -198,12 +205,17 @@ function M.extract_methods(content, search_method)
 end
 
 -- Extract single HTTP method (backward compatibility)
+---@param content string
+---@param search_method string
+---@return string
 function M.extract_method(content, search_method)
   local methods = M.extract_methods(content, search_method)
   return methods[1] or "GET"
 end
 
 -- Check if this is a controller-level @Route (no methods parameter)
+---@param content string
+---@return boolean
 function M.is_controller_level_route(content)
   -- If it contains methods parameter, it's a method-level route
   if content:match "methods" then
@@ -219,6 +231,9 @@ function M.is_controller_level_route(content)
 end
 
 -- Get base path from controller-level @Route
+---@param file_path string
+---@param line_number number|nil
+---@return string
 function M.get_base_path(file_path, line_number)
   -- Handle case where line_number is not provided
   if not line_number then
@@ -276,17 +291,20 @@ function M.get_base_path(file_path, line_number)
 end
 
 -- Combine base path with endpoint path
+---@param base string|nil
+---@param endpoint string|nil
+---@return string
 function M.combine_paths(base, endpoint)
-  if not base or base == "" then
+  if (not base or base == "") and endpoint then
     return endpoint
   end
-  if not endpoint or endpoint == "" then
+  if (not endpoint or endpoint == "") and base then
     return base
   end
 
   -- Remove trailing slash from base and leading slash from endpoint
-  base = base:gsub("/$", "")
-  endpoint = endpoint:gsub("^/", "")
+  base = base and base:gsub("/$", "")
+  endpoint = endpoint and endpoint:gsub("^/", "")
 
   return base .. "/" .. endpoint
 end

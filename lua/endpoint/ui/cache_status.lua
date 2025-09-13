@@ -110,8 +110,7 @@ M.show_cache_status = function()
 
   -- Get cache file paths
   local project_root = fs.get_project_root()
-  local project_name = vim.fn.fnamemodify(project_root, ":t")
-  local cache_dir = vim.fn.stdpath "data" .. "/endpoint.nvim/" .. project_name
+  local cache_dir = fs.get_cache_dir(project_root)
   local find_cache_file = cache_dir .. "/find_cache.lua"
   local metadata_file = cache_dir .. "/metadata.lua"
 
@@ -156,8 +155,8 @@ M.show_cache_status = function()
   if cache_config.cache_mode == "persistent" then
     vim.list_extend(lines, create_section_header("Persistent Cache Files", "💾"))
 
-    local find_exists = vim.fn.filereadable(find_cache_file) == 1
-    local meta_exists = vim.fn.filereadable(metadata_file) == 1
+    local find_exists = fs.has_file(find_cache_file)
+    local meta_exists = fs.has_file(metadata_file)
 
     table.insert(
       lines,
@@ -190,8 +189,8 @@ M.show_cache_status = function()
     -- Group files by directory for tree structure
     local tree = {}
     for path, path_data in pairs(find_table) do
-      local dir = vim.fn.fnamemodify(path, ":h")
-      local filename = vim.fn.fnamemodify(path, ":t")
+      local dir = fs.get_dirname(path)
+      local filename = fs.get_filename(path)
 
       if not tree[dir] then
         tree[dir] = {}
@@ -206,7 +205,7 @@ M.show_cache_status = function()
     table.sort(sorted_dirs)
 
     for i, dir in ipairs(sorted_dirs) do
-      local dir_name = vim.fn.fnamemodify(dir, ":t")
+      local dir_name = fs.get_filename(dir)
       local is_last_dir = (i == #sorted_dirs)
 
       -- Directory node
@@ -397,7 +396,7 @@ M.show_cache_status = function()
       vim.api.nvim_win_close(win, true)
 
       -- Open the file
-      if vim.fn.filereadable(location.path) == 1 then
+      if fs.has_file(location.path) then
         vim.cmd("edit " .. vim.fn.fnameescape(location.path))
 
         -- Navigate to specific line and column if it's an endpoint
@@ -417,7 +416,7 @@ M.show_cache_status = function()
           local info = string.format("📍 %s: %s", location.annotation or "Endpoint", location.value or "")
           vim.notify(info, vim.log.levels.INFO)
         else
-          vim.notify("📁 Opened: " .. vim.fn.fnamemodify(location.path, ":t"), vim.log.levels.INFO)
+          vim.notify("📁 Opened: " .. fs.get_filename(location.path), vim.log.levels.INFO)
         end
       else
         vim.notify("❌ File not found: " .. location.path, vim.log.levels.ERROR)

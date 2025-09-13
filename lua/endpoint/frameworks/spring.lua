@@ -4,14 +4,19 @@ local M = {}
 -- Detection
 ---@return boolean
 function M.detect()
-  return vim.fn.filereadable "pom.xml" == 1
-    or vim.fn.filereadable "build.gradle" == 1
-    or vim.fn.filereadable "build.gradle.kts" == 1
-    or vim.fn.filereadable "application.properties" == 1
-    or vim.fn.filereadable "application.yml" == 1
+  local fs = require "endpoint.utils.fs"
+  return fs.has_file {
+    "pom.xml",
+    "build.gradle",
+    "build.gradle.kts",
+    "application.properties",
+    "application.yml",
+  }
 end
 
 -- Search command generation
+---@param method string
+---@return string
 function M.get_search_cmd(method)
   local patterns = {
     GET = { "@GetMapping", "@RequestMapping.*method.*=.*GET" },

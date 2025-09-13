@@ -1,12 +1,15 @@
----@class endpoint.pickers.telescope
+---@class endpoint.pickers.snacks
 local M = {}
 
 -- Check if Snacks is available
+---@return boolean
 function M.is_available()
   return pcall(require, "snacks")
 end
 
 -- Show endpoints in Snacks picker
+---@param endpoints endpoint.entry[]
+---@param opts? table
 function M.show(endpoints, opts)
   if not M.is_available() then
     vim.notify("Snacks is not available", vim.log.levels.ERROR)

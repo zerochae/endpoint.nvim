@@ -2,11 +2,14 @@
 local M = {}
 
 -- Check if Telescope is available
+---@return boolean
 function M.is_available()
   return pcall(require, "telescope")
 end
 
 -- Show endpoints in Telescope picker
+---@param endpoints endpoint.entry[]
+---@param opts? table
 function M.show(endpoints, opts)
   if not M.is_available() then
     vim.notify("Telescope is not available", vim.log.levels.ERROR)
@@ -41,9 +44,9 @@ function M.show(endpoints, opts)
 
           -- Calculate highlight length for Rails action annotations
           local highlight_length
-          if entry.action and entry.display_value and entry.display_value:match("%[#.-%]") then
+          if entry.action and entry.display_value and entry.display_value:match "%[#.-%]" then
             -- Rails action annotation: highlight the entire "GET[#action]" part
-            local method_with_action = entry.display_value:match("^([^%s]+)")
+            local method_with_action = entry.display_value:match "^([^%s]+)"
             if method_with_action then
               highlight_length = #method_icon + #method_with_action + 1
             else
@@ -88,6 +91,7 @@ function M.show(endpoints, opts)
 end
 
 -- Create endpoint-specific previewer with line/column highlighting
+---@return table
 function M.create_endpoint_previewer()
   local previewers = require "telescope.previewers"
   local conf = require("telescope.config").values
