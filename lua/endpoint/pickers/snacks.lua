@@ -67,7 +67,7 @@ function M.show(endpoints, opts)
 
   -- Default snacks picker configuration
   local default_config = {
-    source = "endpoints",
+    source = "Endpoint ",
     items = items,
     prompt = "Endpoints ",
     format = "text", -- Keep simple format for now
