@@ -21,22 +21,18 @@ end
 
 -- Create search command generator using utility function
 local search_utils = require "endpoint.utils.search"
-local get_search_cmd = search_utils.create_search_cmd_generator(
-  {
-    GET = { "app\\.get\\(", "router\\.get\\(", "\\bget\\(" },
-    POST = { "app\\.post\\(", "router\\.post\\(", "\\bpost\\(" },
-    PUT = { "app\\.put\\(", "router\\.put\\(", "\\bput\\(" },
-    DELETE = { "app\\.delete\\(", "router\\.delete\\(", "\\bdel\\(", "\\bdelete\\(" },
-    PATCH = { "app\\.patch\\(", "router\\.patch\\(", "\\bpatch\\(" },
-    ALL = {
-      "app\\.(get|post|put|delete|patch)\\(",
-      "router\\.(get|post|put|delete|patch)\\(",
-      "\\b(get|post|put|del|delete|patch)\\(",
-    },
+local get_search_cmd = search_utils.create_search_cmd_generator({
+  GET = { "app\\.get\\(", "router\\.get\\(", "\\bget\\(" },
+  POST = { "app\\.post\\(", "router\\.post\\(", "\\bpost\\(" },
+  PUT = { "app\\.put\\(", "router\\.put\\(", "\\bput\\(" },
+  DELETE = { "app\\.delete\\(", "router\\.delete\\(", "\\bdel\\(", "\\bdelete\\(" },
+  PATCH = { "app\\.patch\\(", "router\\.patch\\(", "\\bpatch\\(" },
+  ALL = {
+    "app\\.(get|post|put|delete|patch)\\(",
+    "router\\.(get|post|put|delete|patch)\\(",
+    "\\b(get|post|put|del|delete|patch)\\(",
   },
-  search_utils.common_globs.javascript,
-  search_utils.common_excludes.node
-)
+}, search_utils.common_globs.javascript, search_utils.common_excludes.node)
 
 -- Search command generation
 ---@param method string
@@ -76,14 +72,14 @@ function M.parse_line(line, method)
     endpoint_path = path
   else
     -- Try destructured pattern: get('/path', ...) or del('/path', ...)
-    local method, path = content:match "(%w+)%(['\"]([^'\"]+)['\"]"
-    if method and path then
-      http_method = method:upper()
+    local destructured_method, destructured_path = content:match "(%w+)%(['\"]([^'\"]+)['\"]"
+    if destructured_method and destructured_path then
+      http_method = destructured_method:upper()
       -- Handle 'del' alias for DELETE
       if http_method == "DEL" then
         http_method = "DELETE"
       end
-      endpoint_path = path
+      endpoint_path = destructured_path
     else
       return nil
     end
