@@ -76,6 +76,10 @@ function M.find_patch()
   M.find_endpoints "PATCH"
 end
 
+function M.find_route()
+  M.find_endpoints "ROUTE"
+end
+
 -- Cache management
 function M.clear_cache()
   scanner.clear_cache()

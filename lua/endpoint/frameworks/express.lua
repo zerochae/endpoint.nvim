@@ -29,7 +29,11 @@ function M.get_search_cmd(method)
     PUT = { "app\\.put\\(", "router\\.put\\(", "\\bput\\(" },
     DELETE = { "app\\.delete\\(", "router\\.delete\\(", "\\bdel\\(", "\\bdelete\\(" },
     PATCH = { "app\\.patch\\(", "router\\.patch\\(", "\\bpatch\\(" },
-    ALL = { "app\\.(get|post|put|delete|patch)\\(", "router\\.(get|post|put|delete|patch)\\(", "\\b(get|post|put|del|delete|patch)\\(" },
+    ALL = {
+      "app\\.(get|post|put|delete|patch)\\(",
+      "router\\.(get|post|put|delete|patch)\\(",
+      "\\b(get|post|put|del|delete|patch)\\(",
+    },
   }
 
   local method_patterns = patterns[method:upper()] or patterns.ALL
@@ -60,7 +64,7 @@ function M.parse_line(line, method)
   end
 
   -- Parse ripgrep output format: file:line:col:content
-  local file_path, line_number, column, content = line:match("([^:]+):(%d+):(%d+):(.*)")
+  local file_path, line_number, column, content = line:match "([^:]+):(%d+):(%d+):(.*)"
   if not file_path or not line_number or not column or not content then
     return nil
   end
@@ -71,17 +75,17 @@ function M.parse_line(line, method)
   -- router.post('/api/users/:id', ...)
   -- get('/users', ...)  (destructured)
   -- post('/api/users', ...)  (destructured)
-  
+
   local http_method, endpoint_path
-  
+
   -- Try standard app.method() or router.method() pattern
-  local app_type, route_method, path = content:match("(%w+)%.(%w+)%(['\"]([^'\"]+)['\"]")
+  local app_type, route_method, path = content:match "(%w+)%.(%w+)%(['\"]([^'\"]+)['\"]"
   if app_type and route_method and path then
     http_method = route_method:upper()
     endpoint_path = path
   else
     -- Try destructured pattern: get('/path', ...) or del('/path', ...)
-    local method, path = content:match("(%w+)%(['\"]([^'\"]+)['\"]")
+    local method, path = content:match "(%w+)%(['\"]([^'\"]+)['\"]"
     if method and path then
       http_method = method:upper()
       -- Handle 'del' alias for DELETE
@@ -109,3 +113,4 @@ function M.parse_line(line, method)
 end
 
 return M
+

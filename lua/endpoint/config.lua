@@ -20,6 +20,7 @@ local default_config = {
       PUT = "✏️",
       DELETE = "🗑️",
       PATCH = "🔧",
+      ROUTE = "🔗",
     },
     method_colors = {
       GET = "TelescopeResultsNumber",
@@ -27,6 +28,7 @@ local default_config = {
       PUT = "TelescopeResultsKeyword",
       DELETE = "TelescopeResultsSpecialChar",
       PATCH = "TelescopeResultsFunction",
+      ROUTE = "TelescopeResultsIdentifier",
     },
   },
 

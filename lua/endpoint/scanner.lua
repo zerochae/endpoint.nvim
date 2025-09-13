@@ -11,6 +11,7 @@ local frameworks = {
   symfony = require "endpoint.frameworks.symfony",
   rails = require "endpoint.frameworks.rails",
   express = require "endpoint.frameworks.express",
+  react_router = require "endpoint.frameworks.react_router",
 }
 
 -- Main scan function

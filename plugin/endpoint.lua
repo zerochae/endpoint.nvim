@@ -20,6 +20,8 @@ vim.api.nvim_create_user_command("Endpoint", function(opts)
     endpoint.find_delete()
   elseif method == "PATCH" then
     endpoint.find_patch()
+  elseif method == "ROUTE" then
+    endpoint.find_route()
   elseif method == "ALL" then
     endpoint.find_all()
   elseif method == "CLEARCACHE" then
@@ -28,7 +30,7 @@ vim.api.nvim_create_user_command("Endpoint", function(opts)
     endpoint.show_cache_stats()
   else
     vim.notify(
-      "Unknown method: " .. subcommand .. ". Available: Get, Post, Put, Delete, Patch, All, ClearCache, CacheStatus",
+      "Unknown method: " .. subcommand .. ". Available: Get, Post, Put, Delete, Patch, Route, All, ClearCache, CacheStatus",
       vim.log.levels.ERROR
     )
   end
@@ -36,6 +38,6 @@ end, {
   nargs = "?", -- Optional argument (0 or 1)
   ---@return string[]
   complete = function()
-    return { "Get", "Post", "Put", "Delete", "Patch", "All", "ClearCache", "CacheStatus" }
+    return { "Get", "Post", "Put", "Delete", "Patch", "Route", "All", "ClearCache", "CacheStatus" }
   end,
 })
