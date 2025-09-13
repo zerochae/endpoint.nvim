@@ -67,10 +67,10 @@ A powerful Neovim plugin for quickly finding and navigating web framework API en
     require("endpoint").setup({
       -- Cache configuration
       cache_mode = "none", -- "none" (real-time), "session", "persistent"
-      debug = false,
       
       -- Picker configuration
-      picker = "telescope", -- "telescope", "vim_ui_select" ("snacks" in development)
+      picker = "telescope", -- "telescope", "vim_ui_select", "snacks"
+      picker_opts = {}, -- Additional options passed to picker (Telescope only)
       
       -- UI configuration
       ui = {
@@ -108,17 +108,10 @@ Configure all settings via setup():
 require("endpoint").setup({
   -- Cache configuration
   cache_mode = "session", -- "none" (real-time), "session", "persistent"
-  debug = false,
   
   -- Picker selection
   picker = "telescope", -- "telescope", "vim_ui_select", "snacks"
-  picker_opts = {}, -- Additional options passed to picker
-  
-  -- HTTP methods to search for
-  methods = { "GET", "POST", "PUT", "DELETE", "PATCH" },
-  
-  -- Additional ripgrep arguments
-  rg_additional_args = "",
+  picker_opts = {}, -- Additional options passed to picker (Telescope only)
   
   -- UI customization
   ui = {
@@ -176,11 +169,8 @@ use {
 ```lua
 require("endpoint").setup({
   cache_mode = "none",                     -- "none", "session", "persistent"
-  debug = false,                            -- Enable debug logging
   picker = "telescope",                     -- "telescope", "vim_ui_select", "snacks"
-  picker_opts = {},                         -- Additional picker options
-  methods = { "GET", "POST", "PUT", "DELETE", "PATCH" },
-  rg_additional_args = "",                  -- Additional ripgrep arguments
+  picker_opts = {},                         -- Additional picker options (Telescope only)
   
   ui = {
     show_icons = true,                      -- Show method icons
@@ -280,7 +270,6 @@ The plugin includes an intelligent caching system with three modes:
 ```lua
 {
   cache_mode = "none", -- Cache mode: "none", "session", or "persistent"
-  debug = false,          -- Enable debug logging for troubleshooting
 }
 ```
 

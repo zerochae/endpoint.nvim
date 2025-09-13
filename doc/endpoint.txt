@@ -157,11 +157,8 @@ Default Configuration:~
 >lua
     require("endpoint").setup({
       cache_mode = "none",                      -- "none", "session", "persistent"
-      debug = false,                            -- Enable debug logging
       picker = "telescope",                     -- "telescope", "vim_ui_select", "snacks"
-      picker_opts = {},                         -- Additional picker options
-      methods = { "GET", "POST", "PUT", "DELETE", "PATCH" },
-      rg_additional_args = "",                  -- Additional ripgrep arguments
+      picker_opts = {},                         -- Additional picker options (Telescope only)
       
       ui = {
         show_icons = true,                      -- Show method icons
@@ -190,16 +187,14 @@ Configuration Options:~
         "session"   - Cache valid until nvim closes
         "persistent" - Cache saved to disk, persists across sessions
     
-    debug (boolean): Enable debug logging for troubleshooting.
-        Default: false
-    
     picker (string): UI picker interface. Options:
         "telescope"     - Use Telescope interface (default)
         "vim_ui_select" - Use native vim.ui.select
-        "snacks"        - Use Snacks.nvim picker (in development)
+        "snacks"        - Use Snacks.nvim picker
     
-    methods (table): List of HTTP methods to search for.
-        Default: { "GET", "POST", "PUT", "DELETE", "PATCH" }
+    picker_opts (table): Additional options passed to picker.
+        Note: Only effective when using Telescope picker
+        Default: {}
 
 ==============================================================================
 8. PICKER OPTIONS                               *endpoint-pickers*
@@ -246,7 +241,6 @@ Cache Modes:~
 >lua
     {
       cache_mode = "none", -- Cache mode: "none", "session", or "persistent"
-      debug = false,       -- Enable debug logging for troubleshooting
     }
 <
 
@@ -326,9 +320,9 @@ A: Make sure you called `require("endpoint").setup()` in your config function.
 
 Q: No endpoints found
 A: Check that:
-   • You're in a supported project (Spring Boot, NestJS, Symfony, FastAPI)
+   • You're in a supported project (Spring Boot, NestJS, Symfony, FastAPI, Rails)
    • Source files contain the appropriate annotations (@GetMapping, @Get(), etc.)
-   • Framework detection is working (check with `debug = true`)
+   • Try running `:Endpoint ClearCache` to refresh the cache
 
 Q: Cache not working as expected  
 A: Verify your `cache_mode` setting:
@@ -347,12 +341,13 @@ Q: Wrong picker interface
 A: Check your `picker` setting:
    • "telescope": requires telescope.nvim dependency
    • "vim_ui_select": works without external dependencies
-   • Plugin will fall back to vim.ui.select if telescope is not available
+   • "snacks": requires snacks.nvim dependency
+   • Plugin will fall back to vim.ui.select if selected picker is not available
 
 Debug Information:~
-    Enable debug mode: `require("endpoint").setup({ debug = true })`
     View current config: `lua print(vim.inspect(require("endpoint").get_config()))`
-    Check framework detection: Look for debug messages when opening projects
+    Check cache status: `:Endpoint CacheStatus`
+    Clear cache and retry: `:Endpoint ClearCache`
 
 ==============================================================================
 vim:tw=78:ts=8:ft=help:norl:
