@@ -44,7 +44,7 @@ local function format_file_size(file_path)
 end
 
 local function get_cache_statistics()
-  local cache = require "endpoint.services.cache"
+  local cache = require "endpoint.cache"
   local find_table = cache.get_find_table()
 
   local stats = {
@@ -89,27 +89,20 @@ local function get_cache_statistics()
 end
 
 M.show_cache_status = function()
-  local cache = require "endpoint.services.cache"
-  local state = require "endpoint.core.state"
-  local cache_config = state.get_config()
+  local cache = require "endpoint.cache"
+  local config_module = require "endpoint.config"
+  local cache_config = config_module.get()
 
-  if not cache_config then
-    local config_module = require "endpoint.config"
-    cache_config = config_module.get()
-  end
-
-  -- Get UI configuration
-  local endpoint = require "endpoint.core"
-  local config = endpoint.get_config()
-  local window_config = config.ui and config.ui.cache_status_window
-    or {
-      width = 80,
-      height = "auto",
-      center_align = false,
-    }
+  -- Use default window configuration
+  local window_config = {
+    width = 80,
+    height = "auto",
+    center_align = false,
+  }
 
   -- Get cache file paths
   local project_root = fs.get_project_root()
+  local project_name = vim.fn.fnamemodify(project_root, ":t") -- Extract directory name
   local cache_dir = fs.get_cache_dir(project_root)
   local find_cache_file = cache_dir .. "/find_cache.lua"
   local metadata_file = cache_dir .. "/metadata.lua"
