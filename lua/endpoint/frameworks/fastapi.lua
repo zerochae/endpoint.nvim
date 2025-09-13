@@ -27,39 +27,34 @@ end
 ---@param method string
 ---@return string
 function M.get_search_cmd(method)
-  local patterns = {
-    GET = { "@app.get", "@router.get" },
-    POST = { "@app.post", "@router.post" },
-    PUT = { "@app.put", "@router.put" },
-    DELETE = { "@app.delete", "@router.delete" },
-    PATCH = { "@app.patch", "@router.patch" },
-    ALL = {
-      "@app.get",
-      "@app.post",
-      "@app.put",
-      "@app.delete",
-      "@app.patch",
-      "@router.get",
-      "@router.post",
-      "@router.put",
-      "@router.delete",
-      "@router.patch",
+  -- Create search command generator using utility function
+  local search_utils = require "endpoint.utils.search"
+  local search_cmd_generator = search_utils.create_search_cmd_generator(
+    {
+      GET = { "@app.get", "@router.get" },
+      POST = { "@app.post", "@router.post" },
+      PUT = { "@app.put", "@router.put" },
+      DELETE = { "@app.delete", "@router.delete" },
+      PATCH = { "@app.patch", "@router.patch" },
+      ALL = {
+        "@app.get",
+        "@app.post",
+        "@app.put",
+        "@app.delete",
+        "@app.patch",
+        "@router.get",
+        "@router.post",
+        "@router.put",
+        "@router.delete",
+        "@router.patch",
+      },
     },
-  }
+    search_utils.common_globs.python,
+    search_utils.common_excludes.python,
+    { "--case-sensitive" } -- FastAPI decorators are case-sensitive
+  )
 
-  local method_patterns = patterns[method:upper()] or patterns.ALL
-
-  local cmd = "rg --line-number --column --no-heading --color=never --case-sensitive"
-  cmd = cmd .. " --glob '**/*.py'"
-  cmd = cmd .. " --glob '!**/__pycache__/**'"
-  cmd = cmd .. " --glob '!**/venv/**'"
-
-  -- Add patterns
-  for _, pattern in ipairs(method_patterns) do
-    cmd = cmd .. " -e '" .. pattern .. "'"
-  end
-
-  return cmd
+  return search_cmd_generator(method)
 end
 
 -- Line parsing

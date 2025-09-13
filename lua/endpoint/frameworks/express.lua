@@ -19,11 +19,10 @@ function M.detect()
   return false
 end
 
--- Search command generation
----@param method string
----@return string
-function M.get_search_cmd(method)
-  local patterns = {
+-- Create search command generator using utility function
+local search_utils = require "endpoint.utils.search"
+local get_search_cmd = search_utils.create_search_cmd_generator(
+  {
     GET = { "app\\.get\\(", "router\\.get\\(", "\\bget\\(" },
     POST = { "app\\.post\\(", "router\\.post\\(", "\\bpost\\(" },
     PUT = { "app\\.put\\(", "router\\.put\\(", "\\bput\\(" },
@@ -34,24 +33,16 @@ function M.get_search_cmd(method)
       "router\\.(get|post|put|delete|patch)\\(",
       "\\b(get|post|put|del|delete|patch)\\(",
     },
-  }
+  },
+  search_utils.common_globs.javascript,
+  search_utils.common_excludes.node
+)
 
-  local method_patterns = patterns[method:upper()] or patterns.ALL
-
-  local cmd = "rg --line-number --column --no-heading --color=never"
-  cmd = cmd .. " --glob '**/*.js'"
-  cmd = cmd .. " --glob '**/*.ts'"
-  cmd = cmd .. " --glob '**/*.mjs'"
-  cmd = cmd .. " --glob '!**/node_modules/**'"
-  cmd = cmd .. " --glob '!**/dist/**'"
-  cmd = cmd .. " --glob '!**/build/**'"
-
-  -- Add patterns
-  for _, pattern in ipairs(method_patterns) do
-    cmd = cmd .. " -e '" .. pattern .. "'"
-  end
-
-  return cmd
+-- Search command generation
+---@param method string
+---@return string
+function M.get_search_cmd(method)
+  return get_search_cmd(method)
 end
 
 -- Parse ripgrep output line

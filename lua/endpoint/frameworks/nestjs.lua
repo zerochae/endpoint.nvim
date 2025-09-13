@@ -18,33 +18,27 @@ function M.detect()
   return false
 end
 
--- Search command generation
----@param method string
----@return string
-function M.get_search_cmd(method)
-  local patterns = {
+-- Create search command generator using utility function
+local search_utils = require "endpoint.utils.search"
+local get_search_cmd = search_utils.create_search_cmd_generator(
+  {
     GET = { "@Get", "@HttpCode.-@Get" },
     POST = { "@Post", "@HttpCode.-@Post" },
     PUT = { "@Put", "@HttpCode.-@Put" },
     DELETE = { "@Delete", "@HttpCode.-@Delete" },
     PATCH = { "@Patch", "@HttpCode.-@Patch" },
     ALL = { "@Get", "@Post", "@Put", "@Delete", "@Patch" },
-  }
+  },
+  { "**/*.ts", "**/*.js" }, -- TypeScript first for NestJS
+  search_utils.common_excludes.node,
+  { "--case-sensitive" } -- NestJS decorators are case-sensitive
+)
 
-  local method_patterns = patterns[method:upper()] or patterns.ALL
-
-  local cmd = "rg --line-number --column --no-heading --color=never --case-sensitive"
-  cmd = cmd .. " --glob '**/*.ts'"
-  cmd = cmd .. " --glob '**/*.js'"
-  cmd = cmd .. " --glob '!**/node_modules/**'"
-  cmd = cmd .. " --glob '!**/dist/**'"
-
-  -- Add patterns
-  for _, pattern in ipairs(method_patterns) do
-    cmd = cmd .. " -e '" .. pattern .. "'"
-  end
-
-  return cmd
+-- Search command generation
+---@param method string
+---@return string
+function M.get_search_cmd(method)
+  return get_search_cmd(method)
 end
 
 -- Line parsing

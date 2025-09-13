@@ -75,17 +75,16 @@ function M.get_search_cmd(method)
 
   local method_patterns = patterns[method:upper()] or patterns.ALL
 
-  local cmd = "rg --line-number --column --no-heading --color=never --case-sensitive"
-  cmd = cmd .. " --glob '**/*.php'"
-  cmd = cmd .. " --glob '!**/vendor/**'"
-  cmd = cmd .. " --glob '!**/var/**'"
+  -- Use utility function for search command generation
+  local search_utils = require "endpoint.utils.search"
+  local search_cmd_generator = search_utils.create_search_cmd_generator(
+    method_patterns,
+    search_utils.common_globs.php,
+    { "**/vendor", "**/var" }, -- Symfony-specific excludes  
+    { "--case-sensitive" } -- Symfony routes are case-sensitive
+  )
 
-  -- Add patterns
-  for _, pattern in ipairs(method_patterns) do
-    cmd = cmd .. " -e '" .. pattern .. "'"
-  end
-
-  return cmd
+  return search_cmd_generator(method)
 end
 
 -- Line parsing - can return multiple endpoints for multiple methods
