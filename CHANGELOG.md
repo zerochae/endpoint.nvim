@@ -1,5 +1,21 @@
 # Changelog
 
+## [1.9.0](https://github.com/zerochae/endpoint.nvim/compare/v1.8.0...v1.9.0) (2025-09-13)
+
+
+### Features
+
+* add Ktor framework support for Kotlin projects ([86dd68f](https://github.com/zerochae/endpoint.nvim/commit/86dd68f5cc109bb8d884ad90c22d8b899fe188c3))
+* add search command utility to reduce framework code duplication ([3c2b416](https://github.com/zerochae/endpoint.nvim/commit/3c2b41618d3386c199c1573ff5220c397a48bce9))
+* integrate cache status UI with show_cache_stats function ([0475b35](https://github.com/zerochae/endpoint.nvim/commit/0475b35737f8c2934852c310c74dea8f9e880b5e))
+
+
+### Bug Fixes
+
+* improve Ktor framework detection patterns ([68964f7](https://github.com/zerochae/endpoint.nvim/commit/68964f725e9309beb297bda2db2bbb1ce63ba84e))
+* resolve symfony search command utility integration ([326187e](https://github.com/zerochae/endpoint.nvim/commit/326187e343ec80a1cd8da650a72e4219118479d6))
+* update cache_status.lua to use current project structure ([d88c866](https://github.com/zerochae/endpoint.nvim/commit/d88c866c84c8b85c778fcaceede813222840de3a))
+
 ## [1.8.0](https://github.com/zerochae/endpoint.nvim/compare/v1.7.0...v1.8.0) (2025-09-13)
 
 
