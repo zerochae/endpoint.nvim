@@ -15,7 +15,7 @@ A powerful Neovim plugin for quickly finding and navigating web framework API en
 ## ✨ Features
 
 - 🔍 **Multi-Framework Support**: Automatically detects and supports multiple web frameworks (see supported frameworks above)
-- 🎯 **Multiple Picker Interfaces**: Choose between Telescope, vim.ui.select, or Snacks.nvim pickers (Snacks picker in development)
+- 🎯 **Multiple Picker Interfaces**: Choose between Telescope, vim.ui.select, or Snacks.nvim pickers
 - ⚡ **Smart Caching**: Three cache modes - none (real-time), session, and persistent disk storage
 - 📍 **Precise Navigation**: Jump directly to the exact line where endpoints are defined
 - 🤖 **Auto-Detection**: Automatically detects your project's framework based on project files
@@ -295,14 +295,16 @@ require("endpoint").setup({
 - Integrates with your vim.ui.select override (like dressing.nvim)
 - Lightweight and simple
 
-### Snacks Picker (In Development)
+### Snacks Picker
 ```lua
 require("endpoint").setup({
-  picker = "snacks", -- Use Snacks.nvim picker (coming soon)
+  picker = "snacks", -- Use Snacks.nvim picker
 })
 ```
 - Modern picker interface using Snacks.nvim
-- Currently in development
+- File preview with precise line highlighting
+- Fuzzy matching with file position patterns (`file:line:col`)
+- Clean, fast interface
 
 ## 🔧 Advanced Features
 

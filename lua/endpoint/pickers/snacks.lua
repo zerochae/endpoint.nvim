@@ -65,26 +65,18 @@ function M.show(endpoints, opts)
     end
   end
 
-  -- Use official snacks.picker.pick API with custom preview for highlighting
+  -- Use official snacks.picker.pick API with explicit keymaps
   snacks.picker.pick {
     source = "endpoints",
     items = items,
-    prompt = "Endpoints",
-    format = "text", -- Back to simple text format
+    prompt = "Endpoints ",
+    format = "text", -- Keep simple format for now
     preview = "file", -- Back to simple working preview
     matcher = {
       fuzzy = true,
       smartcase = true,
       file_pos = true, -- Support patterns like `file:line:col`
     },
-    confirm = function(item, ctx)
-      if item and item.value then
-        local endpoint = item.value
-        vim.cmd("edit " .. endpoint.file_path)
-        vim.api.nvim_win_set_cursor(0, { endpoint.line_number, endpoint.column - 1 })
-        vim.cmd "normal! zz"
-      end
-    end,
   }
 end
 
