@@ -1,81 +1,49 @@
 describe("FastAPI framework", function()
+  local test_helpers = require "tests.utils.framework_test_helpers"
   local fastapi = require "endpoint.frameworks.fastapi"
 
-  describe("framework detection", function()
-    it("should detect FastAPI project", function()
-      local fixture_path = "tests/fixtures/fastapi"
-      if vim.fn.isdirectory(fixture_path) == 1 then
-        local original_cwd = vim.fn.getcwd()
-        vim.fn.chdir(fixture_path)
+  describe("framework detection", test_helpers.create_detection_test_suite(fastapi, "fastapi"))
 
-        local detected = fastapi.detect()
-        assert.is_true(detected)
+  describe(
+    "search command generation",
+    test_helpers.create_search_cmd_test_suite(fastapi, {
+      GET = { "@app.get", "@router.get" },
+      POST = { "@app.post", "@router.post" },
+      ALL = { "get", "post" },
+    })
+  )
 
-        vim.fn.chdir(original_cwd)
-      else
-        pending "FastAPI fixture directory not found"
-      end
-    end)
+  describe(
+    "line parsing",
+    test_helpers.create_line_parsing_test_suite(fastapi, {
+      {
+        description = "should parse simple @app.get line",
+        line = 'main.py:10:5:@app.get("/api/users")',
+        method = "GET",
+        expected = {
+          method = "GET",
+          endpoint_path = "/api/users",
+          file_path = "main.py",
+          line_number = 10,
+          column = 5,
+        },
+      },
+      {
+        description = "should parse @router.post line",
+        line = 'routes/api.py:15:5:@router.post("/api/create")',
+        method = "POST",
+        expected = {
+          method = "POST",
+          endpoint_path = "/api/create",
+          file_path = "routes/api.py",
+          line_number = 15,
+          column = 5,
+        },
+      },
+    })
+  )
 
-    it("should not detect FastAPI in non-Python directory", function()
-      local temp_dir = "/tmp/non_fastapi_" .. os.time()
-      vim.fn.mkdir(temp_dir, "p")
-      local original_cwd = vim.fn.getcwd()
-      vim.fn.chdir(temp_dir)
-
-      local detected = fastapi.detect()
-      assert.is_false(detected)
-
-      vim.fn.chdir(original_cwd)
-      vim.fn.delete(temp_dir, "rf")
-    end)
-  end)
-
-  describe("search command generation", function()
-    it("should generate search command for GET method", function()
-      local cmd = fastapi.get_search_cmd "GET"
-      assert.is_string(cmd)
-      assert.is_true(cmd:match "rg" ~= nil)
-      assert.is_true(cmd:match "@app.get" ~= nil or cmd:match "@router.get" ~= nil)
-    end)
-
-    it("should generate search command for POST method", function()
-      local cmd = fastapi.get_search_cmd "POST"
-      assert.is_string(cmd)
-      assert.is_true(cmd:match "@app.post" ~= nil or cmd:match "@router.post" ~= nil)
-    end)
-
-    it("should generate search command for ALL method", function()
-      local cmd = fastapi.get_search_cmd "ALL"
-      assert.is_string(cmd)
-      -- Should contain multiple HTTP methods
-      assert.is_true(cmd:match "get" ~= nil)
-      assert.is_true(cmd:match "post" ~= nil)
-    end)
-  end)
-
-  describe("line parsing", function()
-    it("should parse simple @app.get line", function()
-      local line = 'main.py:10:5:@app.get("/api/users")'
-      local result = fastapi.parse_line(line, "GET")
-
-      assert.is_table(result)
-      assert.are.equal("GET", result and result.method)
-      assert.are.equal("/api/users", result and result.endpoint_path)
-      assert.are.equal("main.py", result and result.file_path)
-      assert.are.equal(10, result and result.line_number)
-      assert.are.equal(5, result and result.column)
-    end)
-
-    it("should parse @router.post line", function()
-      local line = 'routes/api.py:15:5:@router.post("/api/create")'
-      local result = fastapi.parse_line(line, "POST")
-
-      assert.is_table(result)
-      assert.are.equal("POST", result and result.method)
-      assert.are.equal("/api/create", result and result.endpoint_path)
-    end)
-
+  describe("additional parsing tests", function()
     it("should handle multiline decorators", function()
       local line = "main.py:20:5:@app.get("
       local result = fastapi.parse_line(line, "GET")
@@ -98,12 +66,6 @@ describe("FastAPI framework", function()
         assert.is_string(result.endpoint_path)
       end
     end)
-
-    it("should return nil for invalid lines", function()
-      local line = "invalid line format"
-      local result = fastapi.parse_line(line, "GET")
-      assert.is_nil(result)
-    end)
   end)
 
   describe("router prefix extraction", function()
@@ -121,26 +83,7 @@ describe("FastAPI framework", function()
     end)
   end)
 
-  describe("integration with fixtures", function()
-    it("should correctly parse real FastAPI fixture files", function()
-      local fixture_path = "tests/fixtures/fastapi"
-      if vim.fn.isdirectory(fixture_path) == 1 then
-        local original_cwd = vim.fn.getcwd()
-        vim.fn.chdir(fixture_path)
-
-        -- Test that framework is detected
-        assert.is_true(fastapi.detect())
-
-        -- Test that search command works
-        local cmd = fastapi.get_search_cmd "GET"
-        assert.is_string(cmd)
-
-        vim.fn.chdir(original_cwd)
-      else
-        pending "FastAPI fixture directory not found"
-      end
-    end)
-  end)
+  describe("integration with fixtures", test_helpers.create_integration_test_suite(fastapi, "fastapi"))
 
   describe("edge cases", function()
     it("should handle various path formats", function()

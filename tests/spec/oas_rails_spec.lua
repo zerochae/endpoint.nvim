@@ -229,4 +229,3 @@ describe("OAS Rails patterns", function()
     end)
   end)
 end)
-

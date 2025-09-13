@@ -1,83 +1,61 @@
 describe("NestJS framework", function()
+  local test_helpers = require "tests.utils.framework_test_helpers"
   local nestjs = require "endpoint.frameworks.nestjs"
 
-  describe("framework detection", function()
-    it("should detect NestJS project", function()
-      local fixture_path = "tests/fixtures/nestjs"
-      if vim.fn.isdirectory(fixture_path) == 1 then
-        local original_cwd = vim.fn.getcwd()
-        vim.fn.chdir(fixture_path)
+  describe("framework detection", test_helpers.create_detection_test_suite(nestjs, "nestjs"))
 
-        local detected = nestjs.detect()
-        assert.is_true(detected)
+  describe(
+    "search command generation",
+    test_helpers.create_search_cmd_test_suite(nestjs, {
+      GET = { "@Get" },
+      POST = { "@Post" },
+      ALL = { "@Get", "@Post" },
+    })
+  )
 
-        vim.fn.chdir(original_cwd)
-      else
-        pending "NestJS fixture directory not found"
-      end
-    end)
+  describe(
+    "line parsing",
+    test_helpers.create_line_parsing_test_suite(nestjs, {
+      {
+        description = "should parse simple @Get decorator",
+        line = "src/users/users.controller.ts:10:5:  @Get('profile')",
+        method = "GET",
+        expected = {
+          method = "GET",
+          endpoint_path = "/profile",
+          file_path = "src/users/users.controller.ts",
+          line_number = 10,
+          column = 5,
+        },
+      },
+      {
+        description = "should parse @Post decorator",
+        line = "src/users/users.controller.ts:15:5:  @Post('create')",
+        method = "POST",
+        expected = {
+          method = "POST",
+          endpoint_path = "/create",
+          file_path = "src/users/users.controller.ts",
+          line_number = 15,
+          column = 5,
+        },
+      },
+      {
+        description = "should handle path parameters",
+        line = "src/users/users.controller.ts:30:5:  @Get(':id')",
+        method = "GET",
+        expected = {
+          method = "GET",
+          endpoint_path = "/:id",
+          file_path = "src/users/users.controller.ts",
+          line_number = 30,
+          column = 5,
+        },
+      },
+    })
+  )
 
-    it("should not detect NestJS in non-NestJS directory", function()
-      local temp_dir = "/tmp/non_nestjs_" .. os.time()
-      vim.fn.mkdir(temp_dir, "p")
-      local original_cwd = vim.fn.getcwd()
-      vim.fn.chdir(temp_dir)
-
-      local detected = nestjs.detect()
-      assert.is_false(detected)
-
-      vim.fn.chdir(original_cwd)
-      vim.fn.delete(temp_dir, "rf")
-    end)
-  end)
-
-  describe("search command generation", function()
-    it("should generate search command for GET method", function()
-      local cmd = nestjs.get_search_cmd "GET"
-      assert.is_string(cmd)
-      assert.is_true(cmd:match "rg" ~= nil)
-      assert.is_true(cmd:match "@Get" ~= nil)
-    end)
-
-    it("should generate search command for POST method", function()
-      local cmd = nestjs.get_search_cmd "POST"
-      assert.is_string(cmd)
-      assert.is_true(cmd:match "@Post" ~= nil)
-    end)
-
-    it("should generate search command for ALL method", function()
-      local cmd = nestjs.get_search_cmd "ALL"
-      assert.is_string(cmd)
-      -- Should contain multiple HTTP methods
-      assert.is_true(cmd:match "@Get" ~= nil)
-      assert.is_true(cmd:match "@Post" ~= nil)
-    end)
-  end)
-
-  describe("line parsing", function()
-    it("should parse simple @Get decorator", function()
-      local line = "src/users/users.controller.ts:10:5:  @Get('profile')"
-      local result = nestjs.parse_line(line, "GET")
-
-      assert.is_not_nil(result)
-      assert.is_table(result)
-      assert.are.equal("GET", result and result.method)
-      assert.are.equal("/profile", result and result.endpoint_path) -- Should add leading slash
-      assert.are.equal("src/users/users.controller.ts", result and result.file_path)
-      assert.are.equal(10, result and result.line_number)
-      assert.are.equal(5, result and result.column)
-    end)
-
-    it("should parse @Post decorator", function()
-      local line = "src/users/users.controller.ts:15:5:  @Post('create')"
-      local result = nestjs.parse_line(line, "POST")
-
-      assert.is_not_nil(result)
-      assert.is_table(result)
-      assert.are.equal("POST", result and result.method)
-      assert.are.equal("/create", result and result.endpoint_path)
-    end)
-
+  describe("additional parsing tests", function()
     it("should parse @Get without parameters", function()
       local line = "src/users/users.controller.ts:20:5:  @Get()"
       local result = nestjs.parse_line(line, "GET")
@@ -102,29 +80,6 @@ describe("NestJS framework", function()
         -- Should start with slash
         assert.is_true(result.endpoint_path:sub(1, 1) == "/")
       end
-    end)
-
-    it("should handle path parameters", function()
-      local line = "src/users/users.controller.ts:30:5:  @Get(':id')"
-      local result = nestjs.parse_line(line, "GET")
-
-      if result then
-        assert.is_table(result)
-        assert.are.equal("GET", result and result.method)
-        assert.are.equal("/:id", result and result.endpoint_path)
-      end
-    end)
-
-    it("should return nil for invalid lines", function()
-      local line = "invalid line format"
-      local result = nestjs.parse_line(line, "GET")
-      assert.is_nil(result)
-    end)
-
-    it("should return nil for empty lines", function()
-      local line = ""
-      local result = nestjs.parse_line(line, "GET")
-      assert.is_nil(result)
     end)
   end)
 
@@ -164,26 +119,7 @@ describe("NestJS framework", function()
     end)
   end)
 
-  describe("integration with fixtures", function()
-    it("should correctly parse real NestJS fixture files", function()
-      local fixture_path = "tests/fixtures/nestjs"
-      if vim.fn.isdirectory(fixture_path) == 1 then
-        local original_cwd = vim.fn.getcwd()
-        vim.fn.chdir(fixture_path)
-
-        -- Test that framework is detected
-        assert.is_true(nestjs.detect())
-
-        -- Test that search command works
-        local cmd = nestjs.get_search_cmd "GET"
-        assert.is_string(cmd)
-
-        vim.fn.chdir(original_cwd)
-      else
-        pending "NestJS fixture directory not found"
-      end
-    end)
-  end)
+  describe("integration with fixtures", test_helpers.create_integration_test_suite(nestjs, "nestjs"))
 
   describe("edge cases", function()
     it("should handle various quote styles", function()
