@@ -6,13 +6,41 @@ local fs = require "endpoint.utils.fs"
 -- Detection
 ---@return boolean
 function M.detect()
-  return fs.has_file {
-    "pom.xml",
-    "build.gradle",
-    "build.gradle.kts",
+  -- Check for Spring-specific files first
+  local has_spring_config = fs.has_file {
     "application.properties",
     "application.yml",
+    "application.yaml",
   }
+
+  -- Check for Spring Boot main class or Spring annotations in source code
+  local has_spring_code = fs.is_directory "src"
+    and (
+      vim.fn
+        .system(
+          "find src -name '*.java' -exec grep -l '@SpringBootApplication\\|@RestController\\|@RequestMapping' {} \\; 2>/dev/null"
+        )
+        :match "%S" ~= nil
+    )
+
+  -- Check for Spring dependencies in build files
+  local has_spring_deps = fs.file_contains("pom.xml", {
+    "spring-boot",
+    "spring-web",
+    "spring-webmvc",
+    "org.springframework",
+  }) or fs.file_contains("build.gradle", {
+    "spring-boot",
+    "spring-web",
+    "org.springframework",
+  }) or fs.file_contains("build.gradle.kts", {
+    "spring-boot",
+    "spring-web",
+    "org.springframework",
+  })
+
+  -- Spring project must have Spring-specific config OR Spring code OR Spring dependencies
+  return has_spring_config or has_spring_code or has_spring_deps
 end
 
 -- Search command generation
