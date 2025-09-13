@@ -24,48 +24,66 @@ function M.show(endpoints, opts)
     return
   end
 
-  -- Format endpoints for snacks picker
+  -- Create items according to snacks documentation
   local items = {}
   for _, endpoint in ipairs(endpoints) do
+    local display_text = endpoint.display_value or (endpoint.method .. " " .. endpoint.endpoint_path)
+
+    -- Calculate end_pos by reading the actual line length
+    local end_col = endpoint.column - 1 + 10 -- Default to 10 chars
+    if endpoint.file_path then
+      local file = io.open(endpoint.file_path, "r")
+      if file then
+        local line_num = 1
+        for line in file:lines() do
+          if line_num == endpoint.line_number then
+            end_col = #line -- Use actual line length
+            break
+          end
+          line_num = line_num + 1
+        end
+        file:close()
+      end
+    end
+
     table.insert(items, {
-      -- Use display_value if available (for Rails action annotations), otherwise use default format
-      text = endpoint.display_value or (endpoint.method .. " " .. endpoint.endpoint_path),
-      file = endpoint.file_path,
-      line = endpoint.line_number,
-      col = endpoint.column,
-      endpoint = endpoint,
+      text = display_text,
+      value = endpoint, -- Store endpoint data in value
+      file = endpoint.file_path, -- Required for file preview
+      -- Use snacks internal pos format: [row, col] - adjust col to 0-based for extmark
+      pos = { endpoint.line_number, endpoint.column - 1 },
+      -- Add end_pos with actual line length
+      end_pos = { endpoint.line_number, end_col },
     })
   end
 
-  snacks.picker.pick {
-    source = "static",
+  if vim.g.endpoint_debug then
+    vim.notify("Snacks picker: " .. #items .. " items prepared", vim.log.levels.INFO)
+    if #items > 0 then
+      local first_item = items[1]
+      vim.notify("First item structure: " .. vim.inspect(first_item), vim.log.levels.INFO)
+    end
+  end
+
+  -- Default snacks picker configuration
+  local default_config = {
+    source = "Endpoint ",
     items = items,
-    prompt = "Endpoints",
-    preview = true,
-    finder = function(item)
-      return item.text
-    end,
-    format = function(item)
-      return item.text
-    end,
-    preview_file = function(item)
-      return {
-        file = item.file,
-        line = item.line,
-        col = item.col,
-        -- Additional options for better preview positioning
-        centered = true,
-      }
-    end,
-    confirm = function(item)
-      if item and item.endpoint then
-        vim.cmd("edit " .. item.endpoint.file_path)
-        vim.api.nvim_win_set_cursor(0, { item.endpoint.line_number, item.endpoint.column - 1 })
-        -- Center the line in the window
-        vim.cmd "normal! zz"
-      end
-    end,
+    prompt = "Endpoints ",
+    format = "text", -- Keep simple format for now
+    preview = "file", -- Back to simple working preview
+    matcher = {
+      fuzzy = true,
+      smartcase = true,
+      file_pos = true, -- Support patterns like `file:line:col`
+    },
   }
+
+  -- Merge user picker_opts with defaults (user options override defaults)
+  local final_config = vim.tbl_deep_extend("force", default_config, opts or {})
+  
+  -- Use official snacks.picker.pick API with merged configuration
+  snacks.picker.pick(final_config)
 end
 
 return M

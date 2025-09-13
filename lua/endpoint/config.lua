@@ -8,7 +8,11 @@ local default_config = {
 
   -- Picker configuration
   picker = "telescope", -- "telescope", "vim_ui_select", "snacks"
-  picker_opts = {}, -- Additional options passed to picker (Telescope only)
+  picker_opts = {
+    telescope = {}, -- Telescope-specific options
+    snacks = {}, -- Snacks-specific options  
+    vim_ui_select = {}, -- vim.ui.select-specific options
+  },
 
   -- UI configuration
   ui = {

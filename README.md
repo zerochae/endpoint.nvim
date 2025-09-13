@@ -15,7 +15,7 @@ A powerful Neovim plugin for quickly finding and navigating web framework API en
 ## ✨ Features
 
 - 🔍 **Multi-Framework Support**: Automatically detects and supports multiple web frameworks (see supported frameworks above)
-- 🎯 **Multiple Picker Interfaces**: Choose between Telescope, vim.ui.select, or Snacks.nvim pickers (Snacks picker in development)
+- 🎯 **Multiple Picker Interfaces**: Choose between Telescope, vim.ui.select, or Snacks.nvim pickers
 - ⚡ **Smart Caching**: Three cache modes - none (real-time), session, and persistent disk storage
 - 📍 **Precise Navigation**: Jump directly to the exact line where endpoints are defined
 - 🤖 **Auto-Detection**: Automatically detects your project's framework based on project files
@@ -75,7 +75,11 @@ A powerful Neovim plugin for quickly finding and navigating web framework API en
       
       -- Picker configuration
       picker = "telescope", -- "telescope", "vim_ui_select", "snacks"
-      picker_opts = {}, -- Additional options passed to picker (Telescope only)
+      picker_opts = {
+        telescope = {},     -- Telescope-specific options
+        snacks = {},       -- Snacks.nvim-specific options
+        vim_ui_select = {}, -- vim.ui.select-specific options
+      },
       
       -- UI configuration
       ui = {
@@ -116,7 +120,11 @@ require("endpoint").setup({
   
   -- Picker selection
   picker = "telescope", -- "telescope", "vim_ui_select", "snacks"
-  picker_opts = {}, -- Additional options passed to picker (Telescope only)
+  picker_opts = {
+    telescope = {},     -- Telescope-specific options
+    snacks = {},       -- Snacks.nvim-specific options  
+    vim_ui_select = {}, -- vim.ui.select-specific options
+  },
   
   -- UI customization
   ui = {
@@ -179,7 +187,11 @@ use {
 require("endpoint").setup({
   cache_mode = "none",                     -- "none", "session", "persistent"
   picker = "telescope",                     -- "telescope", "vim_ui_select", "snacks"
-  picker_opts = {},                         -- Additional picker options (Telescope only)
+  picker_opts = {
+    telescope = {},     -- Telescope-specific options
+    snacks = {},       -- Snacks.nvim-specific options
+    vim_ui_select = {}, -- vim.ui.select-specific options
+  },                  -- Picker-specific options
   
   ui = {
     show_icons = true,                      -- Show method icons
@@ -277,6 +289,13 @@ The plugin supports multiple UI interfaces for endpoint selection:
 ```lua
 require("endpoint").setup({
   picker = "telescope", -- Use Telescope interface (requires telescope.nvim)
+  picker_opts = {
+    telescope = {
+      theme = "dropdown",
+      previewer = false,
+      layout_config = { width = 0.8 }
+    }
+  }
 })
 ```
 - Rich fuzzy search interface
@@ -288,6 +307,12 @@ require("endpoint").setup({
 ```lua
 require("endpoint").setup({
   picker = "vim_ui_select", -- Use native vim.ui.select
+  picker_opts = {
+    vim_ui_select = {
+      prompt = "Choose endpoint: ",
+      kind = "endpoint", -- Useful for dressing.nvim theming
+    }
+  }
 })
 ```
 - Native Neovim interface
@@ -295,14 +320,23 @@ require("endpoint").setup({
 - Integrates with your vim.ui.select override (like dressing.nvim)
 - Lightweight and simple
 
-### Snacks Picker (In Development)
+### Snacks Picker
 ```lua
 require("endpoint").setup({
-  picker = "snacks", -- Use Snacks.nvim picker (coming soon)
+  picker = "snacks", -- Use Snacks.nvim picker
+  picker_opts = {
+    snacks = {
+      prompt = "Find Endpoints ",
+      matcher = { fuzzy = false, smartcase = false },
+      preview = "none" -- Disable preview for faster navigation
+    }
+  }
 })
 ```
 - Modern picker interface using Snacks.nvim
-- Currently in development
+- File preview with precise line highlighting
+- Fuzzy matching with file position patterns (`file:line:col`)
+- Clean, fast interface
 
 ## 🔧 Advanced Features
 

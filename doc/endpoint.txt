@@ -204,9 +204,11 @@ Configuration Options:~
         "vim_ui_select" - Use native vim.ui.select
         "snacks"        - Use Snacks.nvim picker
     
-    picker_opts (table): Additional options passed to picker.
-        Note: Only effective when using Telescope picker
-        Default: {}
+    picker_opts (table): Picker-specific configuration options.
+        telescope (table): Options passed to Telescope picker (themes, previewer, etc.)
+        snacks (table): Options passed to Snacks.nvim picker (prompt, matcher, etc.)
+        vim_ui_select (table): Options for vim.ui.select interface
+        Default: { telescope = {}, snacks = {}, vim_ui_select = {} }
     
     frameworks.rails.display_format (string): Rails route display format. Options:
         "action_only"      - Show only action name (GET[#index] /users)
@@ -245,14 +247,16 @@ Vim UI Select:~
   • Integrates with vim.ui.select overrides (like dressing.nvim)
   • Lightweight and simple
 
-Snacks Picker (In Development):~
+Snacks Picker:~
 >lua
     require("endpoint").setup({
-      picker = "snacks", -- Coming soon
+      picker = "snacks",
     })
 <
   • Modern picker interface using Snacks.nvim
-  • Currently in development
+  • File preview with precise line highlighting
+  • Fuzzy matching with file position patterns (`file:line:col`)
+  • Clean, fast interface
 
 ==============================================================================
 9. CACHING                                        *endpoint-caching*
