@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.4.0](https://github.com/zerochae/endpoint.nvim/compare/v1.3.1...v1.4.0) (2025-09-13)
+
+
+### Features
+
+* **rails:** enhance Rails support with configurable display formats and improve search functionality ([c4bd7d4](https://github.com/zerochae/endpoint.nvim/commit/c4bd7d42ee891d7cd380182405dfd92b6ef99e2e))
+
 ## [1.3.1](https://github.com/zerochae/endpoint.nvim/compare/v1.3.0...v1.3.1) (2025-09-12)
 
 
