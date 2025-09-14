@@ -30,8 +30,8 @@ local get_search_cmd = search_utils.create_search_cmd_generator(
   {
     -- Focus only on view implementations, not URL patterns
     GET = {
-      "def\\s+get\\s*\\(",  -- HTTP method implementations in views
-      "def\\s+retrieve\\s*\\(",  
+      "def\\s+get\\s*\\(", -- HTTP method implementations in views
+      "def\\s+retrieve\\s*\\(",
       "def\\s+list\\s*\\(",
     },
     POST = {
@@ -87,17 +87,24 @@ function M.parse_line(line, method)
   end
 
   -- Extract HTTP method and path from Django patterns
-  local http_method, endpoint_path = M.extract_route_info(content, method, file_path, tonumber(line_number))
+  local line_num = tonumber(line_number)
+  if not line_num then
+    return nil
+  end
+
+  local http_method, endpoint_path = M.extract_route_info(content, method, file_path, line_num)
   if not http_method or not endpoint_path then
     return nil
   end
+
+  local col_num = tonumber(column) or 1 -- Default to column 1 if conversion fails
 
   return {
     method = http_method,
     endpoint_path = endpoint_path,
     file_path = file_path,
-    line_number = tonumber(line_number),
-    column = tonumber(column),
+    line_number = line_num,
+    column = col_num,
     display_value = http_method .. " " .. endpoint_path,
   }
 end
@@ -110,15 +117,22 @@ end
 ---@return string?, string?
 function M.extract_route_info(content, search_method, file_path, line_number)
   -- Debug logging
-  if os.getenv("DEBUG_DJANGO") then
-    print(string.format("[Django Debug] extract_route_info called: content='%s', method='%s', file='%s', line=%d", 
-          content:gsub("%s+", " "), search_method, file_path, line_number))
+  if os.getenv "DEBUG_DJANGO" then
+    print(
+      string.format(
+        "[Django Debug] extract_route_info called: content='%s', method='%s', file='%s', line=%d",
+        content:gsub("%s+", " "),
+        search_method,
+        file_path,
+        line_number
+      )
+    )
   end
-  
+
   -- Skip URL pattern definitions in urls.py files - we want actual view implementations
   if file_path:match "urls%.py$" then
-    if os.getenv("DEBUG_DJANGO") then
-      print("[Django Debug] Skipping urls.py file")
+    if os.getenv "DEBUG_DJANGO" then
+      print "[Django Debug] Skipping urls.py file"
     end
     return nil, nil
   end
@@ -148,12 +162,15 @@ function M.extract_route_info(content, search_method, file_path, line_number)
   elseif content:match "^%s*def%s+partial_update%s*%(" then
     method_name = "partial_update"
   end
-  if os.getenv("DEBUG_DJANGO") then
+  if os.getenv "DEBUG_DJANGO" then
     print(string.format("[Django Debug] Pattern 1 - method_name='%s'", method_name or "nil"))
   end
-  if method_name and file_path:match "views%.py$" then
-    local http_method = M.convert_to_http_method(method_name)
-    
+  if method_name and (file_path:match "views%.py$" or file_path:match "viewsets%.py$") then
+    local http_method = M.convert_to_http_method(method_name, file_path)
+    if os.getenv "DEBUG_DJANGO" then
+      print(string.format("[Django Debug] Pattern 1 - method_name='%s' -> http_method='%s'", method_name, http_method))
+    end
+
     -- Find the parent class to get the actual URL
     local class_name = M.find_parent_class(file_path, line_number)
     if class_name then
@@ -162,10 +179,22 @@ function M.extract_route_info(content, search_method, file_path, line_number)
       if url_path then
         return http_method, url_path
       end
-      
-      -- Fallback to building URL from class name and app
-      local fallback_url = M.build_fallback_url(class_name:lower(), file_path)
-      return http_method, fallback_url
+
+      -- Check if this is a ViewSet class and use appropriate URL builder
+      if file_path:match "viewsets%.py$" or class_name:match "ViewSet$" then
+        local fallback_url = M.build_viewset_fallback_url(class_name, file_path)
+        if os.getenv "DEBUG_DJANGO" then
+          print(string.format("[Django Debug] ViewSet URL - class='%s' -> url='%s'", class_name, fallback_url))
+        end
+        return http_method, fallback_url
+      else
+        -- Regular CBV fallback
+        local fallback_url = M.build_fallback_url(class_name:lower(), file_path)
+        if os.getenv "DEBUG_DJANGO" then
+          print(string.format("[Django Debug] CBV URL - class='%s' -> url='%s'", class_name, fallback_url))
+        end
+        return http_method, fallback_url
+      end
     else
       -- Method without class (shouldn't happen but handle gracefully)
       local fallback_url = M.build_fallback_url(method_name, file_path)
@@ -173,9 +202,9 @@ function M.extract_route_info(content, search_method, file_path, line_number)
     end
   end
 
-  -- Pattern 2: Function-based views in views.py  
+  -- Pattern 2: Function-based views in views.py
   local function_name = content:match "^%s*def%s+([%w_]+)%s*%("
-  if function_name and file_path:match "views%.py$" then
+  if function_name and (file_path:match "views%.py$" or file_path:match "viewsets%.py$") then
     -- Skip Django built-in HTTP method handlers (already handled above)
     if function_name:match "^(get|post|put|patch|delete|head|options|trace)$" then
       return nil, nil
@@ -187,7 +216,7 @@ function M.extract_route_info(content, search_method, file_path, line_number)
     if url_path then
       -- Found actual URL pattern, determine HTTP method from function analysis
       local methods = M.analyze_function_view_methods(function_name, file_path, line_number)
-      
+
       -- For ALL search, return the first supported method
       if search_method == "ALL" then
         if #methods > 0 then
@@ -211,6 +240,13 @@ function M.extract_route_info(content, search_method, file_path, line_number)
   -- Pattern 3: Class-based view and ViewSet definitions
   local class_name = content:match "^%s*class%s+([%w_]+)%s*%("
   if class_name and (file_path:match "views%.py$" or file_path:match "viewsets%.py$") then
+    -- Debug logging for ViewSet detection
+    if os.getenv("DEBUG_DJANGO") then
+      print(string.format("[Django Debug] Class: %s, File: %s, ViewSet check: %s", 
+            class_name, file_path, 
+            tostring(file_path:match "viewsets%.py$" or class_name:match "ViewSet$")))
+    end
+    
     -- Handle ViewSets differently from regular views
     if file_path:match "viewsets%.py$" or class_name:match "ViewSet$" then
       -- For ViewSets, try to find router registration
@@ -226,7 +262,7 @@ function M.extract_route_info(content, search_method, file_path, line_number)
     else
       -- Regular class-based view
       local url_path = M.find_url_for_view(class_name, file_path)
-      
+
       if url_path then
         -- Determine HTTP method based on view type
         local methods = M.analyze_view_methods(class_name, file_path)
@@ -234,7 +270,14 @@ function M.extract_route_info(content, search_method, file_path, line_number)
         return http_method, url_path
       else
         -- Fallback - create URL from class name
-        local fallback_url = M.build_fallback_url(class_name:lower():gsub("view$", ""), file_path)
+        -- Handle ViewSet naming properly
+        local class_for_url = class_name:lower()
+        if class_for_url:match "viewset$" then
+          class_for_url = class_for_url:gsub("viewset$", "")
+        else
+          class_for_url = class_for_url:gsub("view$", "")
+        end
+        local fallback_url = M.build_fallback_url(class_for_url, file_path)
         return "GET", fallback_url
       end
     end
@@ -273,33 +316,6 @@ function M.normalize_django_path(path)
   return path
 end
 
--- Detect HTTP methods supported by a URL pattern
----@param file_path string
----@param line_number number
----@param content string
----@return string[]
-function M.detect_http_methods_for_url(file_path, line_number, content)
-  local methods = {}
-
-  -- Check if it's pointing to a view function/class
-  local view_name = content:match "views%.([%w_]+)" or content:match "([%w_]+)%.as_view"
-
-  if view_name then
-    -- Try to find the view definition and analyze its methods
-    local view_methods = M.analyze_view_methods(view_name, file_path)
-    for _, method in ipairs(view_methods) do
-      table.insert(methods, method)
-    end
-  end
-
-  -- Default assumption for URL patterns
-  if #methods == 0 then
-    methods = { "GET" }
-  end
-
-  return methods
-end
-
 -- Analyze what HTTP methods a view supports
 ---@param view_name string
 ---@param urls_file_path string
@@ -312,16 +328,10 @@ function M.analyze_view_methods(view_name, urls_file_path)
 
   if vim.fn.filereadable(views_file) == 1 then
     local content = vim.fn.readfile(views_file)
-    local in_view = false
     local in_class = false
     local class_name = ""
 
     for _, line in ipairs(content) do
-      -- Function-based view
-      if line:match("def%s+" .. view_name .. "%s*%(") then
-        in_view = true
-      end
-
       -- Class-based view
       if line:match("class%s+" .. view_name) then
         in_class = true
@@ -363,42 +373,35 @@ function M.analyze_view_methods(view_name, urls_file_path)
   return methods
 end
 
--- Extract HTTP methods from class-based view
----@param class_name string
----@param file_path string
----@param line_number number
----@return string[]
-function M.extract_methods_from_cbv(class_name, file_path, line_number)
-  return M.analyze_view_methods(class_name, file_path)
-end
-
 -- Find URL pattern for a specific view class
 ---@param view_name string
 ---@param current_file string
 ---@return string?
 function M.find_url_for_view(view_name, current_file)
-  if current_file:match "views%.py$" then
-    local urls_file = current_file:gsub("views%.py$", "urls.py")
+  if current_file:match "views%.py$" or current_file:match "viewsets%.py$" then
+    local urls_file = current_file:gsub("views%.py$", "urls.py"):gsub("viewsets%.py$", "urls.py")
     if vim.fn.filereadable(urls_file) == 1 then
       local content = vim.fn.readfile(urls_file)
-      
+
       -- Determine app prefix
-      local app_name = current_file:match "([%w_]+)/views%.py$"
+      local app_name = current_file:match "([%w_]+)/views%.py$" or current_file:match "([%w_]+)/viewsets%.py$"
       local app_prefix = ""
       if app_name then
         local main_urls_files = {
           "myproject/urls.py",
-          "*/urls.py", 
-          "urls.py"
+          "*/urls.py",
+          "urls.py",
         }
-        
+
         for _, main_urls_pattern in ipairs(main_urls_files) do
           if main_urls_pattern:match "%*" then
             local possible_files = vim.fn.glob(main_urls_pattern, false, true)
             for _, main_urls_file in ipairs(possible_files) do
               local main_content = vim.fn.readfile(main_urls_file)
               app_prefix = M.extract_app_prefix(main_content, app_name)
-              if app_prefix ~= "" then break end
+              if app_prefix ~= "" then
+                break
+              end
             end
           else
             if vim.fn.filereadable(main_urls_pattern) == 1 then
@@ -406,10 +409,12 @@ function M.find_url_for_view(view_name, current_file)
               app_prefix = M.extract_app_prefix(main_content, app_name)
             end
           end
-          if app_prefix ~= "" then break end
+          if app_prefix ~= "" then
+            break
+          end
         end
       end
-      
+
       -- Look for view class reference
       for _, line in ipairs(content) do
         if line:match(view_name) then
@@ -431,22 +436,22 @@ end
 ---@return string?
 function M.find_url_for_function(function_name, file_path)
   -- Look for URL patterns that reference this function
-  if file_path:match "views%.py$" then
-    local urls_file = file_path:gsub("views%.py$", "urls.py")
+  if file_path:match "views%.py$" or file_path:match "viewsets%.py$" then
+    local urls_file = file_path:gsub("views%.py$", "urls.py"):gsub("viewsets%.py$", "urls.py")
     if vim.fn.filereadable(urls_file) == 1 then
       local content = vim.fn.readfile(urls_file)
-      
+
       -- First, determine app prefix by looking at the app structure
-      local app_name = file_path:match "([%w_]+)/views%.py$"
+      local app_name = file_path:match "([%w_]+)/views%.py$" or file_path:match "([%w_]+)/viewsets%.py$"
       local app_prefix = ""
       if app_name then
-        -- Check main project urls.py for app inclusion  
+        -- Check main project urls.py for app inclusion
         local main_urls_files = {
           "myproject/urls.py",
-          "*/urls.py", 
-          "urls.py"
+          "*/urls.py",
+          "urls.py",
         }
-        
+
         for _, main_urls_pattern in ipairs(main_urls_files) do
           -- Handle glob patterns
           if main_urls_pattern:match "%*" then
@@ -454,7 +459,9 @@ function M.find_url_for_function(function_name, file_path)
             for _, main_urls_file in ipairs(possible_files) do
               local main_content = vim.fn.readfile(main_urls_file)
               app_prefix = M.extract_app_prefix(main_content, app_name)
-              if app_prefix ~= "" then break end
+              if app_prefix ~= "" then
+                break
+              end
             end
           else
             if vim.fn.filereadable(main_urls_pattern) == 1 then
@@ -462,10 +469,12 @@ function M.find_url_for_function(function_name, file_path)
               app_prefix = M.extract_app_prefix(main_content, app_name)
             end
           end
-          if app_prefix ~= "" then break end
+          if app_prefix ~= "" then
+            break
+          end
         end
       end
-      
+
       -- Now look for the specific function in app's urls.py
       for _, line in ipairs(content) do
         if line:match("views%." .. function_name) then
@@ -505,16 +514,6 @@ function M.extract_app_prefix(main_content, app_name)
   return ""
 end
 
--- Find URL pattern for a ViewSet
----@param viewset_name string
----@param file_path string
----@return string?
-function M.find_url_for_viewset(viewset_name, file_path)
-  -- ViewSets are typically registered with routers
-  -- This would need to parse router.register() calls
-  return "/api/viewset" -- Placeholder
-end
-
 -- Select primary HTTP method from a list of methods, preferring the search method
 ---@param methods string[]
 ---@param search_method string
@@ -546,7 +545,6 @@ function M.analyze_function_view_methods(function_name, file_path, line_number)
   if vim.fn.filereadable(file_path) == 1 then
     local content = vim.fn.readfile(file_path)
     local in_function = false
-    local brace_level = 0
 
     for i = line_number, #content do
       local line = content[i]
@@ -665,8 +663,8 @@ function M.find_router_urls_for_viewset(viewset_name, file_path)
   -- Look for router.register() calls in urls.py files
   local main_urls_files = {
     "myproject/urls.py",
-    "*/urls.py", 
-    "urls.py"
+    "*/urls.py",
+    "urls.py",
   }
 
   for _, main_urls_pattern in ipairs(main_urls_files) do
@@ -689,7 +687,7 @@ function M.find_router_urls_for_viewset(viewset_name, file_path)
         if line:match "router%.urls" then
           router_prefix = line:match "path%s*%(%s*['\"]([^'\"]*)['\"]" or ""
         end
-        
+
         -- Find ViewSet registration: router.register('prefix', ViewSetName)
         if line:match "router%.register" and line:match(viewset_name) then
           viewset_route_prefix = line:match "router%.register%s*%(%s*r?['\"]([^'\"]+)['\"]" or ""
@@ -709,36 +707,35 @@ function M.find_router_urls_for_viewset(viewset_name, file_path)
   return urls
 end
 
--- Infer HTTP method from function name
----@param function_name string
----@return string
-function M.infer_http_method_from_name(function_name)
-  local name_lower = function_name:lower()
-
-  if name_lower:match "create" or name_lower:match "add" or name_lower:match "post" then
-    return "POST"
-  elseif name_lower:match "update" or name_lower:match "edit" or name_lower:match "put" then
-    return "PUT"
-  elseif name_lower:match "patch" or name_lower:match "partial" then
-    return "PATCH"
-  elseif name_lower:match "delete" or name_lower:match "remove" or name_lower:match "destroy" then
-    return "DELETE"
-  else
-    return "GET" -- Default fallback
-  end
-end
-
 -- Build fallback URL for functions without clear URL mapping
 ---@param function_name string
 ---@param file_path string
 ---@return string
 function M.build_fallback_url(function_name, file_path)
   -- Extract app name from file path (e.g., users/views.py -> users)
-  local app_name = file_path:match "([%w_]+)/views%.py$"
+  local app_name = file_path:match "([%w_]+)/views%.py$" or file_path:match "([%w_]+)/viewsets%.py$"
   if app_name then
     return "/" .. app_name .. "/" .. function_name
   end
   return "/api/" .. function_name
+end
+
+-- Build fallback URL specifically for ViewSet classes
+---@param class_name string
+---@param file_path string
+---@return string
+function M.build_viewset_fallback_url(class_name, file_path)
+  -- Extract resource name from ViewSet class name (e.g., UserViewSet -> users)
+  local resource_name = class_name:gsub("ViewSet$", ""):lower()
+  -- Convert CamelCase to snake_case if needed
+  resource_name = resource_name:gsub("([A-Z])", function(c) return "_" .. c:lower() end):gsub("^_", "")
+  
+  -- Extract app name from file path
+  local app_name = file_path:match "([%w_]+)/viewsets%.py$"
+  if app_name then
+    return "/" .. app_name .. "/" .. resource_name .. "/"
+  end
+  return "/api/" .. resource_name .. "/"
 end
 
 -- Find the parent class for a method at a given line number
@@ -748,11 +745,11 @@ end
 function M.find_parent_class(file_path, line_number)
   if vim.fn.filereadable(file_path) == 1 then
     local content = vim.fn.readfile(file_path)
-    
+
     -- Search backwards from the method line to find the class definition
     for i = line_number - 1, 1, -1 do
       local line = content[i]
-      local class_name = line:match "^%s*class%s+([%w_]+)"  -- Allow indentation
+      local class_name = line:match "^%s*class%s+([%w_]+)" -- Allow indentation
       if class_name then
         return class_name
       end
@@ -763,10 +760,56 @@ end
 
 -- Convert ViewSet action names and Django method names to HTTP methods
 ---@param method_name string
+---@param file_path string
 ---@return string
-function M.convert_to_http_method(method_name)
-  local method_lower = method_name:lower()
+function M.convert_to_http_method(method_name, file_path)
+  -- Get display format configuration
+  local config = require "endpoint.config"
+  local django_config = config.get_value "frameworks" and config.get_value("frameworks").django or {}
+  local display_format = django_config.display_format
   
+  -- Auto-detect format: use "action" for ViewSet files, "http" for regular views
+  if not display_format then
+    if file_path and (file_path:match "viewsets%.py$" or file_path:match "ViewSet") then
+      display_format = "action"
+    else
+      display_format = "http"
+    end
+  end
+
+  local method_lower = method_name:lower()
+
+  -- 'action' format: show Django/DRF action names
+  if display_format == "action" then
+    if method_lower == "list" then
+      return "LIST"
+    elseif method_lower == "create" then
+      return "CREATE"
+    elseif method_lower == "retrieve" then
+      return "RETRIEVE"
+    elseif method_lower == "update" then
+      return "UPDATE"
+    elseif method_lower == "partial_update" then
+      return "PARTIAL_UPDATE"
+    elseif method_lower == "destroy" then
+      return "DESTROY"
+    -- Handle cases where HTTP method names come in (get, post, etc.)
+    elseif method_lower == "get" then
+      return "GET" -- Keep as HTTP method since it's generic
+    elseif method_lower == "post" then
+      return "POST" 
+    elseif method_lower == "put" then
+      return "PUT"
+    elseif method_lower == "patch" then
+      return "PATCH"
+    elseif method_lower == "delete" then
+      return "DELETE"
+    else
+      return method_name:upper()
+    end
+  end
+
+  -- Default 'http' format: pure HTTP methods only
   if method_lower == "get" or method_lower == "list" or method_lower == "retrieve" then
     return "GET"
   elseif method_lower == "post" or method_lower == "create" then
@@ -778,71 +821,8 @@ function M.convert_to_http_method(method_name)
   elseif method_lower == "delete" or method_lower == "destroy" then
     return "DELETE"
   else
-    return method_name:upper() -- Fallback to uppercase
+    return method_name:upper() -- Custom methods keep their names
   end
-end
-
--- Parse URL pattern from urls.py files
----@param content string
----@param search_method string
----@param file_path string
----@return string?, string?
-function M.parse_url_pattern(content, search_method, file_path)
-  -- Extract URL patterns: path('pattern', views.view_name)
-  local url_path = content:match "path%s*%(%s*['\"]([^'\"]*)['\"]"
-    or content:match "re_path%s*%(%s*r?['\"]([^'\"]+)['\"]"
-    or content:match "url%s*%(%s*r?['\"]([^'\"]+)['\"]"
-  
-  if not url_path then
-    return nil, nil
-  end
-  
-  -- Extract view reference
-  local view_ref = content:match "views%.([%w_]+)" or content:match "([%w_]+)%.as_view"
-  if not view_ref then
-    return nil, nil
-  end
-  
-  -- Determine app prefix
-  local app_name = file_path:match "([%w_]+)/urls%.py$"
-  local app_prefix = ""
-  if app_name then
-    local main_urls_files = {
-      "myproject/urls.py",
-      "*/urls.py", 
-      "urls.py"
-    }
-    
-    for _, main_urls_pattern in ipairs(main_urls_files) do
-      if main_urls_pattern:match "%*" then
-        local possible_files = vim.fn.glob(main_urls_pattern, false, true)
-        for _, main_urls_file in ipairs(possible_files) do
-          local main_content = vim.fn.readfile(main_urls_file)
-          app_prefix = M.extract_app_prefix(main_content, app_name)
-          if app_prefix ~= "" then break end
-        end
-      else
-        if vim.fn.filereadable(main_urls_pattern) == 1 then
-          local main_content = vim.fn.readfile(main_urls_pattern)
-          app_prefix = M.extract_app_prefix(main_content, app_name)
-        end
-      end
-      if app_prefix ~= "" then break end
-    end
-  end
-  
-  -- Normalize and combine paths
-  local normalized_path = M.normalize_django_path(url_path)
-  local full_path = app_prefix .. normalized_path
-  
-  -- For URL patterns, we assume GET method unless we can determine otherwise
-  -- This is a simplified approach - in reality we'd need to analyze the view
-  local http_method = "GET"
-  if search_method ~= "ALL" then
-    http_method = search_method
-  end
-  
-  return http_method, full_path
 end
 
 return M

@@ -52,6 +52,13 @@ M.DEFAULT_METHOD_COLORS = {
   PATCH = "TelescopeResultsFunction",
   -- React Router method types
   ROUTE = "TelescopeResultsIdentifier",
+  -- Django/DRF action types (use corresponding HTTP method colors)
+  LIST = "TelescopeResultsNumber",        -- Same as GET
+  CREATE = "TelescopeResultsConstant",    -- Same as POST
+  RETRIEVE = "TelescopeResultsNumber",    -- Same as GET
+  UPDATE = "TelescopeResultsKeyword",     -- Same as PUT
+  PARTIAL_UPDATE = "TelescopeResultsFunction", -- Same as PATCH
+  DESTROY = "TelescopeResultsSpecialChar", -- Same as DELETE
 }
 M.DEFAULT_METHOD_ICONS = {
   GET = "📥",
@@ -61,6 +68,13 @@ M.DEFAULT_METHOD_ICONS = {
   PATCH = "🔧",
   -- React Router method types
   ROUTE = "🔗",
+  -- Django/DRF action types (use corresponding HTTP method icons)
+  LIST = "📋",        -- List icon for collections
+  CREATE = "➕",      -- Plus icon for creation
+  RETRIEVE = "📥",    -- Same as GET
+  UPDATE = "✏️",      -- Same as PUT
+  PARTIAL_UPDATE = "🔧", -- Same as PATCH
+  DESTROY = "🗑️",    -- Same as DELETE
 }
 
 return M
