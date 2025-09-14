@@ -28,29 +28,41 @@ end
 local search_utils = require "endpoint.utils.search"
 local get_search_cmd = search_utils.create_search_cmd_generator(
   {
-    -- Focus only on view implementations, not URL patterns
+    -- Include both URL patterns and view implementations for comprehensive coverage
     GET = {
+      "path\\s*\\(", -- URL patterns
+      "class.*View", -- Class-based views
       "def\\s+get\\s*\\(", -- HTTP method implementations in views
       "def\\s+retrieve\\s*\\(",
       "def\\s+list\\s*\\(",
     },
     POST = {
+      "path\\s*\\(", -- URL patterns
+      "class.*View", -- Class-based views
       "def\\s+post\\s*\\(",
       "def\\s+create\\s*\\(",
     },
     PUT = {
+      "path\\s*\\(", -- URL patterns  
+      "class.*View", -- Class-based views
       "def\\s+put\\s*\\(",
       "def\\s+update\\s*\\(",
     },
     DELETE = {
+      "path\\s*\\(", -- URL patterns
+      "class.*View", -- Class-based views
       "def\\s+delete\\s*\\(",
       "def\\s+destroy\\s*\\(",
     },
     PATCH = {
+      "path\\s*\\(", -- URL patterns
+      "class.*View", -- Class-based views
       "def\\s+patch\\s*\\(",
       "def\\s+partial_update\\s*\\(",
     },
     ALL = {
+      "path\\s*\\(", "re_path\\s*\\(", "url\\s*\\(", -- URL patterns
+      "class.*View", "class.*ViewSet", -- View classes
       "def\\s+get\\s*\\(",
       "def\\s+post\\s*\\(",
       "def\\s+put\\s*\\(",
@@ -64,8 +76,8 @@ local get_search_cmd = search_utils.create_search_cmd_generator(
       "def\\s+partial_update\\s*\\(",
     },
   },
-  { "**/views.py", "**/viewsets.py" }, -- Only search in view files
-  { "**/migrations", "**/__pycache__", "**/venv", "**/env", "**/node_modules", "**/urls.py" }, -- Exclude URL files
+  { "**/views.py", "**/viewsets.py", "**/urls.py" }, -- Include URL files for pattern detection
+  { "**/migrations", "**/__pycache__", "**/venv", "**/env", "**/node_modules" }, -- Standard exclusions
   { "--type", "py" } -- Additional ripgrep flags
 )
 
@@ -83,6 +95,26 @@ end
 function M.parse_line(line, method)
   local file_path, line_number, column, content = line:match "([^:]+):(%d+):(%d+):(.*)"
   if not file_path then
+    return nil
+  end
+
+  -- Filter out URL pattern lines from results - we only want actual view implementations
+  if file_path:match "urls%.py$" then
+    -- Skip URL pattern definitions in search results
+    -- These are used for URL resolution but shouldn't appear as endpoints
+    if os.getenv "DEBUG_DJANGO" then
+      print(string.format("[Django Debug] Skipping URL pattern line: %s", content:gsub("%s+", " ")))
+    end
+    return nil
+  end
+
+  -- Filter out class definition lines - we only want method implementations
+  if content:match "^%s*class%s+[%w_]+.*:" then
+    -- Skip class definitions in search results
+    -- These are used for URL resolution but shouldn't appear as endpoints
+    if os.getenv "DEBUG_DJANGO" then
+      print(string.format("[Django Debug] Skipping class definition line: %s", content:gsub("%s+", " ")))
+    end
     return nil
   end
 
@@ -129,12 +161,12 @@ function M.extract_route_info(content, search_method, file_path, line_number)
     )
   end
 
-  -- Skip URL pattern definitions in urls.py files - we want actual view implementations
+  -- Handle URL patterns in urls.py files  
   if file_path:match "urls%.py$" then
     if os.getenv "DEBUG_DJANGO" then
-      print "[Django Debug] Skipping urls.py file"
+      print "[Django Debug] Processing urls.py file for URL patterns"
     end
-    return nil, nil
+    return M.parse_url_pattern(content, search_method, file_path)
   end
 
   -- Pattern 1: HTTP method implementations in Class-based views and ViewSets
@@ -823,6 +855,71 @@ function M.convert_to_http_method(method_name, file_path)
   else
     return method_name:upper() -- Custom methods keep their names
   end
+end
+
+-- Parse URL pattern from urls.py files
+---@param content string
+---@param search_method string
+---@param file_path string
+---@return string?, string?
+function M.parse_url_pattern(content, search_method, file_path)
+  -- Extract URL patterns: path('pattern', views.view_name)
+  local url_path = content:match "path%s*%(%s*['\"]([^'\"]*)['\"]"
+    or content:match "re_path%s*%(%s*r?['\"]([^'\"]+)['\"]"
+    or content:match "url%s*%(%s*r?['\"]([^'\"]+)['\"]"
+  
+  if not url_path then
+    return nil, nil
+  end
+  
+  -- Extract view reference
+  local view_ref = content:match "views%.([%w_]+)" or content:match "([%w_]+)%.as_view"
+  if not view_ref then
+    return nil, nil
+  end
+  
+  -- Determine app prefix
+  local app_name = file_path:match "([%w_]+)/urls%.py$"
+  local app_prefix = ""
+  if app_name then
+    local main_urls_files = {
+      "myproject/urls.py",
+      "*/urls.py", 
+      "urls.py"
+    }
+    
+    for _, main_urls_pattern in ipairs(main_urls_files) do
+      if main_urls_pattern:match "%*" then
+        local possible_files = vim.fn.glob(main_urls_pattern, false, true)
+        for _, main_urls_file in ipairs(possible_files) do
+          if vim.fn.filereadable(main_urls_file) == 1 then
+            local main_content = vim.fn.readfile(main_urls_file)
+            app_prefix = M.extract_app_prefix(main_content, app_name)
+            if app_prefix ~= "" then break end
+          end
+        end
+      else
+        if vim.fn.filereadable(main_urls_pattern) == 1 then
+          local main_content = vim.fn.readfile(main_urls_pattern)
+          app_prefix = M.extract_app_prefix(main_content, app_name)
+        end
+      end
+      if app_prefix ~= "" then break end
+    end
+  end
+  
+  -- Normalize and combine paths
+  local normalized_path = M.normalize_django_path(url_path)
+  local full_path = app_prefix .. normalized_path
+  
+  -- For URL patterns, we assume GET method unless we can determine otherwise
+  -- This is a simplified approach - in reality we'd need to analyze the view
+  local http_method = "GET"
+  if search_method ~= "ALL" then
+    http_method = search_method
+  end
+  
+  return http_method, full_path
 end
 
 return M
