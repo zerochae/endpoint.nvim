@@ -12,6 +12,7 @@ A powerful Neovim plugin for quickly finding and navigating web framework API en
 - NestJS (TypeScript/JavaScript)
 - Symfony (PHP)
 - FastAPI (Python)
+- Django (Python) - *NEW!*
 - Rails (Ruby)
 - Express (Node.js)
 - Ktor (Kotlin)
@@ -28,7 +29,7 @@ A powerful Neovim plugin for quickly finding and navigating web framework API en
 
 ## ✨ Features
 
-- 🔍 **Multi-Framework Support**: Automatically detects and supports 10 web frameworks
+- 🔍 **Multi-Framework Support**: Automatically detects and supports 11 web frameworks
 - 🎯 **Multiple Picker Interfaces**: Telescope, vim.ui.select, or Snacks.nvim
 - ⚡ **Smart Caching**: Real-time, session, or persistent modes
 - 📍 **Precise Navigation**: Jump directly to endpoint definitions

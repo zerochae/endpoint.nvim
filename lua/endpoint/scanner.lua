@@ -15,6 +15,7 @@ local frameworks = {
   react_router = require "endpoint.frameworks.react_router",
   ktor = require "endpoint.frameworks.ktor",
   dotnet = require "endpoint.frameworks.dotnet",
+  django = require "endpoint.frameworks.django",
 }
 
 -- Main scan function
