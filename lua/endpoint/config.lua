@@ -74,14 +74,20 @@ local function migrate_config(config)
   
   -- Handle picker + picker_opts -> picker.type + picker.options migration
   if config.picker and type(config.picker) == "string" then
-    if not config.picker or not config.picker.type then
-      if config.picker_opts then
-        warn_deprecated("picker_opts", "picker.options", "v2.0")
-      end
-      migrated.picker = migrated.picker or {}
-      migrated.picker.type = config.picker
-      migrated.picker.options = config.picker_opts or {}
+    -- Old format: picker is a string, convert to new format
+    if config.picker_opts then
+      warn_deprecated("picker_opts", "picker.options", "v2.0")
     end
+    
+    migrated.picker = {
+      type = config.picker,
+      options = config.picker_opts or {}
+    }
+  elseif config.picker_opts and not (config.picker and type(config.picker) == "table") then
+    -- Handle case where only picker_opts is provided with default picker
+    warn_deprecated("picker_opts", "picker.options", "v2.0")
+    migrated.picker = migrated.picker or {}
+    migrated.picker.options = config.picker_opts
   end
   
   -- Handle method_icons + method_colors -> ui.methods migration
