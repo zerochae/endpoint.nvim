@@ -1,5 +1,18 @@
 # Changelog
 
+## [1.11.0](https://github.com/zerochae/endpoint.nvim/compare/v1.10.0...v1.11.0) (2025-09-14)
+
+
+### Features
+
+* add GitHub Wiki as submodule ([36ef13b](https://github.com/zerochae/endpoint.nvim/commit/36ef13bc29899aedf310c0de0130312f6c8707a6))
+* add GitHub Wiki as submodule ([12bfffb](https://github.com/zerochae/endpoint.nvim/commit/12bfffbaca7d526774d1812036ea576365dcfc1e))
+
+
+### Bug Fixes
+
+* handle string picker config in migration logic ([6eef57d](https://github.com/zerochae/endpoint.nvim/commit/6eef57de9c91f6fbd94df5f4a5bdb5d5af0ebd03))
+
 ## [1.10.0](https://github.com/zerochae/endpoint.nvim/compare/v1.9.0...v1.10.0) (2025-09-13)
 
 
