@@ -58,23 +58,55 @@ A powerful Neovim plugin for quickly finding and navigating web framework API en
 
 ```lua
 require("endpoint").setup({
-  cache_mode = "none",        -- "none", "session", "persistent"
-  picker = "telescope",       -- "telescope", "vim_ui_select", "snacks"
-  
+  -- New improved config structure (v1.1+)
+  cache = {
+    mode = "none",        -- "none", "session", "persistent"
+  },
+  picker = {
+    type = "telescope",   -- "telescope", "vim_ui_select", "snacks"
+    options = {
+      telescope = { theme = "dropdown" },
+      snacks = { preview = "file" },
+    },
+  },
   ui = {
     show_icons = true,
     show_method = true,
-    method_icons = {
-      GET = "📥", POST = "📤", PUT = "✏️", 
-      DELETE = "🗑️", PATCH = "🔧"
+    methods = {
+      GET = { icon = "📥", color = "TelescopeResultsNumber" },
+      POST = { icon = "📤", color = "TelescopeResultsConstant" },
+      PUT = { icon = "✏️", color = "TelescopeResultsKeyword" },
+      DELETE = { icon = "🗑️", color = "TelescopeResultsSpecialChar" },
+      PATCH = { icon = "🔧", color = "TelescopeResultsFunction" },
     },
   },
-  
-  -- Rails-specific options
   frameworks = {
     rails = {
       display_format = "smart",
       show_action_annotation = true,
+    },
+  },
+})
+```
+
+**Legacy Configuration (still supported with deprecation warnings):**
+```lua
+require("endpoint").setup({
+  cache_mode = "none",        -- @deprecated: use cache.mode
+  picker = "telescope",       -- @deprecated: use picker.type
+  picker_opts = {             -- @deprecated: use picker.options
+    telescope = { theme = "dropdown" },
+  },
+  ui = {
+    show_icons = true,
+    show_method = true,
+    method_icons = {          -- @deprecated: use ui.methods
+      GET = "📥", POST = "📤", PUT = "✏️", 
+      DELETE = "🗑️", PATCH = "🔧"
+    },
+    method_colors = {         -- @deprecated: use ui.methods
+      GET = "TelescopeResultsNumber",
+      POST = "TelescopeResultsConstant",
     },
   },
 })

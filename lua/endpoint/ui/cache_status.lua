@@ -120,11 +120,13 @@ M.show_cache_status = function()
   vim.list_extend(lines, create_section_header("Project Information", "📁"))
   table.insert(lines, "│ Project Name:     " .. project_name)
   table.insert(lines, "│ Project Root:     " .. project_root)
-  table.insert(lines, "│ Cache Mode:       " .. (cache_config.cache_mode or "none") .. " mode")
+  -- Support both new and old config structure
+  local cache_mode = cache_config.cache and cache_config.cache.mode or cache_config.cache_mode or "none"
+  table.insert(lines, "│ Cache Mode:       " .. cache_mode .. " mode")
 
   table.insert(lines, "│ Configuration:    Global setup() only")
 
-  if cache_config.cache_mode == "persistent" then
+  if cache_mode == "persistent" then
     table.insert(lines, "│ Cache Directory:  " .. cache_dir)
   end
   vim.list_extend(lines, create_section_footer())
@@ -145,7 +147,7 @@ M.show_cache_status = function()
   vim.list_extend(lines, create_section_footer())
 
   -- File Cache Section (for persistent mode)
-  if cache_config.cache_mode == "persistent" then
+  if cache_mode == "persistent" then
     vim.list_extend(lines, create_section_header("Persistent Cache Files", "💾"))
 
     local find_exists = fs.has_file(find_cache_file)
@@ -433,7 +435,7 @@ M.show_cache_status = function()
   end, "Clear cache")
 
   map("<C-s>", function()
-    if cache_config.cache_mode == "persistent" then
+    if cache_mode == "persistent" then
       cache.save_to_file()
       vim.notify("💾 Cache saved successfully!", vim.log.levels.INFO)
     else

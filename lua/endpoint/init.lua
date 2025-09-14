@@ -32,8 +32,9 @@ function M.find_endpoints(method, opts)
     return
   end
 
-  -- Get configured picker
-  local picker_name = config.get_value "picker"
+  -- Get configured picker (support both new and old structure)
+  local current_config = config.get()
+  local picker_name = current_config.picker and current_config.picker.type or current_config.picker or "telescope"
   local picker = pickers[picker_name]
 
   if not picker then
@@ -47,8 +48,15 @@ function M.find_endpoints(method, opts)
   end
 
   -- Show endpoints in picker
-  local all_picker_opts = config.get_value "picker_opts"
+  -- Support both new and old config structure for backward compatibility
+  local current_config = config.get()
+  local picker_config = current_config.picker or {}
+  
+  -- Get picker options (new structure first, then fallback to old)
+  local all_picker_opts = picker_config.options or current_config.picker_opts or {}
   local current_picker_opts = all_picker_opts[picker_name] or {}
+  
+  -- Handle user-provided picker_opts (maintain compatibility)
   local user_picker_opts = (opts.picker_opts and opts.picker_opts[picker_name]) or opts.picker_opts or {}
   local picker_opts = vim.tbl_deep_extend("force", current_picker_opts, user_picker_opts)
   picker.show(endpoints, picker_opts)
