@@ -1,3 +1,7 @@
+<div align="center">
+  <img width="256" height="256" alt="image" src="https://github.com/user-attachments/assets/fdfa853a-9a6f-46f8-9fbb-9b2f55aaf5d2" />
+</div>
+
 # endpoint.nvim
 
 A powerful Neovim plugin for quickly finding and navigating web framework API endpoints with multiple picker interfaces and smart caching.
@@ -13,6 +17,14 @@ A powerful Neovim plugin for quickly finding and navigating web framework API en
 - Ktor (Kotlin)
 - .NET Core (C#)
 - React Router (Client-side routing)
+
+## 🖥️ Demo
+
+<img width="2294" height="1374" alt="스크린샷 2025-09-06 16 46 59" src="https://github.com/user-attachments/assets/78920f36-7584-457b-9380-147e0e9ba16e" />
+<img width="2294" height="1374" alt="스크린샷 2025-09-14 01 08 58" src="https://github.com/user-attachments/assets/bd9ddc7d-8929-4f57-9234-c521d7fb59e8" />
+<img width="2294" height="1374" alt="스크린샷 2025-09-13 21 49 37" src="https://github.com/user-attachments/assets/3e73da4d-4400-48fa-8f3d-d6fd2b7daf3c" />
+<img width="2294" height="1432" alt="스크린샷 2025-09-13 20 18 11" src="https://github.com/user-attachments/assets/abe4c2f3-872b-4a45-aa09-c4f0857df37c" />
+
 
 ## ✨ Features
 
@@ -123,14 +135,6 @@ require("endpoint").setup({
 - **`"none"`** (default): Real-time search, always up-to-date
 - **`"session"`**: Cache until nvim closes, good performance balance
 - **`"persistent"`**: Disk cache, best for large stable projects
-
-## 🖥️ Demo
-
-### Spring Boot
-![spring](https://github.com/user-attachments/assets/67bf9377-902d-4ec5-9a96-ad9f8da51c48)
-
-### NestJS
-![nest](https://github.com/user-attachments/assets/9dc987d2-e1c1-4bf8-bec4-dc6494fc7b46)
 
 ## ⚡️ Requirements
 
