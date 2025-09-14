@@ -1,18 +1,35 @@
 ---@meta
 
--- UI Configuration
+-- Method configuration (new structure)
+---@class endpoint.ui.method
+---@field icon string
+---@field color string
+
+-- UI Configuration (updated for new structure)
 ---@class endpoint.ui.config
----@field method_colors table<string, string>
----@field method_icons table<string, string>
 ---@field show_icons boolean
 ---@field show_method boolean
+---@field methods? table<string, endpoint.ui.method> -- New structure
+---@field method_colors? table<string, string> -- Legacy structure (deprecated)
+---@field method_icons? table<string, string> -- Legacy structure (deprecated)
 
--- Core Configuration
+-- Cache configuration (new structure)
+---@class endpoint.cache.config
+---@field mode "none" | "session" | "persistent"
+
+-- Picker configuration (new structure)
+---@class endpoint.picker.config
+---@field type "telescope" | "vim_ui_select" | "snacks"
+---@field options table
+
+-- Core Configuration (updated for new structure)
 ---@class endpoint.config
----@field cache_mode "none" | "session" | "persistent"
----@field picker "telescope" | "vim_ui_select" | "snacks"
----@field picker_opts table
+---@field cache? endpoint.cache.config -- New structure
+---@field picker? endpoint.picker.config -- New structure  
 ---@field ui endpoint.ui.config
+---@field frameworks? table
+---@field cache_mode? "none" | "session" | "persistent" -- Legacy (deprecated)
+---@field picker_opts? table -- Legacy (deprecated)
 
 -- Endpoint Entry
 ---@class endpoint.entry
