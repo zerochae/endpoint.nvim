@@ -17,7 +17,7 @@ def create_user(request):
     """Create a new user - POST only"""
     return JsonResponse({'message': 'User creation endpoint'})
 
-def user_detail_function(request, pk):
+def user_detail(request, pk):
     """User detail function-based view"""
     return JsonResponse({'user_id': pk, 'type': 'function'})
 

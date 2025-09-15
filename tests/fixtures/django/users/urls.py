@@ -7,7 +7,7 @@ urlpatterns = [
     # Function-based views
     path('', views.user_list, name='user_list'),
     path('create/', views.create_user, name='create_user'),
-    path('<int:pk>/', views.user_detail_function, name='user_detail_function'),
+    path('<int:pk>/', views.user_detail, name='user_detail'),
     
     # Class-based views
     path('cbv/', views.UserListView.as_view(), name='user_list_cbv'),

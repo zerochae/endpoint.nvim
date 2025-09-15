@@ -38,6 +38,15 @@ local default_config = {
       display_format = "smart", -- "action_only", "controller_action", "smart"
       show_action_annotation = true, -- Show [controller#action] annotations
     },
+    django = {
+      url_param_format = "%v:%t", -- Content template: %v=variable name, %t=type
+      url_param_fallback = "%v", -- Fallback content when type is unavailable (regex patterns)
+      url_param_brackets = "{}", -- Bracket style: "{}", "<>", "[]", "()", or custom like "⟨⟩"
+      -- Examples:
+      --   "%v:%t" + "{}" -> {pk:int}
+      --   "%t:%v" + "<>" -> <int:pk>
+      --   "%v" + "[]" -> [pk]
+    },
   },
 
   -- Legacy fields for backward compatibility (will be removed in v2.0)

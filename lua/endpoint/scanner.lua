@@ -1,22 +1,11 @@
--- Simplified Scanner Implementation (Function-based)
+-- Simplified Scanner Implementation
 local cache = require "endpoint.cache"
+local factory = require "endpoint.core.framework_factory"
 
 local M = {}
 
--- Available frameworks
-local frameworks = {
-  spring = require "endpoint.frameworks.spring",
-  servlet = require "endpoint.frameworks.servlet",
-  fastapi = require "endpoint.frameworks.fastapi",
-  nestjs = require "endpoint.frameworks.nestjs",
-  symfony = require "endpoint.frameworks.symfony",
-  rails = require "endpoint.frameworks.rails",
-  express = require "endpoint.frameworks.express",
-  react_router = require "endpoint.frameworks.react_router",
-  ktor = require "endpoint.frameworks.ktor",
-  dotnet = require "endpoint.frameworks.dotnet",
-  django = require "endpoint.frameworks.django",
-}
+-- Initialize framework factory
+factory.load_all_frameworks()
 
 -- Main scan function
 ---@param method? string
@@ -43,10 +32,45 @@ function M.scan(method, options)
   end
 
   -- Detect framework
-  local framework = M.detect_framework()
+  local framework, framework_name = M.detect_framework()
   if not framework then
     vim.notify("No supported framework detected", vim.log.levels.WARN)
     return {}
+  end
+
+  -- Special handling for comprehensive analysis frameworks (Django, Rails, etc.)
+  if factory.is_comprehensive_framework(framework) then
+    if vim.g.endpoint_debug then
+      vim.notify("[Scanner Debug] Using comprehensive analysis for method: " .. method, vim.log.levels.INFO)
+    end
+
+    -- Comprehensive frameworks perform full project analysis and then filter by method
+    -- This ensures accuracy by parsing actual framework structure rather than pattern matching
+    local comprehensive_endpoints = framework.get_all_endpoints_for_method(method)
+
+    -- Save all discovered endpoints to cache (not just the filtered ones)
+    if method == "ALL" then
+      -- For ALL method, save all endpoints
+      for _, endpoint in ipairs(comprehensive_endpoints) do
+        cache.save_endpoint(endpoint.method, endpoint)
+      end
+    else
+      -- For specific methods, we still need to get ALL endpoints to populate cache properly
+      -- but only return the filtered ones
+      local all_comprehensive_endpoints = framework.get_all_endpoints_for_method("ALL")
+      for _, endpoint in ipairs(all_comprehensive_endpoints) do
+        cache.save_endpoint(endpoint.method, endpoint)
+      end
+    end
+
+    if vim.g.endpoint_debug then
+      vim.notify(
+        string.format("🔍 Comprehensive analysis for %s: %d endpoints found", method, #comprehensive_endpoints),
+        vim.log.levels.INFO
+      )
+    end
+
+    return comprehensive_endpoints
   end
 
   -- Execute search
@@ -122,44 +146,26 @@ function M.scan(method, options)
   return endpoints
 end
 
--- Framework detection
----@return endpoint.framework?
+-- Framework detection using factory
+---@return endpoint.framework?, string?
 function M.detect_framework()
   if vim.g.endpoint_debug then
     vim.notify("[Scanner Debug] Starting framework detection...", vim.log.levels.INFO)
   end
 
-  local detected_frameworks = {}
-
-  -- Check all frameworks and collect detected ones
-  for name, framework in pairs(frameworks) do
-    local is_detected = framework.detect()
-    if vim.g.endpoint_debug then
-      vim.notify(string.format("[Scanner Debug] Framework %s: %s", name, tostring(is_detected)), vim.log.levels.INFO)
-    end
-
-    if is_detected then
-      table.insert(detected_frameworks, { name = name, framework = framework })
-    end
-  end
+  local framework, framework_name = factory.detect_framework()
 
   if vim.g.endpoint_debug then
-    vim.notify(
-      string.format("[Scanner Debug] Detected frameworks count: %d", #detected_frameworks),
-      vim.log.levels.INFO
-    )
-  end
-
-  -- Return the first detected framework (for now)
-  if #detected_frameworks > 0 then
-    local selected = detected_frameworks[1]
-    if vim.g.endpoint_debug then
-      vim.notify(string.format("[Scanner Debug] Using framework: %s", selected.name), vim.log.levels.INFO)
+    if framework_name then
+      local analysis_type = factory.is_comprehensive_framework(framework) and "comprehensive" or "pattern-matching"
+      vim.notify(string.format("[Scanner Debug] Detected framework: %s (type: %s)",
+        framework_name, analysis_type), vim.log.levels.INFO)
+    else
+      vim.notify("[Scanner Debug] No framework detected", vim.log.levels.WARN)
     end
-    return selected.framework
   end
 
-  return nil
+  return framework, framework_name
 end
 
 -- Prepare preview data for picker
