@@ -31,14 +31,17 @@
 ---@field cache_mode? "none" | "session" | "persistent" -- Legacy (deprecated)
 ---@field picker_opts? table -- Legacy (deprecated)
 
--- Endpoint Entry
+-- Endpoint Entry (standardized based on Spring framework)
 ---@class endpoint.entry
----@field file_path string
----@field line_number number
----@field column number
----@field method string
----@field endpoint_path string
----@field display_value string
+---@field method string HTTP method (e.g., "GET", "POST")
+---@field endpoint_path string API endpoint path (e.g., "/api/users")
+---@field file_path string Source file path
+---@field line_number number Line number in source file
+---@field column number Column number in source file
+---@field display_value string Display text for UI (e.g., "GET /api/users")
+---@field confidence? number Confidence score (0.0-1.0), defaults to 1.0
+---@field tags? string[] Framework-specific tags (e.g., {"api", "spring"})
+---@field framework? string Framework name
 
 -- Cache Module (Function-based)
 ---@class endpoint.cache
