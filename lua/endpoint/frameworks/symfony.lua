@@ -2,12 +2,11 @@ local Framework = require "endpoint.core.Framework"
 local DependencyDetectionStrategy = require "endpoint.core.strategies.detection.DependencyDetectionStrategy"
 local AnnotationParsingStrategy = require "endpoint.core.strategies.parsing.AnnotationParsingStrategy"
 
----@class SymfonyFramework : Framework
+---@class endpoint.SymfonyFramework : endpoint.Framework
 local SymfonyFramework = setmetatable({}, { __index = Framework })
 SymfonyFramework.__index = SymfonyFramework
 
 ---Creates a new SymfonyFramework instance
----@return SymfonyFramework
 function SymfonyFramework:new()
   local symfony_framework_instance = Framework.new(self, "symfony", {
     file_extensions = { "*.php" },
@@ -27,7 +26,6 @@ function SymfonyFramework:new()
 end
 
 ---Sets up detection and parsing strategies for Symfony
----@protected
 function SymfonyFramework:_setup_strategies()
   -- Setup detection strategy
   self.detection_strategy = DependencyDetectionStrategy:new(
@@ -65,17 +63,11 @@ function SymfonyFramework:_setup_strategies()
 end
 
 ---Detects if Symfony is present in the current project
----@return boolean
 function SymfonyFramework:detect()
   return self.detection_strategy:is_target_detected()
 end
 
 ---Parses Symfony content to extract endpoint information
----@param content string The content to parse
----@param file_path string Path to the file
----@param line_number number Line number in the file
----@param column number Column number in the line
----@return endpoint.entry|nil
 function SymfonyFramework:parse(content, file_path, line_number, column)
   local parsed_endpoint = self.parsing_strategy:parse_content(content, file_path, line_number, column)
 

@@ -1,11 +1,10 @@
 local Picker = require "endpoint.core.Picker"
 
----@class VimUiSelectPicker : Picker
+---@class endpoint.VimUiSelectPicker : endpoint.Picker
 local VimUiSelectPicker = setmetatable({}, { __index = Picker })
 VimUiSelectPicker.__index = VimUiSelectPicker
 
 ---Creates a new VimUiSelectPicker instance
----@return VimUiSelectPicker
 function VimUiSelectPicker:new()
   local vim_ui_select_picker = setmetatable({}, self)
   vim_ui_select_picker.name = "vim_ui_select"
@@ -13,14 +12,11 @@ function VimUiSelectPicker:new()
 end
 
 ---Check if vim.ui.select is available (always true - built into Neovim)
----@return boolean
 function VimUiSelectPicker:is_available()
   return true
 end
 
 ---Show endpoints in vim.ui.select
----@param endpoints endpoint.entry[]
----@param opts? table
 function VimUiSelectPicker:show(endpoints, opts)
   if not self:_validate_endpoints(endpoints) then
     return
@@ -37,8 +33,6 @@ function VimUiSelectPicker:show(endpoints, opts)
 end
 
 ---Create vim.ui.select configuration
----@param opts table
----@return table
 function VimUiSelectPicker:_create_select_config(opts)
   local default_config = {
     prompt = "Endpoint: ",
@@ -58,14 +52,11 @@ local vim_ui_select_picker = VimUiSelectPicker:new()
 local M = {}
 
 ---Check if vim.ui.select is available (always true - built into Neovim)
----@return boolean
 function M.is_available()
   return vim_ui_select_picker:is_available()
 end
 
 ---Show endpoints in vim.ui.select
----@param endpoints endpoint.entry[]
----@param opts? table
 function M.show(endpoints, opts)
   return vim_ui_select_picker:show(endpoints, opts)
 end

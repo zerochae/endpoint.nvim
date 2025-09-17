@@ -1,11 +1,9 @@
----@class EventManager
+---@class endpoint.EventManager
 local EventManager = {}
 EventManager.__index = EventManager
 
 local log = require "endpoint.utils.log"
 
----Creates a new EventManager instance
----@return EventManager
 function EventManager:new()
   local event_manager_instance = setmetatable({}, self)
   event_manager_instance.event_listeners = {}
@@ -13,9 +11,6 @@ function EventManager:new()
 end
 
 ---Registers an event listener for a specific event type
----@param event_type string The type of event to listen for
----@param listener_callback function The callback function to execute when event occurs
----@param listener_priority? number Optional priority for listener execution order (higher = earlier)
 function EventManager:add_event_listener(event_type, listener_callback, listener_priority)
   if type(listener_callback) ~= "function" then
     error "Event listener must be a function"
@@ -44,9 +39,6 @@ function EventManager:add_event_listener(event_type, listener_callback, listener
 end
 
 ---Removes an event listener for a specific event type
----@param event_type string The type of event
----@param listener_callback function The callback function to remove
----@return boolean was_listener_removed True if listener was found and removed
 function EventManager:remove_event_listener(event_type, listener_callback)
   if not self.event_listeners[event_type] then
     return false
@@ -64,9 +56,6 @@ function EventManager:remove_event_listener(event_type, listener_callback)
 end
 
 ---Emits an event to all registered listeners
----@param event_type string The type of event to emit
----@param event_data? table Optional data to pass to listeners
----@return table emission_results Results from all listener callbacks
 function EventManager:emit_event(event_type, event_data)
   if not self.event_listeners[event_type] then
     log.framework_debug(string.format("No listeners registered for event '%s'", event_type))
@@ -107,7 +96,6 @@ function EventManager:emit_event(event_type, event_data)
 end
 
 ---Gets all registered event types
----@return string[] registered_event_types List of event types with registered listeners
 function EventManager:get_registered_event_types()
   local registered_event_types = {}
   for event_type, _ in pairs(self.event_listeners) do
@@ -118,8 +106,6 @@ function EventManager:get_registered_event_types()
 end
 
 ---Gets the number of listeners for a specific event type
----@param event_type string The event type to check
----@return number listener_count Number of registered listeners
 function EventManager:get_listener_count(event_type)
   if not self.event_listeners[event_type] then
     return 0
@@ -128,8 +114,6 @@ function EventManager:get_listener_count(event_type)
 end
 
 ---Removes all listeners for a specific event type
----@param event_type string The event type to clear
----@return number removed_listener_count Number of listeners that were removed
 function EventManager:clear_event_listeners(event_type)
   if not self.event_listeners[event_type] then
     return 0
@@ -144,11 +128,10 @@ function EventManager:clear_event_listeners(event_type)
 end
 
 ---Removes all listeners for all event types
----@return number total_removed_listeners Total number of listeners removed
 function EventManager:clear_all_event_listeners()
   local total_removed_listeners = 0
 
-  for event_type, listener_list in pairs(self.event_listeners) do
+  for _, listener_list in pairs(self.event_listeners) do
     total_removed_listeners = total_removed_listeners + #listener_list
   end
 

@@ -2,12 +2,11 @@ local Framework = require "endpoint.core.Framework"
 local DependencyDetectionStrategy = require "endpoint.core.strategies.detection.DependencyDetectionStrategy"
 local RouteParsingStrategy = require "endpoint.core.strategies.parsing.RouteParsingStrategy"
 
----@class DjangoFramework : Framework
+---@class endpoint.DjangoFramework : endpoint.Framework
 local DjangoFramework = setmetatable({}, { __index = Framework })
 DjangoFramework.__index = DjangoFramework
 
 ---Creates a new DjangoFramework instance
----@return DjangoFramework
 function DjangoFramework:new()
   local django_framework_instance = setmetatable({}, self)
   django_framework_instance.name = "django"
@@ -52,7 +51,6 @@ function DjangoFramework:new()
 end
 
 ---Validates the framework configuration
----@protected
 function DjangoFramework:_validate_config()
   if not self.name then
     error("Framework name is required")
@@ -68,7 +66,6 @@ function DjangoFramework:_validate_config()
 end
 
 ---Sets up detection and parsing strategies for Django
----@protected
 function DjangoFramework:_setup_strategies()
   -- Setup detection strategy using backup logic patterns
   self.detection_strategy = DependencyDetectionStrategy:new(
@@ -114,14 +111,6 @@ function DjangoFramework:_setup_strategies()
 end
 
 ---Processes Django URL patterns (path, re_path, url) using backup logic
----@param strategy RouteParsingStrategy The parsing strategy instance
----@param content string The content to parse
----@param file_path string Path to the file
----@param line_number number Line number
----@param column number Column number
----@param endpoint_path string Extracted path
----@param http_method string HTTP method
----@return endpoint.entry|nil
 function DjangoFramework._process_django_url_pattern(strategy, content, file_path, line_number, column, endpoint_path, http_method)
   -- Extract URL pattern from content
   local url_path = content:match 'path%s*%(%s*["\']([^"\']*)["\']'
@@ -173,14 +162,6 @@ function DjangoFramework._process_django_url_pattern(strategy, content, file_pat
 end
 
 ---Processes Django view method implementations (get, post, etc.)
----@param strategy RouteParsingStrategy The parsing strategy instance
----@param content string The content to parse
----@param file_path string Path to the file
----@param line_number number Line number
----@param column number Column number
----@param endpoint_path string Extracted path
----@param http_method string HTTP method
----@return endpoint.entry|nil
 function DjangoFramework._process_django_view_method(strategy, content, file_path, line_number, column, endpoint_path, http_method)
   -- Filter out class definitions
   if content:match "^%s*class%s+[%w_]+.*:" then
@@ -239,14 +220,6 @@ function DjangoFramework._process_django_view_method(strategy, content, file_pat
 end
 
 ---Processes Django ViewSet action methods (list, create, retrieve, etc.)
----@param strategy RouteParsingStrategy The parsing strategy instance
----@param content string The content to parse
----@param file_path string Path to the file
----@param line_number number Line number
----@param column number Column number
----@param endpoint_path string Extracted path
----@param http_method string HTTP method
----@return endpoint.entry|nil
 function DjangoFramework._process_django_viewset_action(strategy, content, file_path, line_number, column, endpoint_path, http_method)
   -- Extract ViewSet action method name
   local action_name
@@ -302,14 +275,6 @@ function DjangoFramework._process_django_viewset_action(strategy, content, file_
 end
 
 ---Processes Django view class definitions
----@param strategy RouteParsingStrategy The parsing strategy instance
----@param content string The content to parse
----@param file_path string Path to the file
----@param line_number number Line number
----@param column number Column number
----@param endpoint_path string Extracted path
----@param http_method string HTTP method
----@return endpoint.entry|nil
 function DjangoFramework._process_django_view_class(strategy, content, file_path, line_number, column, endpoint_path, http_method)
   local class_name = content:match "^%s*class%s+([%w_]+)%s*%("
   if not class_name then
@@ -378,14 +343,6 @@ function DjangoFramework._process_django_view_class(strategy, content, file_path
 end
 
 ---Processes Django function-based views
----@param strategy RouteParsingStrategy The parsing strategy instance
----@param content string The content to parse
----@param file_path string Path to the file
----@param line_number number Line number
----@param column number Column number
----@param endpoint_path string Extracted path
----@param http_method string HTTP method
----@return endpoint.entry|nil
 function DjangoFramework._process_django_function_view(strategy, content, file_path, line_number, column, endpoint_path, http_method)
   local function_name = content:match "^%s*def%s+([%w_]+)%s*%("
   if not function_name then
@@ -431,14 +388,6 @@ function DjangoFramework._process_django_function_view(strategy, content, file_p
 end
 
 ---Processes Django include() patterns
----@param strategy RouteParsingStrategy The parsing strategy instance
----@param content string The content to parse
----@param file_path string Path to the file
----@param line_number number Line number
----@param column number Column number
----@param endpoint_path string Extracted path
----@param http_method string HTTP method
----@return endpoint.entry|nil
 function DjangoFramework._process_django_include(strategy, content, file_path, line_number, column, endpoint_path, http_method)
   local include_module = content:match('include\\s*\\(["\']([^"\']+)["\']')
   local cleaned_path = DjangoFramework._clean_django_path(endpoint_path)
@@ -463,8 +412,6 @@ function DjangoFramework._process_django_include(strategy, content, file_path, l
 end
 
 ---Cleans Django path patterns
----@param path string The raw path to clean
----@return string cleaned_path The cleaned path
 function DjangoFramework._clean_django_path(path)
   if not path then return "/" end
 
@@ -491,7 +438,6 @@ function DjangoFramework._clean_django_path(path)
 end
 
 ---Detects if Django is present in the current project
----@return boolean
 function DjangoFramework:detect()
   if not self.detection_strategy then
     self:_setup_strategies()
@@ -500,11 +446,6 @@ function DjangoFramework:detect()
 end
 
 ---Parses Django content to extract endpoint information
----@param content string The content to parse
----@param file_path string Path to the file
----@param line_number number Line number in the file
----@param column number Column number in the line
----@return endpoint.entry|nil
 function DjangoFramework:parse(content, file_path, line_number, column)
   -- Only process if this looks like Django code
   if not (content:match("urlpatterns") or content:match("path%s*%(") or
@@ -553,7 +494,6 @@ function DjangoFramework:parse(content, file_path, line_number, column)
 end
 
 ---Gets the search command for finding all endpoints
----@return string search_command The ripgrep command to find all endpoints
 function DjangoFramework:get_search_cmd()
   if not self.config.patterns then
     error("Patterns not configured for framework: " .. self.name)
@@ -572,8 +512,6 @@ function DjangoFramework:get_search_cmd()
 end
 
 ---Main template method for scanning endpoints
----@param options? table Scan options
----@return endpoint.entry[] discovered_endpoints List of discovered endpoints
 function DjangoFramework:scan(options)
   options = options or {}
 
@@ -609,8 +547,6 @@ end
 -- Helper functions from backup logic adapted for new structure
 
 ---Extract app prefix from main urls.py structure
----@param app_name string
----@return string
 function DjangoFramework._extract_app_prefix(app_name)
   local main_urls_files = { "myproject/urls.py", "*/urls.py", "urls.py" }
 
@@ -642,9 +578,6 @@ function DjangoFramework._extract_app_prefix(app_name)
 end
 
 ---Find URL pattern for a specific view class
----@param view_name string
----@param current_file string
----@return string|nil
 function DjangoFramework._find_url_for_view(view_name, current_file)
   if current_file:match "views%.py$" or current_file:match "viewsets%.py$" then
     local urls_file = current_file:gsub("views%.py$", "urls.py"):gsub("viewsets%.py$", "urls.py")
@@ -668,9 +601,6 @@ function DjangoFramework._find_url_for_view(view_name, current_file)
 end
 
 ---Find URL pattern for a function-based view
----@param function_name string
----@param file_path string
----@return string|nil
 function DjangoFramework._find_url_for_function(function_name, file_path)
   if file_path:match "views%.py$" or file_path:match "viewsets%.py$" then
     local urls_file = file_path:gsub("views%.py$", "urls.py"):gsub("viewsets%.py$", "urls.py")
@@ -696,9 +626,6 @@ function DjangoFramework._find_url_for_function(function_name, file_path)
 end
 
 ---Find parent class for a method at given line number
----@param file_path string
----@param line_number number
----@return string|nil
 function DjangoFramework._find_parent_class(file_path, line_number)
   if vim.fn.filereadable(file_path) == 1 then
     local content = vim.fn.readfile(file_path)
@@ -714,9 +641,6 @@ function DjangoFramework._find_parent_class(file_path, line_number)
 end
 
 ---Convert method names to HTTP methods
----@param method_name string
----@param file_path string
----@return string
 function DjangoFramework._convert_to_http_method(method_name, file_path)
   local method_lower = method_name:lower()
 
@@ -736,9 +660,6 @@ function DjangoFramework._convert_to_http_method(method_name, file_path)
 end
 
 ---Analyze what HTTP methods a view supports
----@param view_name string
----@param file_path string
----@return string[]
 function DjangoFramework._analyze_view_methods(view_name, file_path)
   local methods = {}
   local views_file = file_path:gsub("urls%.py$", "views.py")
@@ -781,10 +702,6 @@ function DjangoFramework._analyze_view_methods(view_name, file_path)
 end
 
 ---Analyze function-based view methods
----@param function_name string
----@param file_path string
----@param line_number number
----@return string[]
 function DjangoFramework._analyze_function_view_methods(function_name, file_path, line_number)
   local methods = {}
 
@@ -833,10 +750,6 @@ function DjangoFramework._analyze_function_view_methods(function_name, file_path
 end
 
 ---Analyze ViewSet methods
----@param viewset_name string
----@param file_path string
----@param line_number number
----@return string[]
 function DjangoFramework._analyze_viewset_methods(viewset_name, file_path, line_number)
   local methods = {}
 
@@ -877,9 +790,6 @@ function DjangoFramework._analyze_viewset_methods(viewset_name, file_path, line_
 end
 
 ---Find router URLs for ViewSet
----@param viewset_name string
----@param file_path string
----@return string[]
 function DjangoFramework._find_router_urls_for_viewset(viewset_name, file_path)
   local urls = {}
   local main_urls_files = { "myproject/urls.py", "*/urls.py", "urls.py" }
@@ -922,9 +832,6 @@ function DjangoFramework._find_router_urls_for_viewset(viewset_name, file_path)
 end
 
 ---Build ViewSet fallback URL
----@param class_name string
----@param file_path string
----@return string
 function DjangoFramework._build_viewset_fallback_url(class_name, file_path)
   local resource_name = class_name:gsub("ViewSet$", ""):lower()
   resource_name = resource_name:gsub("([A-Z])", function(c) return "_" .. c:lower() end):gsub("^_", "")
@@ -937,9 +844,6 @@ function DjangoFramework._build_viewset_fallback_url(class_name, file_path)
 end
 
 ---Select primary HTTP method from list
----@param methods string[]
----@param search_method string
----@return string
 function DjangoFramework._select_primary_method(methods, search_method)
   if #methods == 0 then
     return "GET"

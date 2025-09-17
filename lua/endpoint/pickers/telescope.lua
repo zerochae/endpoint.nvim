@@ -1,11 +1,10 @@
 local Picker = require "endpoint.core.Picker"
 
----@class TelescopePicker : Picker
+---@class endpoint.TelescopePicker : endpoint.Picker
 local TelescopePicker = setmetatable({}, { __index = Picker })
 TelescopePicker.__index = TelescopePicker
 
 ---Creates a new TelescopePicker instance
----@return TelescopePicker
 function TelescopePicker:new()
   local telescope_picker = setmetatable({}, self)
   telescope_picker.name = "telescope"
@@ -15,14 +14,11 @@ function TelescopePicker:new()
 end
 
 ---Check if Telescope is available
----@return boolean
 function TelescopePicker:is_available()
   return self.telescope_available
 end
 
 ---Show endpoints in Telescope picker
----@param endpoints endpoint.entry[]
----@param opts? table
 function TelescopePicker:show(endpoints, opts)
   if not self:is_available() then
     vim.notify("Telescope is not available", vim.log.levels.ERROR)
@@ -62,9 +58,6 @@ function TelescopePicker:show(endpoints, opts)
 end
 
 ---Create telescope entry for an endpoint
----@param entry endpoint.entry
----@param config table
----@return table
 function TelescopePicker:_create_entry(entry, config)
   local themes = require "endpoint.ui.themes"
 
@@ -99,10 +92,6 @@ function TelescopePicker:_create_entry(entry, config)
 end
 
 ---Calculate highlight length for different display formats
----@param entry endpoint.entry
----@param method_icon string
----@param method_text string
----@return integer
 function TelescopePicker:_calculate_highlight_length(entry, method_icon, method_text)
   if entry.display_value and entry.display_value:match "%[.+#.+%]" then
     -- Rails controller#action annotation: highlight the entire "GET[controller#action]" part
@@ -127,7 +116,6 @@ function TelescopePicker:_calculate_highlight_length(entry, method_icon, method_
 end
 
 ---Create endpoint-specific previewer with line/column highlighting
----@return table
 function TelescopePicker:_create_previewer()
   local previewers = require "telescope.previewers"
   local conf = require("telescope.config").values
@@ -144,9 +132,6 @@ function TelescopePicker:_create_previewer()
 end
 
 ---Define preview behavior for the previewer
----@param picker_self table
----@param entry table
----@param conf table
 function TelescopePicker:_define_preview(picker_self, entry, conf)
   local endpoint = entry.value
   if not endpoint or not endpoint.file_path then
@@ -167,8 +152,6 @@ function TelescopePicker:_define_preview(picker_self, entry, conf)
 end
 
 ---Get preview file location (handles React Router component files)
----@param endpoint endpoint.entry
----@return string?, integer?, integer?
 function TelescopePicker:_get_preview_location(endpoint)
   local preview_file = endpoint.file_path
   local preview_line = endpoint.line_number
@@ -185,11 +168,6 @@ function TelescopePicker:_get_preview_location(endpoint)
 end
 
 ---Handle preview callback for highlighting and cursor positioning
----@param bufnr integer
----@param endpoint endpoint.entry
----@param picker_self table
----@param preview_line integer?
----@param preview_col integer?
 function TelescopePicker:_handle_preview_callback(bufnr, endpoint, picker_self, preview_line, preview_col)
   -- Clear previous highlights first
   vim.api.nvim_buf_clear_namespace(bufnr, self.highlight_ns, 0, -1)
@@ -205,8 +183,6 @@ function TelescopePicker:_handle_preview_callback(bufnr, endpoint, picker_self, 
 end
 
 ---Highlight component definition in React Router components
----@param bufnr integer
----@param endpoint endpoint.entry
 function TelescopePicker:_highlight_component_definition(bufnr, endpoint)
   vim.defer_fn(function()
     if vim.api.nvim_buf_is_valid(bufnr) then
@@ -228,9 +204,6 @@ function TelescopePicker:_highlight_component_definition(bufnr, endpoint)
 end
 
 ---Highlight the endpoint line
----@param bufnr integer
----@param preview_line integer?
----@param preview_col integer?
 function TelescopePicker:_highlight_endpoint_line(bufnr, preview_line, preview_col)
   if preview_line then
     vim.api.nvim_buf_add_highlight(
@@ -245,9 +218,6 @@ function TelescopePicker:_highlight_endpoint_line(bufnr, preview_line, preview_c
 end
 
 ---Set cursor position and center in preview window
----@param picker_self table
----@param preview_line integer?
----@param preview_col integer?
 function TelescopePicker:_set_preview_cursor(picker_self, preview_line, preview_col)
   if picker_self.state.winid and vim.api.nvim_win_is_valid(picker_self.state.winid) then
     local target_line = preview_line or 1
@@ -267,10 +237,6 @@ function TelescopePicker:_set_preview_cursor(picker_self, preview_line, preview_
 end
 
 ---Attach key mappings for telescope picker
----@param prompt_bufnr integer
----@param actions table
----@param action_state table
----@return boolean
 function TelescopePicker:_attach_mappings(prompt_bufnr, actions, action_state)
   actions.select_default:replace(function()
     actions.close(prompt_bufnr)
@@ -289,20 +255,16 @@ local telescope_picker = TelescopePicker:new()
 local M = {}
 
 ---Check if Telescope is available
----@return boolean
 function M.is_available()
   return telescope_picker:is_available()
 end
 
 ---Show endpoints in Telescope picker
----@param endpoints endpoint.entry[]
----@param opts? table
 function M.show(endpoints, opts)
   return telescope_picker:show(endpoints, opts)
 end
 
 ---Create endpoint-specific previewer with line/column highlighting
----@return table
 function M.create_endpoint_previewer()
   return telescope_picker:_create_previewer()
 end

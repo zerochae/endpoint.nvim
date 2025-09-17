@@ -2,12 +2,11 @@ local Framework = require "endpoint.core.Framework"
 local DependencyDetectionStrategy = require "endpoint.core.strategies.detection.DependencyDetectionStrategy"
 local AnnotationParsingStrategy = require "endpoint.core.strategies.parsing.AnnotationParsingStrategy"
 
----@class KtorFramework : Framework
+---@class endpoint.KtorFramework : endpoint.Framework
 local KtorFramework = setmetatable({}, { __index = Framework })
 KtorFramework.__index = KtorFramework
 
 ---Creates a new KtorFramework instance
----@return KtorFramework
 function KtorFramework:new()
   local ktor_framework_instance = Framework.new(self, "ktor", {
     file_extensions = { "*.kt", "*.java" },
@@ -27,7 +26,6 @@ function KtorFramework:new()
 end
 
 ---Sets up detection and parsing strategies for Ktor
----@protected
 function KtorFramework:_setup_strategies()
   -- Setup detection strategy
   self.detection_strategy = DependencyDetectionStrategy:new(
@@ -73,17 +71,11 @@ function KtorFramework:_setup_strategies()
 end
 
 ---Detects if Ktor is present in the current project
----@return boolean
 function KtorFramework:detect()
   return self.detection_strategy:is_target_detected()
 end
 
 ---Parses Ktor content to extract endpoint information
----@param content string The content to parse
----@param file_path string Path to the file
----@param line_number number Line number in the file
----@param column number Column number in the line
----@return endpoint.entry|nil
 function KtorFramework:parse(content, file_path, line_number, column)
   local parsed_endpoint = self.parsing_strategy:parse_content(content, file_path, line_number, column)
 

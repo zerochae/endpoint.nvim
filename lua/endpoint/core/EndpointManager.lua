@@ -1,11 +1,10 @@
----@class EndpointManager
+---@class endpoint.EndpointManager
 local EndpointManager = {}
 EndpointManager.__index = EndpointManager
 
 local log = require "endpoint.utils.log"
 local EventManager = require "endpoint.core.EventManager"
-local cache_module = require "endpoint.core.CacheManager"
-local CacheManager = cache_module.CacheManager
+local CacheManager = require "endpoint.core.CacheManager"
 local config = require "endpoint.config"
 local PickerManager = require "endpoint.core.PickerManager"
 
@@ -25,7 +24,6 @@ local PhoenixFramework = require "endpoint.frameworks.phoenix"
 local DotNetFramework = require "endpoint.frameworks.dotnet"
 
 ---Creates a new EndpointManager instance
----@return EndpointManager
 function EndpointManager:new()
   local endpoint_manager_instance = setmetatable({}, self)
   endpoint_manager_instance.registered_frameworks = {}
@@ -37,7 +35,6 @@ function EndpointManager:new()
 end
 
 ---Setup the endpoint manager with configuration and register all frameworks
----@param user_config? table Optional user configuration
 function EndpointManager:setup(user_config)
   config.setup(user_config)
   self:register_all_frameworks()
@@ -81,7 +78,6 @@ function EndpointManager:register_all_frameworks()
 end
 
 ---Registers a framework with the endpoint manager
----@param framework_instance Framework The framework instance to register
 function EndpointManager:register_framework(framework_instance)
   if not framework_instance or not framework_instance.get_name then
     error "Invalid framework instance provided"
@@ -108,8 +104,6 @@ function EndpointManager:register_framework(framework_instance)
 end
 
 ---Unregisters a framework from the endpoint manager
----@param framework_name string The name of the framework to unregister
----@return boolean was_framework_removed True if framework was found and removed
 function EndpointManager:unregister_framework(framework_name)
   for framework_index, registered_framework in ipairs(self.registered_frameworks) do
     if registered_framework:get_name() == framework_name then
@@ -122,13 +116,11 @@ function EndpointManager:unregister_framework(framework_name)
 end
 
 ---Gets all registered frameworks
----@return Framework[] registered_frameworks List of registered framework instances
 function EndpointManager:get_registered_frameworks()
   return vim.deepcopy(self.registered_frameworks)
 end
 
 ---Detects which frameworks are present in the current project
----@return Framework[] detected_frameworks List of detected framework instances
 function EndpointManager:detect_project_frameworks()
   local detected_frameworks = {}
 
@@ -148,8 +140,6 @@ function EndpointManager:detect_project_frameworks()
 end
 
 ---Scans for endpoints using all detected frameworks
----@param scan_options? table Optional scan configuration
----@return endpoint.entry[] discovered_endpoints List of all discovered endpoints
 function EndpointManager:scan_all_endpoints(scan_options)
   scan_options = scan_options or {}
 
@@ -200,9 +190,6 @@ function EndpointManager:scan_all_endpoints(scan_options)
 end
 
 ---Scans for endpoints using a specific framework
----@param framework_name string The name of the framework to use
----@param scan_options? table Optional scan configuration
----@return endpoint.entry[] discovered_endpoints List of discovered endpoints
 function EndpointManager:scan_with_framework(framework_name, scan_options)
   scan_options = scan_options or {}
 
@@ -229,29 +216,21 @@ function EndpointManager:scan_with_framework(framework_name, scan_options)
 end
 
 ---Gets the event manager instance for external event handling
----@return EventManager event_manager The event manager instance
 function EndpointManager:get_event_manager()
   return self.event_manager
 end
 
 ---Adds an event listener for endpoint management events
----@param event_type string The type of event to listen for
----@param listener_callback function The callback function to execute
----@param listener_priority? number Optional priority for listener execution order
 function EndpointManager:add_event_listener(event_type, listener_callback, listener_priority)
   self.event_manager:add_event_listener(event_type, listener_callback, listener_priority)
 end
 
 ---Removes an event listener
----@param event_type string The type of event
----@param listener_callback function The callback function to remove
----@return boolean was_listener_removed True if listener was found and removed
 function EndpointManager:remove_event_listener(event_type, listener_callback)
   return self.event_manager:remove_event_listener(event_type, listener_callback)
 end
 
 ---Gets information about all registered frameworks
----@return table[] framework_info_list List of framework information
 function EndpointManager:get_framework_info()
   local framework_info_list = {}
 
@@ -272,7 +251,6 @@ function EndpointManager:get_framework_info()
 end
 
 ---Clears all registered frameworks
----@return number removed_framework_count Number of frameworks that were removed
 function EndpointManager:clear_all_frameworks()
   local removed_framework_count = #self.registered_frameworks
   self.registered_frameworks = {}
@@ -283,7 +261,6 @@ function EndpointManager:clear_all_frameworks()
 end
 
 ---Main function to find and show endpoints with UI
----@param opts? table Optional configuration
 function EndpointManager:find(opts)
   self:_ensure_initialized()
   opts = opts or {}
@@ -300,9 +277,6 @@ function EndpointManager:find(opts)
 end
 
 ---Handles caching logic for endpoints
----@param endpoints endpoint.entry[] List of endpoints
----@param opts table Options
----@return endpoint.entry[] endpoints Cached or fresh endpoints
 function EndpointManager:_handle_cache(endpoints, opts)
   if opts.force_refresh then
     return endpoints
@@ -319,8 +293,6 @@ function EndpointManager:_handle_cache(endpoints, opts)
 end
 
 ---Shows endpoints using the configured picker
----@param endpoints endpoint.entry[] List of endpoints to show
----@param opts table Options
 function EndpointManager:_show_with_picker(endpoints, opts)
   local picker_config = config.get()
   local picker_name = picker_config.picker and picker_config.picker.type or picker_config.picker or "telescope"

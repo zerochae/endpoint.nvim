@@ -1,12 +1,11 @@
 local Picker = require "endpoint.core.Picker"
 local log = require "endpoint.utils.log"
 
----@class SnacksPicker : Picker
+---@class endpoint.SnacksPicker : endpoint.Picker
 local SnacksPicker = setmetatable({}, { __index = Picker })
 SnacksPicker.__index = SnacksPicker
 
 ---Creates a new SnacksPicker instance
----@return SnacksPicker
 function SnacksPicker:new()
   local snacksPicker = setmetatable({}, self)
   snacksPicker.name = "snacks"
@@ -15,14 +14,11 @@ function SnacksPicker:new()
 end
 
 ---Check if Snacks is available
----@return boolean
 function SnacksPicker:is_available()
   return self.snacks_available
 end
 
 ---Show endpoints in Snacks picker
----@param endpoints endpoint.entry[]
----@param opts? table
 function SnacksPicker:show(endpoints, opts)
   if not self:is_available() then
     vim.notify("Snacks is not available", vim.log.levels.ERROR)
@@ -47,8 +43,6 @@ function SnacksPicker:show(endpoints, opts)
 end
 
 ---Create picker items from endpoints
----@param endpoints endpoint.entry[]
----@return table[]
 function SnacksPicker:_create_items(endpoints)
   local items = {}
   for _, endpoint in ipairs(endpoints) do
@@ -59,8 +53,6 @@ function SnacksPicker:_create_items(endpoints)
 end
 
 ---Create a single picker item from an endpoint
----@param endpoint endpoint.entry
----@return table
 function SnacksPicker:_create_item(endpoint)
   local display_text = self:_format_endpoint_display(endpoint)
   local end_col = self:_calculate_end_column(endpoint)
@@ -77,8 +69,6 @@ function SnacksPicker:_create_item(endpoint)
 end
 
 ---Calculate end column for highlighting by reading actual file
----@param endpoint endpoint.entry
----@return integer
 function SnacksPicker:_calculate_end_column(endpoint)
   local default_end_col = endpoint.column - 1 + 10 -- Default to 10 chars
 
@@ -105,7 +95,6 @@ function SnacksPicker:_calculate_end_column(endpoint)
 end
 
 ---Debug log items for troubleshooting
----@param items table[]
 function SnacksPicker:_debug_log_items(items)
   log.framework_debug("[" .. self.name .. " Picker] Snacks picker: " .. #items .. " items prepared")
   if #items > 0 then
@@ -115,9 +104,6 @@ function SnacksPicker:_debug_log_items(items)
 end
 
 ---Create picker configuration
----@param items table[]
----@param opts table
----@return table
 function SnacksPicker:_create_picker_config(items, opts)
   local default_config = {
     source = "Endpoint ",
@@ -143,14 +129,11 @@ local snacks_picker = SnacksPicker:new()
 local M = {}
 
 ---Check if Snacks is available
----@return boolean
 function M.is_available()
   return snacks_picker:is_available()
 end
 
 ---Show endpoints in Snacks picker
----@param endpoints endpoint.entry[]
----@param opts? table
 function M.show(endpoints, opts)
   return snacks_picker:show(endpoints, opts)
 end

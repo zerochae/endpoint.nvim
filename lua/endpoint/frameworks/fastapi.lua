@@ -2,12 +2,11 @@ local Framework = require "endpoint.core.Framework"
 local DependencyDetectionStrategy = require "endpoint.core.strategies.detection.DependencyDetectionStrategy"
 local AnnotationParsingStrategy = require "endpoint.core.strategies.parsing.AnnotationParsingStrategy"
 
----@class FastApiFramework : Framework
+---@class endpoint.FastApiFramework : endpoint.Framework
 local FastApiFramework = setmetatable({}, { __index = Framework })
 FastApiFramework.__index = FastApiFramework
 
 ---Creates a new FastApiFramework instance
----@return FastApiFramework
 function FastApiFramework:new()
   local fastapi_framework_instance = Framework.new(self, "fastapi", {
     file_extensions = { "*.py" },
@@ -27,7 +26,6 @@ function FastApiFramework:new()
 end
 
 ---Sets up detection and parsing strategies for FastAPI
----@protected
 function FastApiFramework:_setup_strategies()
   -- Setup detection strategy
   self.detection_strategy = DependencyDetectionStrategy:new(
@@ -75,17 +73,11 @@ function FastApiFramework:_setup_strategies()
 end
 
 ---Detects if FastAPI is present in the current project
----@return boolean
 function FastApiFramework:detect()
   return self.detection_strategy:is_target_detected()
 end
 
 ---Parses FastAPI content to extract endpoint information
----@param content string The content to parse
----@param file_path string Path to the file
----@param line_number number Line number in the file
----@param column number Column number in the line
----@return endpoint.entry|nil
 function FastApiFramework:parse(content, file_path, line_number, column)
   local parsed_endpoint = self.parsing_strategy:parse_content(content, file_path, line_number, column)
 

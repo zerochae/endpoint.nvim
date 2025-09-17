@@ -2,12 +2,11 @@ local Framework = require "endpoint.core.Framework"
 local DependencyDetectionStrategy = require "endpoint.core.strategies.detection.DependencyDetectionStrategy"
 local AnnotationParsingStrategy = require "endpoint.core.strategies.parsing.AnnotationParsingStrategy"
 
----@class DotNetFramework : Framework
+---@class endpoint.DotNetFramework : endpoint.Framework
 local DotNetFramework = setmetatable({}, { __index = Framework })
 DotNetFramework.__index = DotNetFramework
 
 ---Creates a new DotNetFramework instance
----@return DotNetFramework
 function DotNetFramework:new()
   local dotnet_framework_instance = Framework.new(self, "dotnet", {
     file_extensions = { "*.cs" },
@@ -27,7 +26,6 @@ function DotNetFramework:new()
 end
 
 ---Sets up detection and parsing strategies for .NET
----@protected
 function DotNetFramework:_setup_strategies()
   -- Setup detection strategy
   self.detection_strategy = DependencyDetectionStrategy:new(
@@ -77,17 +75,11 @@ function DotNetFramework:_setup_strategies()
 end
 
 ---Detects if .NET is present in the current project
----@return boolean
 function DotNetFramework:detect()
   return self.detection_strategy:is_target_detected()
 end
 
 ---Parses .NET content to extract endpoint information
----@param content string The content to parse
----@param file_path string Path to the file
----@param line_number number Line number in the file
----@param column number Column number in the line
----@return endpoint.entry|nil
 function DotNetFramework:parse(content, file_path, line_number, column)
   local parsed_endpoint = self.parsing_strategy:parse_content(content, file_path, line_number, column)
 

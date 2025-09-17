@@ -2,12 +2,11 @@ local Framework = require "endpoint.core.Framework"
 local DependencyDetectionStrategy = require "endpoint.core.strategies.detection.DependencyDetectionStrategy"
 local AnnotationParsingStrategy = require "endpoint.core.strategies.parsing.AnnotationParsingStrategy"
 
----@class AxumFramework : Framework
+---@class endpoint.AxumFramework : endpoint.Framework
 local AxumFramework = setmetatable({}, { __index = Framework })
 AxumFramework.__index = AxumFramework
 
 ---Creates a new AxumFramework instance
----@return AxumFramework
 function AxumFramework:new()
   local axum_framework_instance = Framework.new(self, "axum", {
     file_extensions = { "*.rs" },
@@ -27,7 +26,6 @@ function AxumFramework:new()
 end
 
 ---Sets up detection and parsing strategies for Axum
----@protected
 function AxumFramework:_setup_strategies()
   -- Setup detection strategy
   self.detection_strategy = DependencyDetectionStrategy:new(
@@ -74,17 +72,11 @@ function AxumFramework:_setup_strategies()
 end
 
 ---Detects if Axum is present in the current project
----@return boolean
 function AxumFramework:detect()
   return self.detection_strategy:is_target_detected()
 end
 
 ---Parses Axum content to extract endpoint information
----@param content string The content to parse
----@param file_path string Path to the file
----@param line_number number Line number in the file
----@param column number Column number in the line
----@return endpoint.entry|nil
 function AxumFramework:parse(content, file_path, line_number, column)
   local parsed_endpoint = self.parsing_strategy:parse_content(content, file_path, line_number, column)
 

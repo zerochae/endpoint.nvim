@@ -2,12 +2,11 @@ local Framework = require "endpoint.core.Framework"
 local DependencyDetectionStrategy = require "endpoint.core.strategies.detection.DependencyDetectionStrategy"
 local AnnotationParsingStrategy = require "endpoint.core.strategies.parsing.AnnotationParsingStrategy"
 
----@class GinFramework : Framework
+---@class endpoint.GinFramework : endpoint.Framework
 local GinFramework = setmetatable({}, { __index = Framework })
 GinFramework.__index = GinFramework
 
 ---Creates a new GinFramework instance
----@return GinFramework
 function GinFramework:new()
   local gin_framework_instance = Framework.new(self, "gin", {
     file_extensions = { "*.go" },
@@ -27,7 +26,6 @@ function GinFramework:new()
 end
 
 ---Sets up detection and parsing strategies for Gin
----@protected
 function GinFramework:_setup_strategies()
   -- Setup detection strategy
   self.detection_strategy = DependencyDetectionStrategy:new(
@@ -74,17 +72,11 @@ function GinFramework:_setup_strategies()
 end
 
 ---Detects if Gin is present in the current project
----@return boolean
 function GinFramework:detect()
   return self.detection_strategy:is_target_detected()
 end
 
 ---Parses Gin content to extract endpoint information
----@param content string The content to parse
----@param file_path string Path to the file
----@param line_number number Line number in the file
----@param column number Column number in the line
----@return endpoint.entry|nil
 function GinFramework:parse(content, file_path, line_number, column)
   local parsed_endpoint = self.parsing_strategy:parse_content(content, file_path, line_number, column)
 

@@ -2,12 +2,11 @@ local Framework = require "endpoint.core.Framework"
 local DependencyDetectionStrategy = require "endpoint.core.strategies.detection.DependencyDetectionStrategy"
 local AnnotationParsingStrategy = require "endpoint.core.strategies.parsing.AnnotationParsingStrategy"
 
----@class SpringFramework : Framework
+---@class endpoint.SpringFramework
 local SpringFramework = setmetatable({}, { __index = Framework })
 SpringFramework.__index = SpringFramework
 
 ---Creates a new SpringFramework instance
----@return SpringFramework
 function SpringFramework:new()
   local spring_framework_instance = Framework.new(self, "spring", {
     file_extensions = { "*.java", "*.kt" },
@@ -22,12 +21,10 @@ function SpringFramework:new()
     search_options = { "--case-sensitive", "--type", "java" }
   })
   setmetatable(spring_framework_instance, self)
-  ---@cast spring_framework_instance SpringFramework
   return spring_framework_instance
 end
 
 ---Sets up detection and parsing strategies for Spring
----@protected
 function SpringFramework:_setup_strategies()
   -- Setup detection strategy
   self.detection_strategy = DependencyDetectionStrategy:new(
@@ -77,17 +74,11 @@ function SpringFramework:_setup_strategies()
 end
 
 ---Detects if Spring is present in the current project
----@return boolean
 function SpringFramework:detect()
   return self.detection_strategy:is_target_detected()
 end
 
 ---Parses Spring content to extract endpoint information
----@param content string The content to parse
----@param file_path string Path to the file
----@param line_number number Line number in the file
----@param column number Column number in the line
----@return endpoint.entry|nil
 function SpringFramework:parse(content, file_path, line_number, column)
   local parsed_endpoint = self.parsing_strategy:parse_content(content, file_path, line_number, column)
 
@@ -125,10 +116,6 @@ function SpringFramework:parse(content, file_path, line_number, column)
 end
 
 ---Extracts controller base path from @RequestMapping annotation
----@private
----@param file_path string Path to the controller file
----@param current_line_number number Current line number
----@return string|nil controller_base_path Base path from controller
 function SpringFramework:_extract_controller_base_path(file_path, current_line_number)
   local fs = require "endpoint.utils.fs"
   local file_lines = fs.read_file(file_path)
@@ -161,10 +148,6 @@ function SpringFramework:_extract_controller_base_path(file_path, current_line_n
 end
 
 ---Combines base path with endpoint path
----@private
----@param base_path string Base path from controller
----@param endpoint_path string Endpoint path from method
----@return string combined_path Combined path
 function SpringFramework:_combine_paths(base_path, endpoint_path)
   if not base_path or base_path == "" then
     return endpoint_path
@@ -186,9 +169,6 @@ function SpringFramework:_combine_paths(base_path, endpoint_path)
 end
 
 ---Calculates Spring-specific confidence score
----@private
----@param endpoint endpoint.entry Endpoint to score
----@return number confidence_score Confidence score
 function SpringFramework:_calculate_spring_confidence(endpoint)
   local base_confidence = 0.8
   local confidence_boost = 0

@@ -3,15 +3,12 @@ local M = {}
 
 -- Check if a file exists (files only, excludes directories)
 -- Use this when you need to ensure something is specifically a file
----@param target_file_path string
----@return boolean file_exists_result True if the file exists
 function M.file_exists(target_file_path)
   local file_stat = vim.loop.fs_stat(target_file_path)
   return file_stat ~= nil and file_stat.type == "file"
 end
 
 -- Get the current working directory (project root)
----@return string current_project_root The project root directory path
 function M.get_project_root()
   local current_working_directory = vim.fn.getcwd()
 
@@ -29,8 +26,6 @@ function M.get_project_root()
 end
 
 -- Read file contents
----@param target_file_path string
----@return string[]? file_content_lines Array of file lines or nil if failed
 function M.read_file(target_file_path)
   local read_success, file_content_lines = pcall(vim.fn.readfile, target_file_path)
   if not read_success or not file_content_lines then
@@ -42,8 +37,6 @@ end
 -- Check if any of the specified files/directories exist (readable files or accessible directories)
 -- Use this for framework detection or general file/directory existence checks
 -- For precise file-only checking, use file_exists()
----@param files string|string[] Single file path or list of file paths to check
----@return boolean True if at least one file or directory exists
 function M.has_file(files)
   -- Handle single string parameter
   if type(files) == "string" then
@@ -61,8 +54,6 @@ end
 
 -- Escape special Lua pattern characters for literal string matching
 -- This allows searching for strings with hyphens, dots, etc. without treating them as pattern syntax
----@param str string String to escape
----@return string Escaped string safe for use in Lua patterns
 local function escape_pattern(str)
   return (str:gsub("([%-%^%$%(%)%%%.%[%]%*%+%?])", "%%%1"))
 end
@@ -70,9 +61,6 @@ end
 -- Check if a file contains specific pattern(s)
 -- Use this for framework dependency detection in config files
 -- Automatically escapes special pattern characters for literal string matching
----@param filepath string Path to the file to check
----@param patterns string|string[] Pattern(s) to search for (will be escaped for literal matching)
----@return boolean True if file exists and contains at least one pattern
 function M.file_contains(filepath, patterns)
   if not M.has_file(filepath) then
     return false
@@ -99,8 +87,6 @@ function M.file_contains(filepath, patterns)
 end
 
 -- Get cache directory path for the current project
----@param project_root? string Optional project root (defaults to current project)
----@return string Cache directory path
 function M.get_cache_dir(project_root)
   project_root = project_root or M.get_project_root()
   local project_name = vim.fn.fnamemodify(project_root, ":t")
@@ -108,36 +94,26 @@ function M.get_cache_dir(project_root)
 end
 
 -- Get filename from path (basename)
----@param filepath string Full file path
----@return string Filename only
 function M.get_filename(filepath)
   return vim.fn.fnamemodify(filepath, ":t")
 end
 
 -- Get directory from path (dirname)
----@param filepath string Full file path
----@return string Directory path
 function M.get_dirname(filepath)
   return vim.fn.fnamemodify(filepath, ":h")
 end
 
 -- Check if a directory exists
----@param dirpath string Directory path to check
----@return boolean True if directory exists
 function M.is_directory(dirpath)
   return vim.fn.isdirectory(dirpath) == 1
 end
 
 -- Create directory (with parents)
----@param dirpath string Directory path to create
----@return boolean True if successful
 function M.mkdir(dirpath)
   return vim.fn.mkdir(dirpath, "p") == 1
 end
 
 -- Delete file
----@param filepath string File path to delete
----@return boolean True if successful
 function M.delete_file(filepath)
   return vim.fn.delete(filepath) == 0
 end

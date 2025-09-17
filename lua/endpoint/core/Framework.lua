@@ -1,13 +1,10 @@
----@class Framework
+---@class endpoint.Framework
 local Framework = {}
 Framework.__index = Framework
 
 local log = require "endpoint.utils.log"
 
 ---Creates a new Framework instance
----@param name string Framework name
----@param config? table Framework configuration
----@return Framework
 function Framework:new(name, config)
   local instance = setmetatable({}, self)
   instance.name = name
@@ -18,7 +15,6 @@ function Framework:new(name, config)
 end
 
 ---Validates the framework configuration
----@protected
 function Framework:_validate_config()
   if not self.name then
     error "Framework name is required"
@@ -34,31 +30,30 @@ function Framework:_validate_config()
 end
 
 ---Sets up detection and parsing strategies
----@protected
 function Framework:_setup_strategies()
   -- Will be overridden by subclasses
 end
 
 ---Detects if this framework is present in the current project
----@abstract
----@return boolean
 function Framework:detect()
   error("detect() must be implemented by subclass: " .. self.name)
 end
 
 ---Parses content to extract endpoint information
----@abstract
----@param _content string The content to parse
----@param _file_path string Path to the file
----@param _line_number number Line number in the file
----@param _column number Column number in the line
----@return endpoint.entry|nil
-function Framework:parse(_content, _file_path, _line_number, _column)
+function Framework:parse(content, file_path, line_number, column)
   error("parse() must be implemented by subclass: " .. self.name)
+  -- Suppress unused warnings
+  ---@diagnostic disable-next-line: unused-local
+  local _ = content
+  ---@diagnostic disable-next-line: unused-local
+  _ = file_path
+  ---@diagnostic disable-next-line: unused-local
+  _ = line_number
+  ---@diagnostic disable-next-line: unused-local
+  _ = column
 end
 
 ---Gets the search command for finding all endpoints
----@return string search_command The ripgrep command to find all endpoints
 function Framework:get_search_cmd()
   if not self.config.patterns then
     error("Patterns not configured for framework: " .. self.name)
@@ -78,8 +73,6 @@ function Framework:get_search_cmd()
 end
 
 ---Main template method for scanning endpoints
----@param options? table Scan options
----@return endpoint.entry[] discovered_endpoints List of discovered endpoints
 function Framework:scan(options)
   options = options or {}
 
@@ -102,11 +95,11 @@ function Framework:scan(options)
 end
 
 ---Performs comprehensive scan for all endpoint patterns
----@protected
----@param _scan_options table Scan options
----@return endpoint.entry[] found_endpoints List of found endpoints
-function Framework:_perform_comprehensive_scan(_scan_options)
+function Framework:_perform_comprehensive_scan(scan_options)
   local search_command = self:get_search_cmd()
+  -- Suppress unused warning
+  ---@diagnostic disable-next-line: unused-local
+  local _ = scan_options
 
   log.framework_debug("Executing comprehensive search: " .. search_command)
 
@@ -130,9 +123,6 @@ function Framework:_perform_comprehensive_scan(_scan_options)
 end
 
 ---Parses a single ripgrep search result line
----@protected
----@param search_result_line string Ripgrep output line
----@return endpoint.entry|nil parsed_endpoint The parsed endpoint or nil if parsing failed
 function Framework:_parse_search_result_line(search_result_line)
   if not search_result_line or search_result_line == "" then
     return nil
@@ -167,9 +157,6 @@ function Framework:_parse_search_result_line(search_result_line)
 end
 
 ---Post-processes endpoints to remove duplicates and clean up
----@protected
----@param endpoints endpoint.entry[]
----@return endpoint.entry[]
 function Framework:_post_process_endpoints(endpoints)
   -- Remove duplicates based on method + path + file + line
   local seen = {}
@@ -194,20 +181,16 @@ function Framework:_post_process_endpoints(endpoints)
 end
 
 ---Gets the framework name
----@return string
 function Framework:get_name()
   return self.name
 end
 
 ---Gets the framework configuration
----@return table
 function Framework:get_config()
   return vim.deepcopy(self.config)
 end
 
 ---Checks if this instance is of a specific framework type
----@param framework_class table The framework class to check against
----@return boolean
 function Framework:is_instance_of(framework_class)
   local mt = getmetatable(self)
   while mt do

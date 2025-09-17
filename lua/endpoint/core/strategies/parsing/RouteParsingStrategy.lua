@@ -1,16 +1,11 @@
 local ParsingStrategy = require "endpoint.core.strategies.parsing.ParsingStrategy"
 
----@class RouteParsingStrategy : ParsingStrategy
+---@class endpoint.RouteParsingStrategy
 ---Route parsing strategy for frameworks that use route configuration files (Django, Rails)
 local RouteParsingStrategy = setmetatable({}, { __index = ParsingStrategy })
 RouteParsingStrategy.__index = RouteParsingStrategy
 
 ---Creates a new RouteParsingStrategy instance
----@param route_patterns table<string, string[]> Route pattern mapping by HTTP method
----@param path_extraction_patterns string[] Patterns to extract paths from routes
----@param route_processors table<string, function> Custom processors for different route types
----@param parsing_strategy_name? string Optional strategy name
----@return RouteParsingStrategy
 function RouteParsingStrategy:new(route_patterns, path_extraction_patterns, route_processors, parsing_strategy_name)
   local route_parsing_strategy_instance = ParsingStrategy.new(self, parsing_strategy_name or "route_parsing")
 
@@ -23,11 +18,6 @@ function RouteParsingStrategy:new(route_patterns, path_extraction_patterns, rout
 end
 
 ---Parses route content to extract endpoint information
----@param content string The content to parse
----@param file_path string Path to the file
----@param line_number number Line number in the file
----@param column number Column number in the line
----@return endpoint.entry|nil
 function RouteParsingStrategy:parse_content(content, file_path, line_number, column)
   local detected_route_type = self:_detect_route_type(content)
   if not detected_route_type then
@@ -52,8 +42,6 @@ function RouteParsingStrategy:parse_content(content, file_path, line_number, col
 end
 
 ---Detects the type of route pattern in the content
----@param content string The content to analyze
----@return string|nil detected_route_type The detected route type or nil
 function RouteParsingStrategy:_detect_route_type(content)
   for route_type, patterns in pairs(self.route_patterns) do
     for _, pattern in ipairs(patterns) do
@@ -66,8 +54,6 @@ function RouteParsingStrategy:_detect_route_type(content)
 end
 
 ---Extracts paths from the content using configured patterns
----@param content string The content to parse
----@return string[] extracted_paths List of extracted paths
 function RouteParsingStrategy:_extract_paths_from_content(content)
   local extracted_paths = {}
 
@@ -82,9 +68,6 @@ function RouteParsingStrategy:_extract_paths_from_content(content)
 end
 
 ---Determines HTTP method from content and route type
----@param content string The content to analyze
----@param route_type string The detected route type
----@return string http_method The determined HTTP method
 function RouteParsingStrategy:_determine_http_method(content, route_type)
   -- Default mapping based on route type
   local method_mapping = {
@@ -102,13 +85,6 @@ function RouteParsingStrategy:_determine_http_method(content, route_type)
 end
 
 ---Creates a basic endpoint entry
----@param content string The original content
----@param file_path string Path to the file
----@param line_number number Line number
----@param column number Column number
----@param endpoint_path string The extracted endpoint path
----@param http_method string The HTTP method
----@return endpoint.entry
 function RouteParsingStrategy:_create_endpoint_entry(content, file_path, line_number, column, endpoint_path, http_method)
   return {
     method = http_method,
@@ -127,15 +103,11 @@ function RouteParsingStrategy:_create_endpoint_entry(content, file_path, line_nu
 end
 
 ---Checks if content is valid for route parsing
----@param content string The content to validate
----@return boolean is_valid True if content contains route patterns
 function RouteParsingStrategy:is_content_valid_for_parsing(content)
   return self:_detect_route_type(content) ~= nil
 end
 
 ---Gets parsing confidence for route content
----@param content string The content to analyze
----@return number confidence Confidence score between 0.0 and 1.0
 function RouteParsingStrategy:get_parsing_confidence(content)
   local base_confidence = 0.7
   local confidence_boosts = 0.0
@@ -160,8 +132,6 @@ function RouteParsingStrategy:get_parsing_confidence(content)
 end
 
 ---Adds additional route patterns for a specific route type
----@param route_type string The route type identifier
----@param additional_patterns string[] Additional patterns to recognize
 function RouteParsingStrategy:add_route_patterns(route_type, additional_patterns)
   if not self.route_patterns[route_type] then
     self.route_patterns[route_type] = {}
@@ -173,7 +143,6 @@ function RouteParsingStrategy:add_route_patterns(route_type, additional_patterns
 end
 
 ---Adds additional path extraction patterns
----@param additional_path_patterns string[] Additional patterns for path extraction
 function RouteParsingStrategy:add_path_extraction_patterns(additional_path_patterns)
   for _, additional_pattern in ipairs(additional_path_patterns) do
     table.insert(self.path_extraction_patterns, additional_pattern)

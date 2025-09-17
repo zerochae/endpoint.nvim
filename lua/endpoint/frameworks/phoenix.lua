@@ -2,12 +2,11 @@ local Framework = require "endpoint.core.Framework"
 local DependencyDetectionStrategy = require "endpoint.core.strategies.detection.DependencyDetectionStrategy"
 local AnnotationParsingStrategy = require "endpoint.core.strategies.parsing.AnnotationParsingStrategy"
 
----@class PhoenixFramework : Framework
+---@class endpoint.PhoenixFramework : endpoint.Framework
 local PhoenixFramework = setmetatable({}, { __index = Framework })
 PhoenixFramework.__index = PhoenixFramework
 
 ---Creates a new PhoenixFramework instance
----@return PhoenixFramework
 function PhoenixFramework:new()
   local phoenix_framework_instance = Framework.new(self, "phoenix", {
     file_extensions = { "*.ex", "*.exs" },
@@ -27,7 +26,6 @@ function PhoenixFramework:new()
 end
 
 ---Sets up detection and parsing strategies for Phoenix
----@protected
 function PhoenixFramework:_setup_strategies()
   -- Setup detection strategy
   self.detection_strategy = DependencyDetectionStrategy:new(
@@ -69,17 +67,11 @@ function PhoenixFramework:_setup_strategies()
 end
 
 ---Detects if Phoenix is present in the current project
----@return boolean
 function PhoenixFramework:detect()
   return self.detection_strategy:is_target_detected()
 end
 
 ---Parses Phoenix content to extract endpoint information
----@param content string The content to parse
----@param file_path string Path to the file
----@param line_number number Line number in the file
----@param column number Column number in the line
----@return endpoint.entry|nil
 function PhoenixFramework:parse(content, file_path, line_number, column)
   local parsed_endpoint = self.parsing_strategy:parse_content(content, file_path, line_number, column)
 

@@ -204,4 +204,13 @@ function M.create_test_context()
   }
 end
 
+---Gets the fixture directory path for a specific framework
+---@param framework_name string Name of the framework (e.g., "rails", "django", "express")
+---@return string fixture_path Path to the framework fixture directory
+function M.get_fixture_path(framework_name)
+  local script_path = debug.getinfo(2).source:sub(2)
+  local test_root = vim.fn.fnamemodify(script_path, ":h:h:h") -- Go up to project root, then down to tests
+  return test_root .. "/tests/fixtures/" .. framework_name
+end
+
 return M

@@ -133,21 +133,16 @@ function M.setup(user_config)
 end
 
 -- Get current configuration
----@return table
 function M.get()
   return current_config
 end
 
 -- Get specific config value
----@param key string
----@return any
 function M.get_value(key)
   return current_config[key]
 end
 
 -- Set specific config value
----@param key string
----@param value any
 function M.set_value(key, value)
   current_config[key] = value
 end

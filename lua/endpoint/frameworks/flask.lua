@@ -2,12 +2,11 @@ local Framework = require "endpoint.core.Framework"
 local DependencyDetectionStrategy = require "endpoint.core.strategies.detection.DependencyDetectionStrategy"
 local AnnotationParsingStrategy = require "endpoint.core.strategies.parsing.AnnotationParsingStrategy"
 
----@class FlaskFramework : Framework
+---@class endpoint.FlaskFramework : endpoint.Framework
 local FlaskFramework = setmetatable({}, { __index = Framework })
 FlaskFramework.__index = FlaskFramework
 
 ---Creates a new FlaskFramework instance
----@return FlaskFramework
 function FlaskFramework:new()
   local flask_framework_instance = Framework.new(self, "flask", {
     file_extensions = { "*.py" },
@@ -27,7 +26,6 @@ function FlaskFramework:new()
 end
 
 ---Sets up detection and parsing strategies for Flask
----@protected
 function FlaskFramework:_setup_strategies()
   -- Setup detection strategy
   self.detection_strategy = DependencyDetectionStrategy:new(
@@ -67,17 +65,11 @@ function FlaskFramework:_setup_strategies()
 end
 
 ---Detects if Flask is present in the current project
----@return boolean
 function FlaskFramework:detect()
   return self.detection_strategy:is_target_detected()
 end
 
 ---Parses Flask content to extract endpoint information
----@param content string The content to parse
----@param file_path string Path to the file
----@param line_number number Line number in the file
----@param column number Column number in the line
----@return endpoint.entry|nil
 function FlaskFramework:parse(content, file_path, line_number, column)
   local parsed_endpoint = self.parsing_strategy:parse_content(content, file_path, line_number, column)
 

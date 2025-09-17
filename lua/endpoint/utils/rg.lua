@@ -2,8 +2,6 @@
 local M = {}
 
 -- Generate ripgrep search command for endpoint patterns
----@param ripgrep_search_options table Options table with method_patterns, file_globs, exclude_globs, extra_flags
----@return string ripgrep_command_string The complete ripgrep command
 function M.create_command(ripgrep_search_options)
   local method_patterns = ripgrep_search_options.method_patterns or {}
   local file_globs = ripgrep_search_options.file_globs or {}

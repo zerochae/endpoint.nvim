@@ -2,12 +2,11 @@ local Framework = require "endpoint.core.Framework"
 local DependencyDetectionStrategy = require "endpoint.core.strategies.detection.DependencyDetectionStrategy"
 local rg = require "endpoint.utils.rg"
 
----@class RailsFramework : Framework
+---@class endpoint.RailsFramework
 local RailsFramework = setmetatable({}, { __index = Framework })
 RailsFramework.__index = RailsFramework
 
 ---Creates a new RailsFramework instance
----@return RailsFramework
 function RailsFramework:new()
   local rails_framework_instance = setmetatable({}, self)
   rails_framework_instance.name = "rails"
@@ -37,13 +36,10 @@ function RailsFramework:new()
 
   rails_framework_instance:_validate_config()
   rails_framework_instance:_setup_strategies()
-  ---@cast rails_framework_instance RailsFramework
   return rails_framework_instance
 end
 
 ---Extracts HTTP method from Rails route content
----@param content string The content to parse
----@return string|nil route_method The HTTP method or nil
 local function extract_http_method(content)
   if content:match "get%s" then
     return "GET"
@@ -63,8 +59,6 @@ local function extract_http_method(content)
 end
 
 ---Checks if content represents a valid Rails route line
----@param content string The content to check
----@return boolean
 local function is_valid_route_line(content)
   return not (
     content:match "@%w+%s*=" -- Assignment like @post =
@@ -112,8 +106,6 @@ local PRIVATE_METHOD_SUFFIXES = {
 }
 
 ---Checks if an action name represents a private helper method
----@param action_name string The action name to check
----@return boolean
 local function is_private_helper_method(action_name)
   -- Check prefixes
   for prefix, _ in pairs(PRIVATE_METHOD_PREFIXES) do
@@ -133,11 +125,6 @@ local function is_private_helper_method(action_name)
 end
 
 ---Processes Rails explicit routes (get, post, put, etc.)
----@param content string The content to parse
----@param file_path string Path to the file
----@param line_number number Line number
----@param column number Column number
----@return endpoint.entry|nil
 function RailsFramework:_process_explicit_route(content, file_path, line_number, column)
   if not is_valid_route_line(content) then
     return nil
@@ -243,11 +230,6 @@ function RailsFramework:_process_explicit_route(content, file_path, line_number,
 end
 
 ---Processes Rails controller actions (def index, def show, etc.)
----@param content string The content to parse
----@param file_path string Path to the file
----@param line_number number Line number
----@param column number Column number
----@return endpoint.entry|nil
 function RailsFramework:_process_controller_action(content, file_path, line_number, column)
   if not file_path:match "controllers/.*%.rb$" then
     return nil
@@ -314,11 +296,6 @@ function RailsFramework:_process_controller_action(content, file_path, line_numb
 end
 
 ---Processes Rails namespace declarations (namespace :api do)
----@param content string The content to parse
----@param file_path string Path to the file
----@param line_number number Line number
----@param column number Column number
----@return endpoint.entry|nil
 function RailsFramework:_process_namespace(content, file_path, line_number, column)
   if not file_path:match "routes%.rb$" then
     return nil
@@ -350,11 +327,6 @@ function RailsFramework:_process_namespace(content, file_path, line_number, colu
 end
 
 ---Processes nested resources (resources :comments inside resources :posts)
----@param content string The content to parse
----@param file_path string Path to the file
----@param line_number number Line number
----@param column number Column number
----@return endpoint.entry[]|nil
 function RailsFramework:_process_nested_routes(content, file_path, line_number, column)
   if not file_path:match "routes%.rb$" then
     return nil
@@ -450,7 +422,6 @@ function RailsFramework:_process_nested_routes(content, file_path, line_number, 
 end
 
 ---Validates the framework configuration
----@protected
 function RailsFramework:_validate_config()
   if not self.name then
     error "Framework name is required"
@@ -466,7 +437,6 @@ function RailsFramework:_validate_config()
 end
 
 ---Sets up detection and parsing strategies for Rails
----@protected
 function RailsFramework:_setup_strategies()
   -- Setup detection strategy using file-based detection like the backup logic
   self.detection_strategy = DependencyDetectionStrategy:new(
@@ -481,8 +451,6 @@ end
 
 
 ---Cleans Rails path patterns
----@param path string The raw path to clean
----@return string cleaned_path The cleaned path
 function RailsFramework._clean_rails_path(path)
   if not path then
     return "/"
@@ -504,7 +472,6 @@ function RailsFramework._clean_rails_path(path)
 end
 
 ---Detects if Rails is present in the current project
----@return boolean
 function RailsFramework:detect()
   if not self.detection_strategy then
     self:_setup_strategies()
@@ -516,11 +483,6 @@ function RailsFramework:detect()
 end
 
 ---Parses Rails content to extract endpoint information
----@param content string The content to parse
----@param file_path string Path to the file
----@param line_number number Line number in the file
----@param column number Column number in the line
----@return endpoint.entry|nil
 function RailsFramework:parse(content, file_path, line_number, column)
   -- Only process if this looks like Rails routes or controller code
   if
@@ -605,7 +567,6 @@ function RailsFramework:parse(content, file_path, line_number, column)
 end
 
 ---Gets the search command for finding all endpoints
----@return string search_command The ripgrep command to find all endpoints
 function RailsFramework:get_search_cmd()
   if not self.config.patterns then
     error("Patterns not configured for framework: " .. self.name)
@@ -622,8 +583,6 @@ function RailsFramework:get_search_cmd()
 end
 
 ---Main template method for scanning endpoints
----@param options? table Scan options
----@return endpoint.entry[] discovered_endpoints List of discovered endpoints
 function RailsFramework:scan(options)
   options = options or {}
 
@@ -672,9 +631,6 @@ function RailsFramework:scan(options)
 end
 
 ---Find the parent resource for a member/collection route
----@param file_path string Path to the routes file
----@param line_number number Current line number
----@return string|nil parent_resource The parent resource name
 function RailsFramework._find_parent_resource(file_path, line_number)
   local file = io.open(file_path, "r")
   if not file then
@@ -744,9 +700,6 @@ function RailsFramework._find_parent_resource(file_path, line_number)
 end
 
 ---Check if the current line is inside a member block
----@param file_path string Path to the routes file
----@param line_number number Current line number
----@return boolean
 function RailsFramework._is_in_member_block(file_path, line_number)
   if vim.fn.filereadable(file_path) == 0 then
     return false
@@ -775,9 +728,6 @@ function RailsFramework._is_in_member_block(file_path, line_number)
 end
 
 ---Find the controller action implementation for a given action
----@param resource_name string The resource name (e.g. "users")
----@param action_name string The action name (e.g. "profile")
----@return table|nil controller_info {file_path: string, line_number: number}
 function RailsFramework._find_controller_action(resource_name, action_name)
   -- Convert resource name to controller path
   local controller_file = "app/controllers/" .. resource_name .. "_controller.rb"
@@ -834,9 +784,6 @@ function RailsFramework._find_controller_action(resource_name, action_name)
 end
 
 ---Check if the current line is inside a collection block
----@param file_path string Path to the routes file
----@param line_number number Current line number
----@return boolean
 function RailsFramework._is_in_collection_block(file_path, line_number)
   if vim.fn.filereadable(file_path) == 0 then
     return false
@@ -865,9 +812,6 @@ function RailsFramework._is_in_collection_block(file_path, line_number)
 end
 
 ---Check if a method is in the private section of a Rails controller
----@param file_path string Path to the controller file
----@param line_number number Current line number
----@return boolean
 function RailsFramework._is_private_method(file_path, line_number)
   if vim.fn.filereadable(file_path) == 0 then
     return false
