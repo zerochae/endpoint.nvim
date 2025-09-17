@@ -22,6 +22,7 @@ function NestJsFramework:new()
     search_options = { "--type", "ts" }
   })
   setmetatable(nestjs_framework_instance, self)
+  ---@cast nestjs_framework_instance NestJsFramework
   return nestjs_framework_instance
 end
 

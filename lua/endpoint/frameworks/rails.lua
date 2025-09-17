@@ -37,6 +37,7 @@ function RailsFramework:new()
 
   rails_framework_instance:_validate_config()
   rails_framework_instance:_setup_strategies()
+  ---@cast rails_framework_instance RailsFramework
   return rails_framework_instance
 end
 

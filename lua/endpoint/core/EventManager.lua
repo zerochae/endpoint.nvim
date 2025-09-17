@@ -1,5 +1,4 @@
 ---@class EventManager
----@field private event_listeners table<string, function[]>
 local EventManager = {}
 EventManager.__index = EventManager
 
@@ -19,7 +18,7 @@ end
 ---@param listener_priority? number Optional priority for listener execution order (higher = earlier)
 function EventManager:add_event_listener(event_type, listener_callback, listener_priority)
   if type(listener_callback) ~= "function" then
-    error("Event listener must be a function")
+    error "Event listener must be a function"
   end
 
   if not self.event_listeners[event_type] then
@@ -29,7 +28,7 @@ function EventManager:add_event_listener(event_type, listener_callback, listener
   local event_listener_entry = {
     callback_function = listener_callback,
     execution_priority = listener_priority or 0,
-    registration_timestamp = vim.loop.hrtime()
+    registration_timestamp = vim.loop.hrtime(),
   }
 
   table.insert(self.event_listeners[event_type], event_listener_entry)
@@ -39,8 +38,9 @@ function EventManager:add_event_listener(event_type, listener_callback, listener
     return listener_a.execution_priority > listener_b.execution_priority
   end)
 
-  log.framework_debug(string.format("Registered event listener for '%s' with priority %d",
-    event_type, listener_priority or 0))
+  log.framework_debug(
+    string.format("Registered event listener for '%s' with priority %d", event_type, listener_priority or 0)
+  )
 end
 
 ---Removes an event listener for a specific event type
@@ -76,8 +76,9 @@ function EventManager:emit_event(event_type, event_data)
   local emission_results = {}
   local event_data_payload = event_data or {}
 
-  log.framework_debug(string.format("Emitting event '%s' to %d listeners",
-    event_type, #self.event_listeners[event_type]))
+  log.framework_debug(
+    string.format("Emitting event '%s' to %d listeners", event_type, #self.event_listeners[event_type])
+  )
 
   for listener_index, event_listener_entry in ipairs(self.event_listeners[event_type]) do
     local execution_success, listener_result = pcall(event_listener_entry.callback_function, event_data_payload)
@@ -87,16 +88,17 @@ function EventManager:emit_event(event_type, event_data)
         listener_index = listener_index,
         execution_result = listener_result,
         execution_priority = event_listener_entry.execution_priority,
-        execution_status = "success"
+        execution_status = "success",
       })
     else
-      log.framework_debug(string.format("Event listener %d for '%s' failed: %s",
-        listener_index, event_type, listener_result))
+      log.framework_debug(
+        string.format("Event listener %d for '%s' failed: %s", listener_index, event_type, listener_result)
+      )
       table.insert(emission_results, {
         listener_index = listener_index,
         execution_error = listener_result,
         execution_priority = event_listener_entry.execution_priority,
-        execution_status = "error"
+        execution_status = "error",
       })
     end
   end
@@ -136,8 +138,7 @@ function EventManager:clear_event_listeners(event_type)
   local removed_listener_count = #self.event_listeners[event_type]
   self.event_listeners[event_type] = nil
 
-  log.framework_debug(string.format("Cleared %d listeners for event '%s'",
-    removed_listener_count, event_type))
+  log.framework_debug(string.format("Cleared %d listeners for event '%s'", removed_listener_count, event_type))
 
   return removed_listener_count
 end
@@ -167,7 +168,8 @@ EventManager.EVENT_TYPES = {
   PARSING_ERROR = "parsing_error",
   DETECTION_ERROR = "detection_error",
   CACHE_UPDATED = "cache_updated",
-  CONFIG_CHANGED = "config_changed"
+  CONFIG_CHANGED = "config_changed",
 }
 
 return EventManager
+

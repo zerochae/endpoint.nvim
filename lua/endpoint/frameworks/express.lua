@@ -22,6 +22,7 @@ function ExpressFramework:new()
     search_options = { "--type", "js" }
   })
   setmetatable(express_framework_instance, self)
+  ---@cast express_framework_instance ExpressFramework
   return express_framework_instance
 end
 

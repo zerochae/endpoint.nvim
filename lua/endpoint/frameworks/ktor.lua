@@ -22,6 +22,7 @@ function KtorFramework:new()
     search_options = { "--type", "kotlin" }
   })
   setmetatable(ktor_framework_instance, self)
+  ---@cast ktor_framework_instance KtorFramework
   return ktor_framework_instance
 end
 

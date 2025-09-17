@@ -1,71 +1,124 @@
----@class endpoint.pickers.snacks
-local M = {}
+local Picker = require "endpoint.core.Picker"
+local log = require "endpoint.utils.log"
 
--- Check if Snacks is available
----@return boolean
-function M.is_available()
-  return pcall(require, "snacks")
+---@class SnacksPicker : Picker
+local SnacksPicker = setmetatable({}, { __index = Picker })
+SnacksPicker.__index = SnacksPicker
+
+---Creates a new SnacksPicker instance
+---@return SnacksPicker
+function SnacksPicker:new()
+  local snacksPicker = setmetatable({}, self)
+  snacksPicker.name = "snacks"
+  snacksPicker.snacks_available = pcall(require, "snacks")
+  return snacksPicker
 end
 
--- Show endpoints in Snacks picker
+---Check if Snacks is available
+---@return boolean
+function SnacksPicker:is_available()
+  return self.snacks_available
+end
+
+---Show endpoints in Snacks picker
 ---@param endpoints endpoint.entry[]
 ---@param opts? table
-function M.show(endpoints, opts)
-  if not M.is_available() then
+function SnacksPicker:show(endpoints, opts)
+  if not self:is_available() then
     vim.notify("Snacks is not available", vim.log.levels.ERROR)
+    return
+  end
+
+  if not self:_validate_endpoints(endpoints) then
     return
   end
 
   local snacks = require "snacks"
   opts = opts or {}
 
-  if #endpoints == 0 then
-    vim.notify("No endpoints found", vim.log.levels.INFO)
-    return
-  end
-
-  -- Create items according to snacks documentation
-  local items = {}
-  for _, endpoint in ipairs(endpoints) do
-    local display_text = endpoint.display_value or (endpoint.method .. " " .. endpoint.endpoint_path)
-
-    -- Calculate end_pos by reading the actual line length
-    local end_col = endpoint.column - 1 + 10 -- Default to 10 chars
-    if endpoint.file_path then
-      local file = io.open(endpoint.file_path, "r")
-      if file then
-        local line_num = 1
-        for line in file:lines() do
-          if line_num == endpoint.line_number then
-            end_col = #line -- Use actual line length
-            break
-          end
-          line_num = line_num + 1
-        end
-        file:close()
-      end
-    end
-
-    table.insert(items, {
-      text = display_text,
-      value = endpoint, -- Store endpoint data in value
-      file = endpoint.file_path, -- Required for file preview
-      -- Use snacks internal pos format: [row, col] - adjust col to 0-based for extmark
-      pos = { endpoint.line_number, endpoint.column - 1 },
-      -- Add end_pos with actual line length
-      end_pos = { endpoint.line_number, end_col },
-    })
-  end
+  local items = self:_create_items(endpoints)
 
   if vim.g.endpoint_debug then
-    vim.notify("Snacks picker: " .. #items .. " items prepared", vim.log.levels.INFO)
-    if #items > 0 then
-      local first_item = items[1]
-      vim.notify("First item structure: " .. vim.inspect(first_item), vim.log.levels.INFO)
-    end
+    self:_debug_log_items(items)
   end
 
-  -- Default snacks picker configuration
+  local config = self:_create_picker_config(items, opts)
+  snacks.picker.pick(config)
+end
+
+---Create picker items from endpoints
+---@param endpoints endpoint.entry[]
+---@return table[]
+function SnacksPicker:_create_items(endpoints)
+  local items = {}
+  for _, endpoint in ipairs(endpoints) do
+    local item = self:_create_item(endpoint)
+    table.insert(items, item)
+  end
+  return items
+end
+
+---Create a single picker item from an endpoint
+---@param endpoint endpoint.entry
+---@return table
+function SnacksPicker:_create_item(endpoint)
+  local display_text = self:_format_endpoint_display(endpoint)
+  local end_col = self:_calculate_end_column(endpoint)
+
+  return {
+    text = display_text,
+    value = endpoint, -- Store endpoint data in value
+    file = endpoint.file_path, -- Required for file preview
+    -- Use snacks internal pos format: [row, col] - adjust col to 0-based for extmark
+    pos = { endpoint.line_number, endpoint.column - 1 },
+    -- Add end_pos with actual line length
+    end_pos = { endpoint.line_number, end_col },
+  }
+end
+
+---Calculate end column for highlighting by reading actual file
+---@param endpoint endpoint.entry
+---@return integer
+function SnacksPicker:_calculate_end_column(endpoint)
+  local default_end_col = endpoint.column - 1 + 10 -- Default to 10 chars
+
+  if not endpoint.file_path then
+    return default_end_col
+  end
+
+  local file = io.open(endpoint.file_path, "r")
+  if not file then
+    return default_end_col
+  end
+
+  local line_num = 1
+  for line in file:lines() do
+    if line_num == endpoint.line_number then
+      file:close()
+      return #line -- Use actual line length
+    end
+    line_num = line_num + 1
+  end
+
+  file:close()
+  return default_end_col
+end
+
+---Debug log items for troubleshooting
+---@param items table[]
+function SnacksPicker:_debug_log_items(items)
+  log.framework_debug("[" .. self.name .. " Picker] Snacks picker: " .. #items .. " items prepared")
+  if #items > 0 then
+    local first_item = items[1]
+    log.framework_debug("[" .. self.name .. " Picker] First item structure: " .. vim.inspect(first_item))
+  end
+end
+
+---Create picker configuration
+---@param items table[]
+---@param opts table
+---@return table
+function SnacksPicker:_create_picker_config(items, opts)
   local default_config = {
     source = "Endpoint ",
     items = items,
@@ -80,10 +133,27 @@ function M.show(endpoints, opts)
   }
 
   -- Merge user picker_opts with defaults (user options override defaults)
-  local final_config = vim.tbl_deep_extend("force", default_config, opts or {})
-  
-  -- Use official snacks.picker.pick API with merged configuration
-  snacks.picker.pick(final_config)
+  return vim.tbl_deep_extend("force", default_config, opts or {})
+end
+
+-- Create and return singleton instance for backward compatibility
+local snacks_picker = SnacksPicker:new()
+
+---@class endpoint.pickers.snacks
+local M = {}
+
+---Check if Snacks is available
+---@return boolean
+function M.is_available()
+  return snacks_picker:is_available()
+end
+
+---Show endpoints in Snacks picker
+---@param endpoints endpoint.entry[]
+---@param opts? table
+function M.show(endpoints, opts)
+  return snacks_picker:show(endpoints, opts)
 end
 
 return M
+

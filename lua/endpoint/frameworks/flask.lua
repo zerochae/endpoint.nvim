@@ -22,6 +22,7 @@ function FlaskFramework:new()
     search_options = { "--type", "py" }
   })
   setmetatable(flask_framework_instance, self)
+  ---@cast flask_framework_instance FlaskFramework
   return flask_framework_instance
 end
 

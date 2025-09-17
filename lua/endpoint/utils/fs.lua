@@ -64,7 +64,7 @@ end
 ---@param str string String to escape
 ---@return string Escaped string safe for use in Lua patterns
 local function escape_pattern(str)
-  return str:gsub("([%-%^%$%(%)%%%.%[%]%*%+%?])", "%%%1")
+  return (str:gsub("([%-%^%$%(%)%%%.%[%]%*%+%?])", "%%%1"))
 end
 
 -- Check if a file contains specific pattern(s)

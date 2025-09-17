@@ -1,9 +1,6 @@
 local ParsingStrategy = require "endpoint.core.strategies.parsing.ParsingStrategy"
 
 ---@class AnnotationParsingStrategy : ParsingStrategy
----@field private annotation_patterns table<string, string[]>
----@field private path_extraction_patterns string[]
----@field private method_mapping table<string, string>
 local AnnotationParsingStrategy = setmetatable({}, { __index = ParsingStrategy })
 AnnotationParsingStrategy.__index = AnnotationParsingStrategy
 
@@ -17,10 +14,10 @@ function AnnotationParsingStrategy:new(annotation_patterns, path_extraction_patt
   local annotation_parsing_strategy_instance = ParsingStrategy.new(self, parsing_strategy_name or "annotation_parsing")
   setmetatable(annotation_parsing_strategy_instance, self)
 
+  ---@class annotation_parsing_strategy_instance : AnnotationParsingStrategy
   annotation_parsing_strategy_instance.annotation_patterns = annotation_patterns or {}
   annotation_parsing_strategy_instance.path_extraction_patterns = path_extraction_patterns or {}
   annotation_parsing_strategy_instance.method_mapping = method_mapping or {}
-
   return annotation_parsing_strategy_instance
 end
 

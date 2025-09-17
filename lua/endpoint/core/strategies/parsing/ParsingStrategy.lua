@@ -1,5 +1,4 @@
 ---@class ParsingStrategy
----@field protected parsing_strategy_name string
 local ParsingStrategy = {}
 ParsingStrategy.__index = ParsingStrategy
 
@@ -14,12 +13,12 @@ end
 
 ---Parses content to extract endpoint information
 ---@abstract
----@param content_to_parse string The content to parse
----@param source_file_path string Path to the source file
----@param source_line_number number Line number in the source file
----@param source_column_position number Column position in the source line
+---@param _content_to_parse string The content to parse
+---@param _source_file_path string Path to the source file
+---@param _source_line_number number Line number in the source file
+---@param _source_column_position number Column position in the source line
 ---@return endpoint.entry|nil parsed_endpoint The parsed endpoint or nil if parsing failed
-function ParsingStrategy:parse_content(content_to_parse, source_file_path, source_line_number, source_column_position)
+function ParsingStrategy:parse_content(_content_to_parse, _source_file_path, _source_line_number, _source_column_position)
   error("parse_content() must be implemented by subclass: " .. self.parsing_strategy_name)
 end
 

@@ -22,6 +22,7 @@ function FastApiFramework:new()
     search_options = { "--type", "py" }
   })
   setmetatable(fastapi_framework_instance, self)
+  ---@cast fastapi_framework_instance FastApiFramework
   return fastapi_framework_instance
 end
 

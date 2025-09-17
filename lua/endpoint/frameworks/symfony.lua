@@ -22,6 +22,7 @@ function SymfonyFramework:new()
     search_options = { "--type", "php" }
   })
   setmetatable(symfony_framework_instance, self)
+  ---@cast symfony_framework_instance SymfonyFramework
   return symfony_framework_instance
 end
 

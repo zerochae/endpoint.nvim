@@ -22,6 +22,7 @@ function PhoenixFramework:new()
     search_options = { "--type", "elixir" }
   })
   setmetatable(phoenix_framework_instance, self)
+  ---@cast phoenix_framework_instance PhoenixFramework
   return phoenix_framework_instance
 end
 

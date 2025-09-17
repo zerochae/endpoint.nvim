@@ -1,5 +1,4 @@
 ---@class DetectionStrategy
----@field protected detection_name string
 local DetectionStrategy = {}
 DetectionStrategy.__index = DetectionStrategy
 

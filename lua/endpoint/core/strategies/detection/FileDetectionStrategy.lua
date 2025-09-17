@@ -1,8 +1,6 @@
 local DetectionStrategy = require "endpoint.core.strategies.detection.DetectionStrategy"
 
 ---@class FileDetectionStrategy : DetectionStrategy
----@field private required_indicator_files string[]
----@field private file_system_utils any
 local FileDetectionStrategy = setmetatable({}, { __index = DetectionStrategy })
 FileDetectionStrategy.__index = FileDetectionStrategy
 
@@ -14,9 +12,9 @@ function FileDetectionStrategy:new(required_indicator_files, strategy_name)
   local file_detection_strategy_instance = DetectionStrategy.new(self, strategy_name or "file_based_detection")
   setmetatable(file_detection_strategy_instance, self)
 
+  ---@class file_detection_strategy_instance : FileDetectionStrategy
   file_detection_strategy_instance.required_indicator_files = required_indicator_files or {}
   file_detection_strategy_instance.file_system_utils = require "endpoint.utils.fs"
-
   return file_detection_strategy_instance
 end
 

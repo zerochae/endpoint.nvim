@@ -22,6 +22,7 @@ function DotNetFramework:new()
     search_options = { "--type", "csharp" }
   })
   setmetatable(dotnet_framework_instance, self)
+  ---@cast dotnet_framework_instance DotNetFramework
   return dotnet_framework_instance
 end
 

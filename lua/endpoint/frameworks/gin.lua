@@ -22,6 +22,7 @@ function GinFramework:new()
     search_options = { "--type", "go" }
   })
   setmetatable(gin_framework_instance, self)
+  ---@cast gin_framework_instance GinFramework
   return gin_framework_instance
 end
 

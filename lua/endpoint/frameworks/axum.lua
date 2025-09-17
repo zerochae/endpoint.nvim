@@ -22,6 +22,7 @@ function AxumFramework:new()
     search_options = { "--type", "rust" }
   })
   setmetatable(axum_framework_instance, self)
+  ---@cast axum_framework_instance AxumFramework
   return axum_framework_instance
 end
 

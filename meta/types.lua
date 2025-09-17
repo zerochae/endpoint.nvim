@@ -17,6 +17,11 @@
 ---@class endpoint.cache.config
 ---@field mode "none" | "session" | "persistent"
 
+-- Cache Manager (OOP)
+---@class CacheManager
+---@field private cached_endpoints endpoint.entry[]
+---@field private cache_timestamp number
+
 -- Picker configuration (new structure)
 ---@class endpoint.picker.config
 ---@field type "telescope" | "vim_ui_select" | "snacks"
@@ -31,6 +36,7 @@
 ---@field cache_mode? "none" | "session" | "persistent" -- Legacy (deprecated)
 ---@field picker_opts? table -- Legacy (deprecated)
 
+
 -- Endpoint Entry (standardized based on OOP framework structure)
 ---@class endpoint.entry
 ---@field method string HTTP method (e.g., "GET", "POST")
@@ -43,6 +49,10 @@
 ---@field tags? string[] Framework-specific tags (e.g., {"api", "spring"})
 ---@field framework? string Framework name
 ---@field metadata? table Additional framework-specific metadata
+---@field action? string Rails controller action name
+---@field controller? string Rails controller name
+---@field component_file_path? string React Router component file path
+---@field component_name? string React Router component name
 
 -- Cache Module (Function-based)
 ---@class endpoint.cache
@@ -66,127 +76,81 @@
 -- NEW OOP FRAMEWORK ARCHITECTURE
 -- ========================================
 
+-- Framework base alias for compatibility
+---@alias endpoint.framework_base Framework
+
+-- Config type alias for UI configurations
+---@alias endpoint.Config endpoint.config
+
 -- Base Framework Class
 ---@class Framework
 ---@field protected name string Framework name
 ---@field protected config table Framework configuration
 ---@field protected detection_strategy DetectionStrategy
 ---@field protected parsing_strategy ParsingStrategy
----@field new fun(self: Framework, name: string, config?: table): Framework
----@field detect fun(self: Framework): boolean
----@field parse fun(self: Framework, content: string, file_path: string, line_number: number, column: number): endpoint.entry|nil
----@field scan fun(self: Framework, options?: table): endpoint.entry[]
----@field get_name fun(self: Framework): string
----@field get_config fun(self: Framework): table
----@field get_search_cmd fun(self: Framework): string
 
 -- Detection Strategy Pattern
 ---@class DetectionStrategy
----@field protected strategy_name string
----@field new fun(self: DetectionStrategy, strategy_name: string): DetectionStrategy
----@field is_target_detected fun(self: DetectionStrategy): boolean
----@field get_strategy_name fun(self: DetectionStrategy): string
----@field get_detection_details fun(self: DetectionStrategy): table|nil
+---@field protected detection_name string
 
 ---@class DependencyBasedDetectionStrategy : DetectionStrategy
 ---@field private required_dependencies string[]
 ---@field private manifest_files string[]
----@field new fun(self: DependencyBasedDetectionStrategy, required_dependencies: string[], manifest_files: string[], strategy_name?: string): DependencyBasedDetectionStrategy
 
 -- Parsing Strategy Pattern
 ---@class ParsingStrategy
 ---@field protected parsing_strategy_name string
----@field new fun(self: ParsingStrategy, parsing_strategy_name: string): ParsingStrategy
----@field parse_content fun(self: ParsingStrategy, content: string, file_path: string, line_number: number, column: number): endpoint.entry|nil
----@field get_strategy_name fun(self: ParsingStrategy): string
----@field is_content_valid_for_parsing fun(self: ParsingStrategy, content: string): boolean
----@field get_parsing_confidence fun(self: ParsingStrategy, content: string): number
 
 ---@class AnnotationBasedParsingStrategy : ParsingStrategy
 ---@field private annotation_patterns table<string, string[]>
 ---@field private path_extraction_patterns string[]
 ---@field private method_mapping table<string, string>
----@field new fun(self: AnnotationBasedParsingStrategy, annotation_patterns: table<string, string[]>, path_extraction_patterns: string[], method_mapping?: table<string, string>): AnnotationBasedParsingStrategy
 
 -- Event Manager (Observer Pattern)
 ---@class EventManager
 ---@field private event_listeners table<string, function[]>
----@field new fun(self: EventManager): EventManager
----@field add_event_listener fun(self: EventManager, event_type: string, listener_callback: function, listener_priority?: number)
----@field remove_event_listener fun(self: EventManager, event_type: string, listener_callback: function): boolean
----@field emit_event fun(self: EventManager, event_type: string, event_data?: table): table
----@field get_registered_event_types fun(self: EventManager): string[]
----@field get_listener_count fun(self: EventManager, event_type: string): number
 
 -- Endpoint Manager (Main Orchestrator)
 ---@class EndpointManager
 ---@field private registered_frameworks Framework[]
 ---@field private event_manager EventManager
----@field new fun(self: EndpointManager): EndpointManager
----@field register_framework fun(self: EndpointManager, framework_instance: Framework)
----@field unregister_framework fun(self: EndpointManager, framework_name: string): boolean
----@field get_registered_frameworks fun(self: EndpointManager): Framework[]
----@field detect_project_frameworks fun(self: EndpointManager): Framework[]
----@field scan_all_endpoints fun(self: EndpointManager, scan_options?: table): endpoint.entry[]
----@field scan_with_framework fun(self: EndpointManager, framework_name: string, scan_options?: table): endpoint.entry[]
----@field get_event_manager fun(self: EndpointManager): EventManager
----@field add_event_listener fun(self: EndpointManager, event_type: string, listener_callback: function, listener_priority?: number)
----@field remove_event_listener fun(self: EndpointManager, event_type: string, listener_callback: function): boolean
----@field get_framework_info fun(self: EndpointManager): table[]
+---@field private cache_manager CacheManager
+---@field private picker_manager PickerManager
+---@field private _initialized boolean
 
--- Framework Registry (Factory Pattern)
----@class FrameworkRegistry
----@field private endpoint_manager EndpointManager
----@field new fun(self: FrameworkRegistry): FrameworkRegistry
----@field register_all_frameworks fun(self: FrameworkRegistry)
----@field get_endpoint_manager fun(self: FrameworkRegistry): EndpointManager
----@field scan_all_endpoints fun(self: FrameworkRegistry, scan_options?: table): endpoint.entry[]
----@field scan_with_framework fun(self: FrameworkRegistry, framework_name: string, scan_options?: table): endpoint.entry[]
----@field get_framework_info fun(self: FrameworkRegistry): table[]
----@field detect_project_frameworks fun(self: FrameworkRegistry): Framework[]
+-- Picker Manager (Factory Pattern)
+---@class PickerManager
+---@field private available_pickers table<string, table>
 
 -- ========================================
 -- CONCRETE FRAMEWORK IMPLEMENTATIONS
 -- ========================================
 
 ---@class SpringFramework : Framework
----@field new fun(self: SpringFramework): SpringFramework
 
 ---@class FastApiFramework : Framework
----@field new fun(self: FastApiFramework): FastApiFramework
 
 ---@class ExpressFramework : Framework
----@field new fun(self: ExpressFramework): ExpressFramework
 
 ---@class FlaskFramework : Framework
----@field new fun(self: FlaskFramework): FlaskFramework
 
 ---@class RailsFramework : Framework
----@field new fun(self: RailsFramework): RailsFramework
 
 ---@class NestJsFramework : Framework
----@field new fun(self: NestJsFramework): NestJsFramework
 
 ---@class DjangoFramework : Framework
----@field new fun(self: DjangoFramework): DjangoFramework
 
 ---@class GinFramework : Framework
----@field new fun(self: GinFramework): GinFramework
 
 ---@class SymfonyFramework : Framework
----@field new fun(self: SymfonyFramework): SymfonyFramework
 
 ---@class KtorFramework : Framework
----@field new fun(self: KtorFramework): KtorFramework
 
 ---@class AxumFramework : Framework
----@field new fun(self: AxumFramework): AxumFramework
 
 ---@class PhoenixFramework : Framework
----@field new fun(self: PhoenixFramework): PhoenixFramework
 
 ---@class DotNetFramework : Framework
----@field new fun(self: DotNetFramework): DotNetFramework
 
 -- ========================================
 -- PICKER IMPLEMENTATIONS
@@ -194,19 +158,6 @@
 
 -- Picker Module (Function-based)
 ---@class endpoint.picker
----@field show fun(endpoints: endpoint.entry[], opts?: table)
-
----@class endpoint.pickers.telescope : endpoint.picker
----@field is_available fun(): boolean
----@field show fun(endpoints: endpoint.entry[], opts?: table)
----@field create_endpoint_previewer fun(): table
-
----@class endpoint.pickers.vim_ui_select : endpoint.picker
----@field is_available fun(): boolean
----@field show fun(endpoints: endpoint.entry[], opts?: table)
-
----@class endpoint.pickers.snacks : endpoint.picker
----@field is_available fun(): boolean
 ---@field show fun(endpoints: endpoint.entry[], opts?: table)
 
 -- ========================================
@@ -235,20 +186,34 @@
 ---@field endpoint fun(message: string, level?: number)
 
 -- ========================================
+-- PICKER IMPLEMENTATIONS (OOP)
+-- ========================================
+
+-- Base Picker Class
+---@class Picker
+---@field protected name string
+
+-- Concrete Picker Classes
+---@class TelescopePicker : Picker
+---@field private telescope_available boolean
+---@field private highlight_ns integer
+
+---@class SnacksPicker : Picker
+---@field private snacks_available boolean
+
+---@class VimUiSelectPicker : Picker
+
 -- MAIN MODULE INTERFACE
 -- ========================================
 
--- Main Module Interface (updated for new OOP structure)
+-- Main Module Interface (updated for new simplified OOP structure)
 ---@class endpoint
 ---@field setup fun(user_config?: table)
 ---@field find fun(opts?: table)
----@field find_endpoints fun(opts?: table) -- Alias for find
 ---@field clear_cache fun()
 ---@field show_cache_stats fun()
 ---@field refresh fun()
 ---@field get_config fun(): table
----@field get_framework_registry fun(): FrameworkRegistry|nil
----@field get_endpoint_manager fun(): EndpointManager|nil
 ---@field get_framework_info fun(): table[]
 ---@field detect_frameworks fun(): Framework[]
 ---@field scan_with_framework fun(framework_name: string, opts?: table): endpoint.entry[]

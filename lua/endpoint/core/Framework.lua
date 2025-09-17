@@ -1,8 +1,4 @@
 ---@class Framework
----@field protected name string
----@field protected config table
----@field protected detection_strategy any
----@field protected parsing_strategy any
 local Framework = {}
 Framework.__index = Framework
 
@@ -25,7 +21,7 @@ end
 ---@protected
 function Framework:_validate_config()
   if not self.name then
-    error("Framework name is required")
+    error "Framework name is required"
   end
 
   if not self.config.file_extensions then
@@ -52,12 +48,12 @@ end
 
 ---Parses content to extract endpoint information
 ---@abstract
----@param content string The content to parse
----@param file_path string Path to the file
----@param line_number number Line number in the file
----@param column number Column number in the line
+---@param _content string The content to parse
+---@param _file_path string Path to the file
+---@param _line_number number Line number in the file
+---@param _column number Column number in the line
 ---@return endpoint.entry|nil
-function Framework:parse(content, file_path, line_number, column)
+function Framework:parse(_content, _file_path, _line_number, _column)
   error("parse() must be implemented by subclass: " .. self.name)
 end
 
@@ -75,7 +71,7 @@ function Framework:get_search_cmd()
     method_patterns = self.config.patterns,
     file_globs = self.config.file_extensions,
     exclude_globs = self.config.exclude_patterns,
-    extra_flags = self.config.search_options or {}
+    extra_flags = self.config.search_options or {},
   }
 
   return rg.create_command(search_options)
@@ -107,9 +103,9 @@ end
 
 ---Performs comprehensive scan for all endpoint patterns
 ---@protected
----@param scan_options table Scan options
+---@param _scan_options table Scan options
 ---@return endpoint.entry[] found_endpoints List of found endpoints
-function Framework:_perform_comprehensive_scan(scan_options)
+function Framework:_perform_comprehensive_scan(_scan_options)
   local search_command = self:get_search_cmd()
 
   log.framework_debug("Executing comprehensive search: " .. search_command)
@@ -143,20 +139,23 @@ function Framework:_parse_search_result_line(search_result_line)
   end
 
   -- Parse ripgrep output format: file:line:col:content
-  local source_file_path, source_line_number, source_column_position, line_content = search_result_line:match "([^:]+):(%d+):(%d+):(.*)"
+  local source_file_path, source_line_number, source_column_position, line_content =
+    search_result_line:match "([^:]+):(%d+):(%d+):(.*)"
   if not source_file_path or not source_line_number or not source_column_position or not line_content then
     return nil
   end
 
   -- Use the concrete implementation's parse method
-  local parsed_endpoint = self:parse(line_content, source_file_path, tonumber(source_line_number), tonumber(source_column_position))
+  local line_num = tonumber(source_line_number) or 1
+  local col_pos = tonumber(source_column_position) or 1
+  local parsed_endpoint = self:parse(line_content, source_file_path, line_num, col_pos)
 
   if parsed_endpoint then
     -- Ensure required fields are set
     parsed_endpoint.framework = self.name
     parsed_endpoint.file_path = parsed_endpoint.file_path or source_file_path
-    parsed_endpoint.line_number = parsed_endpoint.line_number or tonumber(source_line_number)
-    parsed_endpoint.column = parsed_endpoint.column or tonumber(source_column_position)
+    parsed_endpoint.line_number = parsed_endpoint.line_number or line_num
+    parsed_endpoint.column = parsed_endpoint.column or col_pos
 
     -- Generate display value if not provided
     if not parsed_endpoint.display_value and parsed_endpoint.method and parsed_endpoint.endpoint_path then
@@ -166,7 +165,6 @@ function Framework:_parse_search_result_line(search_result_line)
 
   return parsed_endpoint
 end
-
 
 ---Post-processes endpoints to remove duplicates and clean up
 ---@protected
@@ -178,7 +176,8 @@ function Framework:_post_process_endpoints(endpoints)
   local unique_endpoints = {}
 
   for _, endpoint in ipairs(endpoints) do
-    local key = string.format("%s:%s:%s:%d",
+    local key = string.format(
+      "%s:%s:%s:%d",
       endpoint.method or "",
       endpoint.endpoint_path or "",
       endpoint.file_path or "",
@@ -221,3 +220,4 @@ function Framework:is_instance_of(framework_class)
 end
 
 return Framework
+

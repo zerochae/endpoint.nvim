@@ -1,12 +1,28 @@
 ---@class EndpointManager
----@field private registered_frameworks Framework[]
----@field private event_manager EventManager
----@field private cache_manager any
 local EndpointManager = {}
 EndpointManager.__index = EndpointManager
 
 local log = require "endpoint.utils.log"
 local EventManager = require "endpoint.core.EventManager"
+local cache_module = require "endpoint.core.CacheManager"
+local CacheManager = cache_module.CacheManager
+local config = require "endpoint.config"
+local PickerManager = require "endpoint.core.PickerManager"
+
+-- Import all framework classes
+local SpringFramework = require "endpoint.frameworks.spring"
+local FastApiFramework = require "endpoint.frameworks.fastapi"
+local ExpressFramework = require "endpoint.frameworks.express"
+local FlaskFramework = require "endpoint.frameworks.flask"
+local RailsFramework = require "endpoint.frameworks.rails"
+local NestJsFramework = require "endpoint.frameworks.nestjs"
+local DjangoFramework = require "endpoint.frameworks.django"
+local GinFramework = require "endpoint.frameworks.gin"
+local SymfonyFramework = require "endpoint.frameworks.symfony"
+local KtorFramework = require "endpoint.frameworks.ktor"
+local AxumFramework = require "endpoint.frameworks.axum"
+local PhoenixFramework = require "endpoint.frameworks.phoenix"
+local DotNetFramework = require "endpoint.frameworks.dotnet"
 
 ---Creates a new EndpointManager instance
 ---@return EndpointManager
@@ -14,15 +30,61 @@ function EndpointManager:new()
   local endpoint_manager_instance = setmetatable({}, self)
   endpoint_manager_instance.registered_frameworks = {}
   endpoint_manager_instance.event_manager = EventManager:new()
-  endpoint_manager_instance.cache_manager = require "endpoint.cache"
+  endpoint_manager_instance.cache_manager = CacheManager:new()
+  endpoint_manager_instance.picker_manager = PickerManager:new()
+  endpoint_manager_instance._initialized = false
   return endpoint_manager_instance
+end
+
+---Setup the endpoint manager with configuration and register all frameworks
+---@param user_config? table Optional user configuration
+function EndpointManager:setup(user_config)
+  config.setup(user_config)
+  self:register_all_frameworks()
+  self._initialized = true
+end
+
+---Ensures the endpoint manager is initialized
+function EndpointManager:_ensure_initialized()
+  if not self._initialized then
+    error("endpoint.nvim not initialized. Call setup() first.")
+  end
+end
+
+---Registers all available frameworks with the endpoint manager
+function EndpointManager:register_all_frameworks()
+  log.framework_debug("Registering all available frameworks")
+
+  -- Register all framework instances
+  local framework_classes = {
+    SpringFramework,
+    FastApiFramework,
+    ExpressFramework,
+    FlaskFramework,
+    RailsFramework,
+    NestJsFramework,
+    DjangoFramework,
+    GinFramework,
+    SymfonyFramework,
+    KtorFramework,
+    AxumFramework,
+    PhoenixFramework,
+    DotNetFramework,
+  }
+
+  for _, framework_class in ipairs(framework_classes) do
+    local framework_instance = framework_class:new()
+    self:register_framework(framework_instance)
+  end
+
+  log.framework_debug(string.format("Registered %d frameworks", #framework_classes))
 end
 
 ---Registers a framework with the endpoint manager
 ---@param framework_instance Framework The framework instance to register
 function EndpointManager:register_framework(framework_instance)
   if not framework_instance or not framework_instance.get_name then
-    error("Invalid framework instance provided")
+    error "Invalid framework instance provided"
   end
 
   local framework_name = framework_instance:get_name()
@@ -41,7 +103,7 @@ function EndpointManager:register_framework(framework_instance)
   -- Emit framework registration event
   self.event_manager:emit_event(EventManager.EVENT_TYPES.FRAMEWORK_DETECTED, {
     framework_name = framework_name,
-    framework_instance = framework_instance
+    framework_instance = framework_instance,
   })
 end
 
@@ -94,14 +156,14 @@ function EndpointManager:scan_all_endpoints(scan_options)
   -- Emit scan started event
   self.event_manager:emit_event(EventManager.EVENT_TYPES.SCAN_STARTED, {
     scan_options = scan_options,
-    registered_framework_count = #self.registered_frameworks
+    registered_framework_count = #self.registered_frameworks,
   })
 
   local all_discovered_endpoints = {}
   local detected_frameworks = self:detect_project_frameworks()
 
   if #detected_frameworks == 0 then
-    log.framework_debug("No frameworks detected in project")
+    log.framework_debug "No frameworks detected in project"
     return all_discovered_endpoints
   end
 
@@ -117,7 +179,7 @@ function EndpointManager:scan_all_endpoints(scan_options)
       -- Emit endpoint discovery event
       self.event_manager:emit_event(EventManager.EVENT_TYPES.ENDPOINT_DISCOVERED, {
         endpoint = discovered_endpoint,
-        framework_name = framework_name
+        framework_name = framework_name,
       })
 
       table.insert(all_discovered_endpoints, discovered_endpoint)
@@ -129,7 +191,7 @@ function EndpointManager:scan_all_endpoints(scan_options)
   -- Emit scan completed event
   self.event_manager:emit_event(EventManager.EVENT_TYPES.SCAN_COMPLETED, {
     total_endpoints_found = #all_discovered_endpoints,
-    frameworks_used = detected_frameworks
+    frameworks_used = detected_frameworks,
   })
 
   log.framework_debug(string.format("Total endpoints discovered: %d", #all_discovered_endpoints))
@@ -202,7 +264,7 @@ function EndpointManager:get_framework_info()
       detected = is_framework_detected,
       file_extensions = framework_config.file_extensions,
       exclude_patterns = framework_config.exclude_patterns,
-      pattern_count = framework_config.patterns and #vim.tbl_keys(framework_config.patterns) or 0
+      pattern_count = framework_config.patterns and #vim.tbl_keys(framework_config.patterns) or 0,
     })
   end
 
@@ -220,4 +282,89 @@ function EndpointManager:clear_all_frameworks()
   return removed_framework_count
 end
 
+---Main function to find and show endpoints with UI
+---@param opts? table Optional configuration
+function EndpointManager:find(opts)
+  self:_ensure_initialized()
+  opts = opts or {}
+
+  local endpoints = self:scan_all_endpoints(opts)
+
+  if #endpoints == 0 then
+    vim.notify("No endpoints found", vim.log.levels.INFO)
+    return
+  end
+
+  endpoints = self:_handle_cache(endpoints, opts)
+  self:_show_with_picker(endpoints, opts)
+end
+
+---Handles caching logic for endpoints
+---@param endpoints endpoint.entry[] List of endpoints
+---@param opts table Options
+---@return endpoint.entry[] endpoints Cached or fresh endpoints
+function EndpointManager:_handle_cache(endpoints, opts)
+  if opts.force_refresh then
+    return endpoints
+  end
+
+  if self.cache_manager and self.cache_manager:is_valid() then
+    return self.cache_manager:get_endpoints()
+  else
+    if self.cache_manager then
+      self.cache_manager:save_endpoints(endpoints)
+    end
+    return endpoints
+  end
+end
+
+---Shows endpoints using the configured picker
+---@param endpoints endpoint.entry[] List of endpoints to show
+---@param opts table Options
+function EndpointManager:_show_with_picker(endpoints, opts)
+  local picker_config = config.get()
+  local picker_name = picker_config.picker and picker_config.picker.type or picker_config.picker or "telescope"
+
+  local picker_instance, selected_picker_name = self.picker_manager:get_best_available_picker(picker_name)
+
+  if selected_picker_name ~= picker_name then
+    vim.notify("Picker '" .. picker_name .. "' not available, using " .. selected_picker_name, vim.log.levels.WARN)
+  end
+
+  local picker_configuration = picker_config.picker or {}
+  local all_picker_opts = picker_configuration.options or picker_config.picker_opts or {}
+  local current_picker_opts = all_picker_opts[selected_picker_name] or {}
+
+  local user_picker_opts = (opts.picker_opts and opts.picker_opts[selected_picker_name]) or opts.picker_opts or {}
+  local picker_opts = vim.tbl_deep_extend("force", current_picker_opts, user_picker_opts)
+
+  picker_instance.show(endpoints, picker_opts)
+end
+
+---Clears the endpoint cache
+function EndpointManager:clear_cache()
+  self:_ensure_initialized()
+
+  if self.cache_manager then
+    self.cache_manager:clear()
+    vim.notify("Cache cleared", vim.log.levels.INFO)
+  else
+    vim.notify("Cache not available", vim.log.levels.WARN)
+  end
+end
+
+---Shows cache statistics
+function EndpointManager:show_cache_stats()
+  self:_ensure_initialized()
+
+  if self.cache_manager then
+    local stats = self.cache_manager:get_stats()
+    local message = string.format("Cache: %d endpoints, valid: %s", stats.total_endpoints, stats.valid and "yes" or "no")
+    vim.notify(message, vim.log.levels.INFO)
+  else
+    vim.notify("Cache not available", vim.log.levels.WARN)
+  end
+end
+
 return EndpointManager
+

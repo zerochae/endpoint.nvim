@@ -47,6 +47,7 @@ function DjangoFramework:new()
 
   django_framework_instance:_validate_config()
   django_framework_instance:_setup_strategies()
+  ---@cast django_framework_instance DjangoFramework
   return django_framework_instance
 end
 

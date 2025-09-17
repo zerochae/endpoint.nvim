@@ -2,9 +2,6 @@ local DetectionStrategy = require "endpoint.core.strategies.detection.DetectionS
 local fs = require "endpoint.utils.fs"
 
 ---@class DependencyDetectionStrategy : DetectionStrategy
----@field private required_dependencies string[]
----@field private manifest_files string[]
----@field private file_system_utils any
 local DependencyDetectionStrategy = setmetatable({}, { __index = DetectionStrategy })
 DependencyDetectionStrategy.__index = DependencyDetectionStrategy
 
@@ -17,6 +14,7 @@ function DependencyDetectionStrategy:new(required_dependencies, manifest_files, 
   local dependency_detection_strategy_instance = DetectionStrategy.new(self, strategy_name or "dependency_based_detection")
   setmetatable(dependency_detection_strategy_instance, self)
 
+  ---@class dependency_detection_strategy_instance : DependencyDetectionStrategy
   dependency_detection_strategy_instance.required_dependencies = required_dependencies or {}
   dependency_detection_strategy_instance.manifest_files = manifest_files or {}
   dependency_detection_strategy_instance.file_system_utils = fs

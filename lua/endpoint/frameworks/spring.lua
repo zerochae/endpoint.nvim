@@ -22,6 +22,7 @@ function SpringFramework:new()
     search_options = { "--case-sensitive", "--type", "java" }
   })
   setmetatable(spring_framework_instance, self)
+  ---@cast spring_framework_instance SpringFramework
   return spring_framework_instance
 end
 
