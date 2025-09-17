@@ -1,42 +1,42 @@
--- File system utilities
+-- File system utility functions
 local M = {}
 
 -- Check if a file exists (files only, excludes directories)
 -- Use this when you need to ensure something is specifically a file
----@param filepath string
----@return boolean
-function M.file_exists(filepath)
-  local stat = vim.loop.fs_stat(filepath)
-  return stat ~= nil and stat.type == "file"
+---@param target_file_path string
+---@return boolean file_exists_result True if the file exists
+function M.file_exists(target_file_path)
+  local file_stat = vim.loop.fs_stat(target_file_path)
+  return file_stat ~= nil and file_stat.type == "file"
 end
 
 -- Get the current working directory (project root)
----@return string
+---@return string current_project_root The project root directory path
 function M.get_project_root()
-  local cwd = vim.fn.getcwd()
+  local current_working_directory = vim.fn.getcwd()
 
   -- In test environment, prefer current directory over git root
   -- Check if we're in a test fixture directory
-  if cwd:match "tests/fixtures/" then
-    return cwd
+  if current_working_directory:match "tests/fixtures/" then
+    return current_working_directory
   end
 
-  local result = vim.fn.system "git rev-parse --show-toplevel 2>/dev/null"
+  local git_root_result = vim.fn.system "git rev-parse --show-toplevel 2>/dev/null"
   if vim.v.shell_error ~= 0 then
-    return cwd -- fallback to current directory
+    return current_working_directory -- fallback to current directory
   end
-  return (result:gsub("\n", ""))
+  return (git_root_result:gsub("\n", ""))
 end
 
 -- Read file contents
----@param filepath string
----@return string[]?
-function M.read_file(filepath)
-  local ok, lines = pcall(vim.fn.readfile, filepath)
-  if not ok or not lines then
+---@param target_file_path string
+---@return string[]? file_content_lines Array of file lines or nil if failed
+function M.read_file(target_file_path)
+  local read_success, file_content_lines = pcall(vim.fn.readfile, target_file_path)
+  if not read_success or not file_content_lines then
     return nil
   end
-  return lines
+  return file_content_lines
 end
 
 -- Check if any of the specified files/directories exist (readable files or accessible directories)

@@ -42,10 +42,18 @@ function M.show(endpoints, opts)
           local endpoint_display = entry.display_value or (entry.method .. " " .. entry.endpoint_path)
           local display_text = string.format("%s %s", method_icon, endpoint_display)
 
-          -- Calculate highlight length for Rails action annotations
+          -- Calculate highlight length for Rails controller#action annotations
           local highlight_length
-          if entry.action and entry.display_value and entry.display_value:match "%[#.-%]" then
-            -- Rails action annotation: highlight the entire "GET[#action]" part
+          if entry.display_value and entry.display_value:match "%[.+#.+%]" then
+            -- Rails controller#action annotation: highlight the entire "GET[controller#action]" part
+            local method_with_action = entry.display_value:match "^([^%s]+)"
+            if method_with_action then
+              highlight_length = #method_icon + #method_with_action + 1
+            else
+              highlight_length = #method_icon + #method_text + 1
+            end
+          elseif entry.action and entry.display_value and entry.display_value:match "%[#.-%]" then
+            -- Legacy Rails action annotation: highlight the entire "GET[#action]" part
             local method_with_action = entry.display_value:match "^([^%s]+)"
             if method_with_action then
               highlight_length = #method_icon + #method_with_action + 1

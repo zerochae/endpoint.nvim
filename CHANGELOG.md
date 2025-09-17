@@ -1,5 +1,29 @@
 # Changelog
 
+## [1.12.0] (2025-09-17)
+
+### Features
+
+* **rails**: comprehensive nested route support with accurate path generation
+* **rails**: direct controller action linking for all route types
+* **rails**: precise column positioning for accurate previews
+* **rails**: enhanced member and collection route context preservation
+* **rails**: Rails-familiar `controller#action` endpoint display format
+* **rails**: enhanced telescope highlighting for `METHOD[controller#action]` pattern
+
+### Bug Fixes
+
+* **rails**: fix nested routes linking to routes.rb instead of controller actions
+* **rails**: fix member/collection routes missing parent resource context
+* **rails**: fix preview truncation due to incorrect column values
+* **rails**: improve parent resource detection for deeply nested routes
+
+### UI/UX Improvements
+
+* **rails**: endpoint display now uses `GET[users#profile] /users/:id/profile` format
+* **rails**: telescope picker highlights `METHOD[controller#action]` portion for easy identification
+* **rails**: format matches Rails `routes` command output for developer familiarity
+
 ## [1.11.0](https://github.com/zerochae/endpoint.nvim/compare/v1.10.0...v1.11.0) (2025-09-14)
 
 

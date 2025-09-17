@@ -1,5 +1,8 @@
 local config = require "endpoint.config"
-local framework = require "endpoint.framework"
+local FrameworkRegistry = require "endpoint.core.FrameworkRegistry"
+
+-- Global framework registry instance
+local framework_registry = nil
 
 local M = {}
 
@@ -14,7 +17,10 @@ local pickers = {
 ---@param user_config? table
 function M.setup(user_config)
   config.setup(user_config)
-  framework:register_frameworks()
+
+  -- Initialize framework registry and register all frameworks
+  framework_registry = FrameworkRegistry:new()
+  framework_registry:register_all_frameworks()
 end
 
 -- Main function to find and show endpoints
@@ -22,8 +28,13 @@ end
 function M.find(opts)
   opts = opts or {}
 
-  -- Scan for all endpoints
-  local endpoints = framework:scan(opts)
+  if not framework_registry then
+    vim.notify("endpoint.nvim not initialized. Call setup() first.", vim.log.levels.ERROR)
+    return
+  end
+
+  -- Scan for all endpoints using the new OOP structure
+  local endpoints = framework_registry:scan_all_endpoints(opts)
 
   if #endpoints == 0 then
     vim.notify("No endpoints found", vim.log.levels.INFO)
@@ -88,9 +99,58 @@ function M.get_config()
   return config.get()
 end
 
--- Expose internal modules for advanced usage
+-- Get framework registry for advanced usage
+---@return FrameworkRegistry|nil framework_registry The framework registry instance
+function M.get_framework_registry()
+  return framework_registry
+end
+
+-- Get endpoint manager for advanced usage
+---@return EndpointManager|nil endpoint_manager The endpoint manager instance
+function M.get_endpoint_manager()
+  return framework_registry and framework_registry:get_endpoint_manager() or nil
+end
+
+-- Get framework information
+---@return table[] framework_info_list List of framework information
+function M.get_framework_info()
+  if not framework_registry then
+    return {}
+  end
+  return framework_registry:get_framework_info()
+end
+
+-- Detect frameworks in current project
+---@return Framework[] detected_frameworks List of detected framework instances
+function M.detect_frameworks()
+  if not framework_registry then
+    return {}
+  end
+  return framework_registry:detect_project_frameworks()
+end
+
+-- Scan with specific framework
+---@param framework_name string The framework name to use
+---@param opts? table Optional scan configuration
+function M.scan_with_framework(framework_name, opts)
+  if not framework_registry then
+    vim.notify("endpoint.nvim not initialized. Call setup() first.", vim.log.levels.ERROR)
+    return {}
+  end
+  return framework_registry:scan_with_framework(framework_name, opts or {})
+end
+
+-- Expose internal modules for advanced usage (backward compatibility)
 M._cache = require "endpoint.cache"
-M._framework = framework
 M._config = config
+-- Legacy framework access (deprecated)
+M._framework = {
+  scan = function(opts)
+    if not framework_registry then
+      return {}
+    end
+    return framework_registry:scan_all_endpoints(opts)
+  end
+}
 
 return M
