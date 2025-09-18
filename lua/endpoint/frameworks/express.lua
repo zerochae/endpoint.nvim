@@ -19,6 +19,9 @@ function ExpressFramework:new()
       PATCH = { "app\\.patch\\(", "router\\.patch\\(", "\\.patch\\(" },
     },
     search_options = { "--type", "js" },
+    controller_patterns = {
+      { pattern = "([^/]+)%.%w+$", transform = function(name) return name:gsub("Controller$", ""):gsub("Routes$", ""):gsub("Router$", "") end }
+    },
   })
   setmetatable(express_framework_instance, self)
   return express_framework_instance
@@ -35,16 +38,6 @@ function ExpressFramework:_initialize()
 
   -- Setup Express-specific parser
   self.parser = ExpressParser:new()
-end
-
----Extract controller name from Express file path
-function ExpressFramework:getControllerName(file_path)
-  -- Express: routes/users.js → users or controllers/UserController.js → UserController
-  local name = file_path:match "([^/]+)%.%w+$"
-  if name then
-    return name:gsub("Controller$", ""):gsub("Routes$", ""):gsub("Router$", "")
-  end
-  return nil
 end
 
 return ExpressFramework

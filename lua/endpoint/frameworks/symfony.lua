@@ -19,6 +19,9 @@ function SymfonyFramework:new()
       PATCH = { "#\\[Route\\(.*methods.*PATCH", "@Route\\(.*methods.*PATCH", "\\* @Route\\(.*methods.*PATCH" },
     },
     search_options = { "--case-sensitive", "--type", "php" },
+    controller_patterns = {
+      { pattern = "([^/]+)%.php$" }
+    },
   })
   setmetatable(symfony_framework_instance, self)
   return symfony_framework_instance
@@ -35,12 +38,6 @@ function SymfonyFramework:_initialize()
 
   -- Setup Symfony-specific parser
   self.parser = SymfonyParser:new()
-end
-
----Extract controller name from Symfony file path
-function SymfonyFramework:getControllerName(file_path)
-  -- Symfony: src/Controller/UserController.php → UserController
-  return file_path:match "([^/]+)%.php$"
 end
 
 return SymfonyFramework

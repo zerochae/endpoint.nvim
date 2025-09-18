@@ -29,6 +29,9 @@ function RailsFramework:new()
       DELETE = { "delete\\s+", "resources\\s+", "resource\\s+", "def\\s+destroy" },
     },
     search_options = { "--type", "ruby" },
+    controller_patterns = {
+      { pattern = "controllers/(.*)_controller%.rb$" }
+    },
   })
   setmetatable(rails_framework_instance, self)
   return rails_framework_instance
@@ -48,13 +51,5 @@ function RailsFramework:_initialize()
 end
 
 
----Extract controller name from Rails file path
-function RailsFramework:getControllerName(file_path)
-  -- Rails: app/controllers/users_controller.rb → users
-  if file_path:match "controllers/.*%.rb$" then
-    return file_path:match "controllers/(.*)_controller%.rb$"
-  end
-  return nil
-end
 
 return RailsFramework

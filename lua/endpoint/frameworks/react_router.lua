@@ -15,6 +15,9 @@ function ReactRouterFramework:new()
       ROUTE = { "Route", "path:" },  -- React Router doesn't use HTTP methods
     },
     search_options = { "--case-sensitive", "--type", "js" },
+    controller_extractors = {
+      { pattern = "([^/]+)%.[jt]sx?$" }
+    },
   })
   setmetatable(react_router_framework_instance, self)
   return react_router_framework_instance
@@ -31,16 +34,6 @@ function ReactRouterFramework:_initialize()
 
   -- Setup React Router-specific parser
   self.parser = ReactRouterParser:new()
-end
-
----Extract component name from React Router file path
-function ReactRouterFramework:getControllerName(file_path)
-  -- React Router: src/components/UserProfile.tsx → UserProfile
-  local name = file_path:match "([^/]+)%.[jt]sx?$"
-  if name then
-    return name
-  end
-  return nil
 end
 
 return ReactRouterFramework

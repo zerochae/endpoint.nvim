@@ -19,6 +19,10 @@ function NestJsFramework:new()
       PATCH = { "@Patch\\(", "@HttpCode.-@Patch" },
     },
     search_options = { "--case-sensitive", "--type", "ts" },
+    controller_patterns = {
+      { pattern = "([^/]+)%.controller%.%w+$", transform = function(name) local pascal = name:gsub("%-(%w)", function(l) return l:upper() end):gsub("^%w", string.upper) return pascal .. "Controller" end },
+      { pattern = "([^/]+)%.%w+$", transform = function(name) return name:gsub("Controller$", ""):gsub("Service$", "") end }
+    },
   })
   setmetatable(nestjs_framework_instance, self)
   return nestjs_framework_instance
@@ -35,26 +39,6 @@ function NestJsFramework:_initialize()
 
   -- Setup NestJS-specific parser
   self.parser = NestJsParser:new()
-end
-
----Extract controller name from NestJS file path
-function NestJsFramework:getControllerName(file_path)
-  -- NestJS: src/users/users.controller.ts → UsersController
-  local name = file_path:match "([^/]+)%.controller%.%w+$"
-  if name then
-    -- Convert kebab-case to PascalCase and add Controller suffix
-    local pascal_name = name:gsub("%-(%w)", function(letter) return letter:upper() end)
-    pascal_name = pascal_name:gsub("^%w", string.upper)
-    return pascal_name .. "Controller"
-  end
-
-  -- Fallback: any .ts/.js file
-  name = file_path:match "([^/]+)%.%w+$"
-  if name then
-    return name:gsub("Controller$", ""):gsub("Service$", "")
-  end
-
-  return nil
 end
 
 return NestJsFramework

@@ -19,6 +19,10 @@ function SpringFramework:new()
       PATCH = { "@PatchMapping", "@RequestMapping.*method.*=.*PATCH" },
     },
     search_options = { "--case-sensitive", "--type", "java" },
+    controller_patterns = {
+      { pattern = "([^/]+)%.java$" },
+      { pattern = "([^/]+)%.kt$" }
+    },
   })
   setmetatable(spring_framework_instance, self)
   return spring_framework_instance
@@ -38,11 +42,6 @@ function SpringFramework:_initialize()
 end
 
 
----Extract controller name from Spring file path
-function SpringFramework:getControllerName(file_path)
-  -- Spring: UserController.java or UserController.kt → UserController
-  return file_path:match "([^/]+)%.java$" or file_path:match "([^/]+)%.kt$"
-end
 
 
 

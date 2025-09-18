@@ -19,6 +19,9 @@ function FastApiFramework:new()
       PATCH = { "@app\\.patch", "@router\\.patch" },
     },
     search_options = { "--case-sensitive", "--type", "py" },
+    controller_patterns = {
+      { pattern = "([^/]+)%.py$", transform = function(name) return name:gsub("_controller$", ""):gsub("_router$", ""):gsub("_api$", "") end }
+    },
   })
   setmetatable(fastapi_framework_instance, self)
   return fastapi_framework_instance
@@ -35,17 +38,6 @@ function FastApiFramework:_initialize()
 
   -- Setup FastAPI-specific parser
   self.parser = FastApiParser:new()
-end
-
----Extract controller name from FastAPI file path
-function FastApiFramework:getControllerName(file_path)
-  -- FastAPI: controllers/users/create_user.py → users or routers/api/v1/users.py → users
-  local name = file_path:match "([^/]+)%.py$"
-  if name then
-    -- Remove common suffixes and convert to readable name
-    return name:gsub("_controller$", ""):gsub("_router$", ""):gsub("_api$", "")
-  end
-  return nil
 end
 
 return FastApiFramework

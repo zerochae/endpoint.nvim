@@ -85,9 +85,23 @@ function Framework:_enhance_endpoint(parsed_endpoint, file_path)
   end
 end
 
----Extract controller name from file path (should be overridden by subclasses)
+---Extract controller name from file path using configured extractors
 function Framework:getControllerName(file_path)
-  -- Default implementation - subclasses should override this
+  if not self.config.controller_extractors then
+    return nil
+  end
+
+  for _, extractor in ipairs(self.config.controller_extractors) do
+    local match = file_path:match(extractor.pattern)
+    if match then
+      if extractor.transform then
+        return extractor.transform(match)
+      else
+        return match
+      end
+    end
+  end
+
   return nil
 end
 

@@ -19,6 +19,9 @@ function ServletFramework:new()
       PATCH = { "doPatch", "@WebServlet" },
     },
     search_options = { "--case-sensitive", "--type", "java" },
+    controller_extractors = {
+      { pattern = "([^/]+)%.java$" }
+    },
   })
   setmetatable(servlet_framework_instance, self)
   return servlet_framework_instance
@@ -35,16 +38,6 @@ function ServletFramework:_initialize()
 
   -- Setup Servlet-specific parser
   self.parser = ServletParser:new()
-end
-
----Extract controller name from Servlet file path
-function ServletFramework:getControllerName(file_path)
-  -- Servlet: com/example/UserServlet.java → UserServlet
-  local name = file_path:match "([^/]+)%.java$"
-  if name then
-    return name
-  end
-  return nil
 end
 
 return ServletFramework

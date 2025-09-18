@@ -47,6 +47,11 @@
 ---@field type "telescope" | "vim_ui_select" | "snacks"
 ---@field options table
 
+-- Controller Name Extractor Configuration
+---@class endpoint.controller_extractor
+---@field pattern string Lua pattern to match file paths
+---@field transform? fun(match: string): string Optional function to transform the matched name
+
 -- Core Configuration (updated for new structure)
 ---@class endpoint.config
 ---@field cache? endpoint.cache.config -- New structure
@@ -75,6 +80,7 @@
 ---@field protected config table Framework configuration
 ---@field protected detector endpoint.Detector
 ---@field protected parser endpoint.Parser
+---@field protected config.controller_extractors? endpoint.controller_extractor[] Extractors for controller names from file paths
 ---@field new fun(self: endpoint.Framework, name: string, config?: table): endpoint.Framework
 ---@field _validate_config fun(self: endpoint.Framework)
 ---@field _initialize fun(self: endpoint.Framework)

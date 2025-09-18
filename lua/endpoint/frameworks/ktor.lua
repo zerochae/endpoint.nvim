@@ -19,6 +19,9 @@ function KtorFramework:new()
       PATCH = { "patch\\(", "patch<.*>\\(" },
     },
     search_options = { "--case-sensitive", "--type", "kotlin" },
+    controller_extractors = {
+      { pattern = "([^/]+)%.kt$", transform = function(name) return name:gsub("Routes$", ""):gsub("Routing$", "") end }
+    },
   })
   setmetatable(ktor_framework_instance, self)
   return ktor_framework_instance
@@ -35,16 +38,6 @@ function KtorFramework:_initialize()
 
   -- Setup Ktor-specific parser
   self.parser = KtorParser:new()
-end
-
----Extract controller name from Ktor file path
-function KtorFramework:getControllerName(file_path)
-  -- Ktor: src/main/kotlin/routes/UserRoutes.kt → UserRoutes
-  local name = file_path:match "([^/]+)%.kt$"
-  if name then
-    return name:gsub("Routes$", ""):gsub("Routing$", "")
-  end
-  return nil
 end
 
 return KtorFramework

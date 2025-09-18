@@ -19,6 +19,9 @@ function DotNetFramework:new()
       PATCH = { "\\[HttpPatch", "\\[Route.*\\[HttpPatch", "app\\.MapPatch", "endpoints\\.MapPatch", "\\.Patch\\(" },
     },
     search_options = { "--case-sensitive", "--type", "csharp" },
+    controller_patterns = {
+      { pattern = "([^/]+)%.cs$" }
+    },
   })
   setmetatable(dotnet_framework_instance, self)
   return dotnet_framework_instance
@@ -35,16 +38,6 @@ function DotNetFramework:_initialize()
 
   -- Setup .NET-specific parser
   self.parser = DotNetParser:new()
-end
-
----Extract controller name from .NET file path
-function DotNetFramework:getControllerName(file_path)
-  -- .NET: Controllers/UsersController.cs → UsersController
-  local name = file_path:match "([^/]+)%.cs$"
-  if name then
-    return name
-  end
-  return nil
 end
 
 return DotNetFramework
