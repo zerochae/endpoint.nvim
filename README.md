@@ -8,28 +8,27 @@ A powerful Neovim plugin for quickly finding and navigating web framework API en
 
 **Supported Frameworks:**
 - Spring Boot (Java)
-- Java Servlet (Java) 
-- NestJS (TypeScript/JavaScript)
-- Symfony (PHP)
-- FastAPI (Python)
-- Django (Python) - *NEW!*
 - Rails (Ruby)
+- Symfony (PHP)
 - Express (Node.js)
-- Ktor (Kotlin)
+- NestJS (TypeScript/JavaScript)
+- FastAPI (Python)
 - .NET Core (C#)
+- Ktor (Kotlin)
+- Java Servlet (Java)
 - React Router (Client-side routing)
 
 ## 🖥️ Demo
 
-<img width="2294" height="1374" alt="스크린샷 2025-09-06 16 46 59" src="https://github.com/user-attachments/assets/78920f36-7584-457b-9380-147e0e9ba16e" />
-<img width="2294" height="1374" alt="스크린샷 2025-09-14 01 08 58" src="https://github.com/user-attachments/assets/bd9ddc7d-8929-4f57-9234-c521d7fb59e8" />
-<img width="2294" height="1374" alt="스크린샷 2025-09-13 21 49 37" src="https://github.com/user-attachments/assets/3e73da4d-4400-48fa-8f3d-d6fd2b7daf3c" />
-<img width="2294" height="1432" alt="스크린샷 2025-09-13 20 18 11" src="https://github.com/user-attachments/assets/abe4c2f3-872b-4a45-aa09-c4f0857df37c" />
+<img width="2294" height="1374" alt="스크린샷 2025-09-06 16 46 59" src="https://github.com/user-attachments/assets/78920f36-7584-457b-9380-147e0e9ba16e" />
+<img width="2294" height="1374" alt="스크린샷 2025-09-14 01 08 58" src="https://github.com/user-attachments/assets/bd9ddc7d-8929-4f57-9234-c521d7fb59e8" />
+<img width="2294" height="1374" alt="스크린샷 2025-09-13 21 49 37" src="https://github.com/user-attachments/assets/3e73da4d-4400-48fa-8f3d-d6fd2b7daf3c" />
+<img width="2294" height="1432" alt="스크린샷 2025-09-13 20 18 11" src="https://github.com/user-attachments/assets/abe4c2f3-872b-4a45-aa09-c4f0857df37c" />
 
 
 ## ✨ Features
 
-- 🔍 **Multi-Framework Support**: Automatically detects and supports 11 web frameworks
+- 🔍 **Multi-Framework Support**: Automatically detects and supports 10 web frameworks
 - 🎯 **Multiple Picker Interfaces**: Telescope, vim.ui.select, or Snacks.nvim
 - ⚡ **Smart Caching**: Real-time, session, or persistent modes
 - 📍 **Precise Navigation**: Jump directly to endpoint definitions
@@ -41,7 +40,7 @@ A powerful Neovim plugin for quickly finding and navigating web framework API en
 ```vim
 :Endpoint          " Find all endpoints
 :Endpoint Get      " Find GET endpoints
-:Endpoint Post     " Find POST endpoints  
+:Endpoint Post     " Find POST endpoints
 :Endpoint Delete   " Find DELETE endpoints
 :Endpoint ClearCache   " Clear cached data
 :Endpoint CacheStatus  " Show cache statistics
@@ -71,17 +70,17 @@ A powerful Neovim plugin for quickly finding and navigating web framework API en
 
 ```lua
 require("endpoint").setup({
-  -- New improved config structure (v1.1+)
-  cache = {
-    mode = "none",        -- "none", "session", "persistent"
-  },
+  -- Picker configuration
   picker = {
     type = "telescope",   -- "telescope", "vim_ui_select", "snacks"
     options = {
-      telescope = { theme = "dropdown" },
-      snacks = { preview = "file" },
+      telescope = {},     -- Telescope-specific options
+      snacks = {},        -- Snacks-specific options
+      vim_ui_select = {}, -- vim.ui.select-specific options
     },
   },
+
+  -- UI configuration
   ui = {
     show_icons = true,
     show_method = true,
@@ -91,12 +90,7 @@ require("endpoint").setup({
       PUT = { icon = "✏️", color = "TelescopeResultsKeyword" },
       DELETE = { icon = "🗑️", color = "TelescopeResultsSpecialChar" },
       PATCH = { icon = "🔧", color = "TelescopeResultsFunction" },
-    },
-  },
-  frameworks = {
-    rails = {
-      display_format = "smart",
-      show_action_annotation = true,
+      ROUTE = { icon = "🔗", color = "TelescopeResultsIdentifier" },
     },
   },
 })
@@ -105,22 +99,9 @@ require("endpoint").setup({
 **Legacy Configuration (still supported with deprecation warnings):**
 ```lua
 require("endpoint").setup({
-  cache_mode = "none",        -- @deprecated: use cache.mode
   picker = "telescope",       -- @deprecated: use picker.type
   picker_opts = {             -- @deprecated: use picker.options
     telescope = { theme = "dropdown" },
-  },
-  ui = {
-    show_icons = true,
-    show_method = true,
-    method_icons = {          -- @deprecated: use ui.methods
-      GET = "📥", POST = "📤", PUT = "✏️", 
-      DELETE = "🗑️", PATCH = "🔧"
-    },
-    method_colors = {         -- @deprecated: use ui.methods
-      GET = "TelescopeResultsNumber",
-      POST = "TelescopeResultsConstant",
-    },
   },
 })
 ```
