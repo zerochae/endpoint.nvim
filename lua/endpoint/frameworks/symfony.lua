@@ -19,7 +19,7 @@ function SymfonyFramework:new()
       PATCH = { "#\\[Route\\(.*methods.*PATCH", "@Route\\(.*methods.*PATCH", "\\* @Route\\(.*methods.*PATCH" },
     },
     search_options = { "--case-sensitive", "--type", "php" },
-    controller_patterns = {
+    controller_extractors = {
       { pattern = "([^/]+)%.php$" }
     },
   })

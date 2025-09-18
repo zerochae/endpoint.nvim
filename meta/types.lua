@@ -133,9 +133,6 @@
 ---@field get_required_dependencies fun(self: endpoint.DependencyDetector): string[]
 ---@field get_manifest_files fun(self: endpoint.DependencyDetector): string[]
 
----@class endpoint.FileDetector : endpoint.Detector
----@field private required_indicator_files string[]
----@field private file_system_utils table
 
 -- Parsing Pattern
 ---@class endpoint.Parser
