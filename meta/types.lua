@@ -73,11 +73,11 @@
 ---@class endpoint.Framework
 ---@field protected name string Framework name
 ---@field protected config table Framework configuration
----@field protected detection_strategy endpoint.DetectionStrategy
----@field protected parsing_strategy endpoint.ParsingStrategy
+---@field protected detector endpoint.Detector
+---@field protected parser endpoint.Parser
 ---@field new fun(self: endpoint.Framework, name: string, config?: table): endpoint.Framework
 ---@field _validate_config fun(self: endpoint.Framework)
----@field _setup_strategies fun(self: endpoint.Framework)
+---@field _initialize fun(self: endpoint.Framework)
 ---@field detect fun(self: endpoint.Framework): boolean
 ---@field parse fun(self: endpoint.Framework, content: string, file_path: string, line_number: number, column: number): endpoint.entry|nil
 ---@field get_search_cmd fun(self: endpoint.Framework): string
@@ -105,50 +105,50 @@
 ---@field _navigate_to_endpoint fun(self: endpoint.Picker, endpoint: endpoint.entry)
 
 -- ========================================
--- STRATEGY PATTERNS
+-- CORE PATTERNS
 -- ========================================
 
--- Detection Strategy Pattern
----@class endpoint.DetectionStrategy
+-- Detection Pattern
+---@class endpoint.Detector
 ---@field protected detection_name string
----@field new fun(self: endpoint.DetectionStrategy, detection_name: string): endpoint.DetectionStrategy
----@field is_target_detected fun(self: endpoint.DetectionStrategy): boolean
----@field get_strategy_name fun(self: endpoint.DetectionStrategy): string
----@field get_detection_details fun(self: endpoint.DetectionStrategy): table|nil
+---@field new fun(self: endpoint.Detector, detection_name: string, fields: table?): endpoint.Detector
+---@field is_target_detected fun(self: endpoint.Detector): boolean
+---@field get_name fun(self: endpoint.Detector): string
+---@field get_detection_details fun(self: endpoint.Detector): table|nil
 
----@class endpoint.DependencyDetectionStrategy : endpoint.DetectionStrategy
+---@class endpoint.DependencyDetector : endpoint.Detector
 ---@field private required_dependencies string[]
 ---@field private manifest_files string[]
 ---@field private file_system_utils table
----@field new fun(self: endpoint.DependencyDetectionStrategy, required_dependencies: string[], manifest_files: string[], strategy_name?: string): endpoint.DependencyDetectionStrategy
----@field _check_manifest_file_for_dependencies fun(self: endpoint.DependencyDetectionStrategy, manifest_file_path: string): boolean
----@field add_required_dependencies fun(self: endpoint.DependencyDetectionStrategy, additional_dependencies: string[])
----@field add_manifest_files fun(self: endpoint.DependencyDetectionStrategy, additional_manifest_files: string[])
----@field get_required_dependencies fun(self: endpoint.DependencyDetectionStrategy): string[]
----@field get_manifest_files fun(self: endpoint.DependencyDetectionStrategy): string[]
+---@field new fun(self: endpoint.DependencyDetector, required_dependencies: string[], manifest_files: string[], name?: string): endpoint.DependencyDetector
+---@field _check_manifest_file_for_dependencies fun(self: endpoint.DependencyDetector, manifest_file_path: string): boolean
+---@field add_required_dependencies fun(self: endpoint.DependencyDetector, additional_dependencies: string[])
+---@field add_manifest_files fun(self: endpoint.DependencyDetector, additional_manifest_files: string[])
+---@field get_required_dependencies fun(self: endpoint.DependencyDetector): string[]
+---@field get_manifest_files fun(self: endpoint.DependencyDetector): string[]
 
----@class endpoint.FileDetectionStrategy : endpoint.DetectionStrategy
+---@class endpoint.FileDetector : endpoint.Detector
 ---@field private required_indicator_files string[]
 ---@field private file_system_utils table
 
--- Parsing Strategy Pattern
----@class endpoint.ParsingStrategy
----@field protected parsing_strategy_name string
----@field new fun(self: endpoint.ParsingStrategy, parsing_strategy_name: string): endpoint.ParsingStrategy
----@field parse_content fun(self: endpoint.ParsingStrategy, content: string, file_path: string, line_number: number, column: number): endpoint.entry|nil
----@field get_strategy_name fun(self: endpoint.ParsingStrategy): string
+-- Parsing Pattern
+---@class endpoint.Parser
+---@field protected parsing_name string
+---@field new fun(self: endpoint.Parser, parsing_name: string, fields: table?): endpoint.Parser
+---@field parse_content fun(self: endpoint.Parser): endpoint.entry|nil
+---@field get_name fun(self: endpoint.Parser): string
+---@field is_content_valid_for_parsing fun(self: endpoint.Parser, content_to_validate: string): boolean
+---@field get_parsing_confidence fun(self: endpoint.Parser, content_to_analyze: string): number
 
----@class endpoint.AnnotationParsingStrategy : endpoint.ParsingStrategy
----@field private annotation_patterns table<string, string[]>
----@field private path_extraction_patterns string[]
----@field private method_mapping table<string, string>
----@field new fun(self: endpoint.AnnotationParsingStrategy, annotation_patterns: table<string, string[]>, path_extraction_patterns: string[], method_mapping?: table<string, string>, parsing_strategy_name?: string): endpoint.AnnotationParsingStrategy
+---@class endpoint.AnnotationParser : endpoint.Parser
+---@field annotation_patterns table<string, string[]>
+---@field path_extraction_patterns string[]
+---@field method_mapping table<string, string>
 
----@class endpoint.RouteParsingStrategy : endpoint.ParsingStrategy
+---@class endpoint.RouteParser : endpoint.Parser
 ---@field private route_patterns table<string, string[]>
 ---@field private path_extraction_patterns string[]
 ---@field private route_processors table<string, function>
----@field new fun(self: endpoint.RouteParsingStrategy, route_patterns: table<string, string[]>, path_extraction_patterns: string[], route_processors: table<string, function>, parsing_strategy_name?: string): endpoint.RouteParsingStrategy
 
 -- ========================================
 -- MANAGER CLASSES
