@@ -1,8 +1,8 @@
 local Framework = require "endpoint.core.Framework"
 local DependencyDetector = require "endpoint.detector.dependency_detector"
-local annotation_parser = require "endpoint.parser.annotation_parser"
+local ExpressParser = require "endpoint.parser.express_parser"
 
----@class endpoint.ExpressFramework : endpoint.Framework
+---@class endpoint.ExpressFramework
 local ExpressFramework = setmetatable({}, { __index = Framework })
 ExpressFramework.__index = ExpressFramework
 
@@ -18,82 +18,45 @@ function ExpressFramework:new()
       DELETE = { "app\\.delete\\(", "router\\.delete\\(", "\\.delete\\(" },
       PATCH = { "app\\.patch\\(", "router\\.patch\\(", "\\.patch\\(" },
     },
-    search_options = { "--type", "js" }
+    search_options = { "--type", "js" },
   })
   setmetatable(express_framework_instance, self)
-  ---@cast express_framework_instance ExpressFramework
   return express_framework_instance
 end
 
----Sets up detection and parsing strategies for Express
+---Sets up detection and parsing for Express
 function ExpressFramework:_initialize()
   -- Setup detector
-  self.detector = dependency_detector:new(
+  self.detector = DependencyDetector:new(
     { "express", "Express" },
-    { "package.json" },
+    { "package.json", "server.js", "app.js", "index.js" },
     "express_dependency_detection"
   )
 
-  -- Setup parser with Express route patterns
-  local express_annotation_patterns = {
-    GET = { "app%.get%(", "router%.get%(", "%.get%(" },
-    POST = { "app%.post%(", "router%.post%(", "%.post%(" },
-    PUT = { "app%.put%(", "router%.put%(", "%.put%(" },
-    DELETE = { "app%.delete%(", "router%.delete%(", "%.delete%(" },
-    PATCH = { "app%.patch%(", "router%.patch%(", "%.patch%(" },
-    OPTIONS = { "app%.options%(", "router%.options%(", "%.options%(" },
-    HEAD = { "app%.head%(", "router%.head%(", "%.head%(" }
-  }
-
-  local express_path_extraction_patterns = {
-    '%("([^"]+)"[^,)]*[,)]',   -- app.get("/path", ...)
-    "%('([^']+)'[^,)]*[,)]",   -- app.get('/path', ...)
-    '%(`([^`]+)`[^,)]*[,)]',   -- app.get(`/path`, ...)
-  }
-
-  local express_method_mapping = {
-    ["app%.get%("] = "GET",
-    ["router%.get%("] = "GET",
-    ["%.get%("] = "GET",
-    ["app%.post%("] = "POST",
-    ["router%.post%("] = "POST",
-    ["%.post%("] = "POST",
-    ["app%.put%("] = "PUT",
-    ["router%.put%("] = "PUT",
-    ["%.put%("] = "PUT",
-    ["app%.delete%("] = "DELETE",
-    ["router%.delete%("] = "DELETE",
-    ["%.delete%("] = "DELETE"
-  }
-
-  self.parser = annotation_parser:new(
-    express_annotation_patterns,
-    express_path_extraction_patterns,
-    express_method_mapping
-  )
+  -- Setup Express-specific parser
+  self.parser = ExpressParser:new()
 end
 
 ---Detects if Express is present in the current project
 function ExpressFramework:detect()
-  return self.detector:is_target_detected()
+  if not self.detector then
+    self:_initialize()
+  end
+  if self.detector then
+    return self.detector:is_target_detected()
+  end
+  return false
 end
 
----Parses Express content to extract endpoint information
-function ExpressFramework:parse(content, file_path, line_number, column)
-  local parsed_endpoint = self.parser:parse_content(content, file_path, line_number, column)
-
-  if parsed_endpoint then
-    -- Enhance with Express-specific metadata
-    parsed_endpoint.tags = parsed_endpoint.tags or {}
-    table.insert(parsed_endpoint.tags, "javascript")
-    table.insert(parsed_endpoint.tags, "express")
-
-    parsed_endpoint.metadata = parsed_endpoint.metadata or {}
-    parsed_endpoint.metadata.framework_version = "express"
-    parsed_endpoint.metadata.language = "javascript"
+---Extract controller name from Express file path
+function ExpressFramework:getControllerName(file_path)
+  -- Express: routes/users.js → users or controllers/UserController.js → UserController
+  local name = file_path:match "([^/]+)%.%w+$"
+  if name then
+    return name:gsub("Controller$", ""):gsub("Routes$", ""):gsub("Router$", "")
   end
-
-  return parsed_endpoint
+  return nil
 end
 
 return ExpressFramework
+

@@ -186,6 +186,11 @@
 ---@field private _detect_annotation_type fun(self: endpoint.SymfonyParser, content: string): string
 ---@field private _is_symfony_route_content fun(self: endpoint.SymfonyParser, content: string): boolean
 
+---@class endpoint.ExpressParser : endpoint.Parser
+---@field private _is_express_route_content fun(self: endpoint.ExpressParser, content: string): boolean
+---@field private _detect_route_type fun(self: endpoint.ExpressParser, content: string): string
+---@field private _extract_app_type fun(self: endpoint.ExpressParser, content: string): string
+
 -- ========================================
 -- MANAGER CLASSES
 -- ========================================
