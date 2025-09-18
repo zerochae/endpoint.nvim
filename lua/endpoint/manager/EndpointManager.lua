@@ -55,18 +55,18 @@ function EndpointManager:register_all_frameworks()
   -- Register all framework instances
   local framework_classes = {
     SpringFramework,
-    FastApiFramework,
-    ExpressFramework,
-    FlaskFramework,
+    -- FastApiFramework,
+    -- ExpressFramework,
+    -- FlaskFramework,
     RailsFramework,
-    NestJsFramework,
-    DjangoFramework,
-    GinFramework,
-    SymfonyFramework,
-    KtorFramework,
-    AxumFramework,
-    PhoenixFramework,
-    DotNetFramework,
+    -- NestJsFramework,
+    -- DjangoFramework,
+    -- GinFramework,
+    -- SymfonyFramework,
+    -- KtorFramework,
+    -- AxumFramework,
+    -- PhoenixFramework,
+    -- DotNetFramework,
   }
 
   for _, framework_class in ipairs(framework_classes) do

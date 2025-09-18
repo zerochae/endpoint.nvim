@@ -82,8 +82,8 @@
 ---@field parse fun(self: endpoint.Framework, content: string, file_path: string, line_number: number, column: number): endpoint.entry|nil
 ---@field get_search_cmd fun(self: endpoint.Framework): string
 ---@field scan fun(self: endpoint.Framework, options?: table): endpoint.entry[]
----@field _perform_comprehensive_scan fun(self: endpoint.Framework, scan_options: table): endpoint.entry[]
----@field _parse_search_result_line fun(self: endpoint.Framework, search_result_line: string): endpoint.entry|nil
+---@field _search_and_parse fun(self: endpoint.Framework, scan_options?: table): endpoint.entry[]
+---@field _parse_result_line fun(self: endpoint.Framework, result_line: string): endpoint.entry[]
 ---@field _post_process_endpoints fun(self: endpoint.Framework, endpoints: endpoint.entry[]): endpoint.entry[]
 ---@field get_name fun(self: endpoint.Framework): string
 ---@field get_config fun(self: endpoint.Framework): table
@@ -133,22 +133,25 @@
 
 -- Parsing Pattern
 ---@class endpoint.Parser
----@field protected parsing_name string
----@field new fun(self: endpoint.Parser, parsing_name: string, fields: table?): endpoint.Parser
----@field parse_content fun(self: endpoint.Parser): endpoint.entry|nil
+---@field protected parser_name? string
+---@field protected framework_name? string
+---@field protected language? string
+---@field new fun(self: endpoint.Parser, fields?: table): endpoint.Parser
+---@field extract_base_path fun(self: endpoint.Parser, file_path: string, line_number: number): string
+---@field extract_endpoint_path fun(self: endpoint.Parser, content: string): string|nil
+---@field extract_method fun(self: endpoint.Parser, content: string): string|nil
+---@field combine_paths fun(self: endpoint.Parser, base_path?: string, endpoint_path?: string): string
+---@field parse_content fun(self: endpoint.Parser, content?: string, file_path?: string, line_number?: number, column?: number): endpoint.entry|nil
+---@field parse_line_to_endpoints fun(self: endpoint.Parser, content?: string, file_path?: string, line_number?: number, column?: number): endpoint.entry[]
 ---@field get_name fun(self: endpoint.Parser): string
----@field is_content_valid_for_parsing fun(self: endpoint.Parser, content_to_validate: string): boolean
----@field get_parsing_confidence fun(self: endpoint.Parser, content_to_analyze: string): number
+---@field is_content_valid_for_parsing fun(self: endpoint.Parser, content_to_validate?: string): boolean
+---@field get_parsing_confidence fun(self: endpoint.Parser, content_to_analyze?: string): number
+---@field create_metadata fun(self: endpoint.Parser, route_type: string, extra_metadata?: table, content?: string): table
 
----@class endpoint.AnnotationParser : endpoint.Parser
----@field annotation_patterns table<string, string[]>
----@field path_extraction_patterns string[]
----@field method_mapping table<string, string>
 
----@class endpoint.RouteParser : endpoint.Parser
----@field private route_patterns table<string, string[]>
----@field private path_extraction_patterns string[]
----@field private route_processors table<string, function>
+---@class endpoint.RailsParser : endpoint.Parser
+---
+---@class endpoint.SpringParser : endpoint.Parser
 
 -- ========================================
 -- MANAGER CLASSES
@@ -207,13 +210,13 @@
 
 ---@class endpoint.SpringFramework : endpoint.Framework
 
+---@class endpoint.RailsFramework : endpoint.Framework
+
 ---@class endpoint.FastApiFramework : endpoint.Framework
 
 ---@class endpoint.ExpressFramework : endpoint.Framework
 
 ---@class endpoint.FlaskFramework : endpoint.Framework
-
----@class endpoint.RailsFramework : endpoint.Framework
 
 ---@class endpoint.NestJsFramework : endpoint.Framework
 

@@ -6,12 +6,12 @@ local log = require "endpoint.utils.log"
 
 ---Creates a new Framework instance
 function Framework:new(name, config)
-  local instance = setmetatable({}, self)
-  instance.name = name
-  instance.config = config or {}
-  instance:_validate_config()
-  instance:_initialize()
-  return instance
+  local framework = setmetatable({}, self)
+  framework.name = name
+  framework.config = config or {}
+  framework:_validate_config()
+  framework:_initialize()
+  return framework
 end
 
 ---Validates the framework configuration
@@ -34,23 +34,61 @@ function Framework:_initialize()
   -- Will be overridden by subclasses
 end
 
----Detects if this framework is present in the current project
+---Detects if this framework is present in the current project (unified implementation)
 function Framework:detect()
-  error("detect() must be implemented by subclass: " .. self.name)
+  if not self.detector then
+    self:_initialize()
+  end
+  if self.detector then
+    return self.detector:is_target_detected()
+  end
+  return false
 end
 
----Parses content to extract endpoint information
+---Parses content to extract endpoint information (unified implementation)
 function Framework:parse(content, file_path, line_number, column)
-  error("parse() must be implemented by subclass: " .. self.name)
-  -- Suppress unused warnings
-  ---@diagnostic disable-next-line: unused-local
-  local _ = content
-  ---@diagnostic disable-next-line: unused-local
-  _ = file_path
-  ---@diagnostic disable-next-line: unused-local
-  _ = line_number
-  ---@diagnostic disable-next-line: unused-local
-  _ = column
+  -- Ensure parser is initialized
+  if not self.parser then
+    self:_initialize()
+  end
+
+  if not self.parser then
+    return nil
+  end
+
+  local parsed_endpoint = self.parser:parse_content(content, file_path, line_number, column)
+
+  if parsed_endpoint then
+    -- Set framework name
+    parsed_endpoint.framework = self.name
+
+    -- Call framework-specific enhancement hook
+    self:_enhance_endpoint(parsed_endpoint, file_path)
+  end
+
+  return parsed_endpoint
+end
+
+---Hook for framework-specific endpoint enhancement
+function Framework:_enhance_endpoint(parsed_endpoint, file_path)
+  -- Default implementation - can be overridden by subclasses
+  -- Add basic framework metadata
+  parsed_endpoint.metadata = parsed_endpoint.metadata or {}
+  parsed_endpoint.metadata.framework = self.name
+
+  -- Extract controller name from file path if not already set
+  if not parsed_endpoint.metadata.controller_name then
+    local controller_name = self:getControllerName(file_path)
+    if controller_name then
+      parsed_endpoint.metadata.controller_name = controller_name
+    end
+  end
+end
+
+---Extract controller name from file path (should be overridden by subclasses)
+function Framework:getControllerName(file_path)
+  -- Default implementation - subclasses should override this
+  return nil
 end
 
 ---Gets the search command for finding all endpoints
@@ -83,8 +121,8 @@ function Framework:scan(options)
     return {}
   end
 
-  -- Perform single comprehensive search for all patterns
-  local discovered_endpoints = self:_perform_comprehensive_scan(options)
+  -- Perform search and parse all matching lines
+  local discovered_endpoints = self:_search_and_parse(options)
 
   -- Post-process endpoints (remove duplicates, etc.)
   discovered_endpoints = self:_post_process_endpoints(discovered_endpoints)
@@ -94,14 +132,11 @@ function Framework:scan(options)
   return discovered_endpoints
 end
 
----Performs comprehensive scan for all endpoint patterns
-function Framework:_perform_comprehensive_scan(scan_options)
+---Searches files and parses matching lines using framework parser
+function Framework:_search_and_parse()
   local search_command = self:get_search_cmd()
-  -- Suppress unused warning
-  ---@diagnostic disable-next-line: unused-local
-  local _ = scan_options
 
-  log.framework_debug("Executing comprehensive search: " .. search_command)
+  log.framework_debug("Executing search: " .. search_command)
 
   local search_result = vim.fn.system(search_command)
   if vim.v.shell_error ~= 0 then
@@ -113,63 +148,70 @@ function Framework:_perform_comprehensive_scan(scan_options)
   local result_lines = vim.split(search_result, "\n", { trimempty = true })
 
   for _, result_line in ipairs(result_lines) do
-    local parsed_endpoint = self:_parse_search_result_line(result_line)
-    if parsed_endpoint then
-      table.insert(found_endpoints, parsed_endpoint)
+    local endpoints = self:_parse_result_line(result_line)
+    for _, endpoint in ipairs(endpoints) do
+      table.insert(found_endpoints, endpoint)
     end
   end
 
   return found_endpoints
 end
 
----Parses a single ripgrep search result line
-function Framework:_parse_search_result_line(search_result_line)
-  if not search_result_line or search_result_line == "" then
-    return nil
+---Parses a ripgrep result line using framework parser
+function Framework:_parse_result_line(result_line)
+  if not result_line or result_line == "" then
+    return {}
   end
 
   -- Parse ripgrep output format: file:line:col:content
   local source_file_path, source_line_number, source_column_position, line_content =
-    search_result_line:match "([^:]+):(%d+):(%d+):(.*)"
+    result_line:match "([^:]+):(%d+):(%d+):(.*)"
   if not source_file_path or not source_line_number or not source_column_position or not line_content then
-    return nil
+    return {}
   end
 
-  -- Use the concrete implementation's parse method
   local line_num = tonumber(source_line_number) or 1
   local col_pos = tonumber(source_column_position) or 1
-  local parsed_endpoint = self:parse(line_content, source_file_path, line_num, col_pos)
 
-  if parsed_endpoint then
-    -- Ensure required fields are set
-    parsed_endpoint.framework = self.name
-    parsed_endpoint.file_path = parsed_endpoint.file_path or source_file_path
-    parsed_endpoint.line_number = parsed_endpoint.line_number or line_num
-    parsed_endpoint.column = parsed_endpoint.column or col_pos
-
-    -- Generate display value if not provided
-    if not parsed_endpoint.display_value and parsed_endpoint.method and parsed_endpoint.endpoint_path then
-      parsed_endpoint.display_value = parsed_endpoint.method .. " " .. parsed_endpoint.endpoint_path
+  -- Use parser's parse method directly
+  local endpoints = {}
+  if self.parser then
+    local single_endpoint = self.parser:parse_content(line_content, source_file_path, line_num, col_pos)
+    if single_endpoint then
+      endpoints = { single_endpoint }
+    end
+  else
+    -- Fallback to framework's parse method
+    local single_endpoint = self:parse(line_content, source_file_path, line_num, col_pos)
+    if single_endpoint then
+      endpoints = { single_endpoint }
     end
   end
 
-  return parsed_endpoint
+  -- Enhance each endpoint with framework metadata
+  for _, endpoint in ipairs(endpoints) do
+    endpoint.framework = self.name
+    endpoint.file_path = endpoint.file_path or source_file_path
+    endpoint.line_number = endpoint.line_number or line_num
+    endpoint.column = endpoint.column or col_pos
+
+    -- Generate display value if not provided
+    if not endpoint.display_value and endpoint.method and endpoint.endpoint_path then
+      endpoint.display_value = endpoint.method .. " " .. endpoint.endpoint_path
+    end
+  end
+
+  return endpoints
 end
 
 ---Post-processes endpoints to remove duplicates and clean up
 function Framework:_post_process_endpoints(endpoints)
-  -- Remove duplicates based on method + path + file + line
+  -- Remove duplicates based on method + path only (ignore file/line differences)
   local seen = {}
   local unique_endpoints = {}
 
   for _, endpoint in ipairs(endpoints) do
-    local key = string.format(
-      "%s:%s:%s:%d",
-      endpoint.method or "",
-      endpoint.endpoint_path or "",
-      endpoint.file_path or "",
-      endpoint.line_number or 0
-    )
+    local key = string.format("%s:%s", endpoint.method or "", endpoint.endpoint_path or "")
 
     if not seen[key] then
       seen[key] = true
@@ -183,6 +225,20 @@ end
 ---Gets the framework name
 function Framework:get_name()
   return self.name
+end
+
+---Sets framework metadata on parsed endpoint
+function Framework:_set_framework_metadata(parsed_endpoint, fields)
+  if not parsed_endpoint.metadata then
+    parsed_endpoint.metadata = {}
+  end
+  parsed_endpoint.metadata.framework = self.name
+
+  if fields then
+    for key, value in pairs(fields) do
+      parsed_endpoint.metadata[key] = value
+    end
+  end
 end
 
 ---Gets the framework configuration
@@ -203,4 +259,3 @@ function Framework:is_instance_of(framework_class)
 end
 
 return Framework
-
