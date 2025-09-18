@@ -1,6 +1,6 @@
 local Framework = require "endpoint.core.Framework"
-local DependencyDetectionStrategy = require "endpoint.core.strategies.detection.DependencyDetectionStrategy"
-local RouteParsingStrategy = require "endpoint.core.strategies.parsing.RouteParsingStrategy"
+local DependencyDetector = require "endpoint.detector.dependency_detector"
+local route_parser = require "endpoint.parser.route_parser"
 
 ---@class endpoint.DjangoFramework : endpoint.Framework
 local DjangoFramework = setmetatable({}, { __index = Framework })
@@ -45,7 +45,7 @@ function DjangoFramework:new()
   }
 
   django_framework_instance:_validate_config()
-  django_framework_instance:_setup_strategies()
+  django_framework_instance:_initialize()
   ---@cast django_framework_instance DjangoFramework
   return django_framework_instance
 end
@@ -66,15 +66,15 @@ function DjangoFramework:_validate_config()
 end
 
 ---Sets up detection and parsing strategies for Django
-function DjangoFramework:_setup_strategies()
-  -- Setup detection strategy using backup logic patterns
-  self.detection_strategy = DependencyDetectionStrategy:new(
+function DjangoFramework:_initialize()
+  -- Setup detector using backup logic patterns
+  self.detector = dependency_detector:new(
     { "django", "Django" },
     { "manage.py", "settings.py", "requirements.txt", "pyproject.toml", "setup.py", "Pipfile" },
     "django_dependency_detection"
   )
 
-  -- Setup route parsing strategy with comprehensive Django patterns from backup
+  -- Setup route parser with comprehensive Django patterns from backup
   local django_route_patterns = {
     ["url_pattern"] = { "path\\s*\\(", "re_path\\s*\\(", "url\\s*\\(" },
     ["include_pattern"] = { "include\\s*\\(" },
@@ -99,7 +99,7 @@ function DjangoFramework:_setup_strategies()
     ["function_view"] = self._process_django_function_view
   }
 
-  self.parsing_strategy = RouteParsingStrategy:new(
+  self.parser = route_parser:new(
     django_route_patterns,
     django_path_extraction_patterns,
     django_route_processors,
@@ -107,11 +107,11 @@ function DjangoFramework:_setup_strategies()
   )
 
   -- Add include processor
-  self.parsing_strategy:add_route_patterns("include_pattern", { "include\\s*\\(" })
+  self.parser:add_route_patterns("include_pattern", { "include\\s*\\(" })
 end
 
 ---Processes Django URL patterns (path, re_path, url) using backup logic
-function DjangoFramework._process_django_url_pattern(strategy, content, file_path, line_number, column, endpoint_path, http_method)
+function DjangoFramework._process_django_url_pattern(parser, content, file_path, line_number, column, endpoint_path, http_method)
   -- Extract URL pattern from content
   local url_path = content:match 'path%s*%(%s*["\']([^"\']*)["\']'
     or content:match 're_path%s*%(%s*r?["\']([^"\']+)["\']'
@@ -156,13 +156,13 @@ function DjangoFramework._process_django_url_pattern(strategy, content, file_pat
       view_reference = view_ref,
       route_type = "url_pattern",
       app_prefix = app_prefix,
-      parsing_strategy = "django_route_parsing"
+      parser = "django_route_parsing"
     }
   }
 end
 
 ---Processes Django view method implementations (get, post, etc.)
-function DjangoFramework._process_django_view_method(strategy, content, file_path, line_number, column, endpoint_path, http_method)
+function DjangoFramework._process_django_view_method(parser, content, file_path, line_number, column, endpoint_path, http_method)
   -- Filter out class definitions
   if content:match "^%s*class%s+[%w_]+.*:" then
     return nil
@@ -210,7 +210,7 @@ function DjangoFramework._process_django_view_method(strategy, content, file_pat
           class_name = class_name,
           method_name = method_name,
           route_type = "view_method",
-          parsing_strategy = "django_route_parsing"
+          parser = "django_route_parsing"
         }
       }
     end
@@ -220,7 +220,7 @@ function DjangoFramework._process_django_view_method(strategy, content, file_pat
 end
 
 ---Processes Django ViewSet action methods (list, create, retrieve, etc.)
-function DjangoFramework._process_django_viewset_action(strategy, content, file_path, line_number, column, endpoint_path, http_method)
+function DjangoFramework._process_django_viewset_action(parser, content, file_path, line_number, column, endpoint_path, http_method)
   -- Extract ViewSet action method name
   local action_name
   if content:match "^%s*def%s+list%s*%(" then
@@ -266,7 +266,7 @@ function DjangoFramework._process_django_viewset_action(strategy, content, file_
         class_name = class_name,
         action_name = action_name,
         route_type = "viewset_action",
-        parsing_strategy = "django_route_parsing"
+        parser = "django_route_parsing"
       }
     }
   end
@@ -275,7 +275,7 @@ function DjangoFramework._process_django_viewset_action(strategy, content, file_
 end
 
 ---Processes Django view class definitions
-function DjangoFramework._process_django_view_class(strategy, content, file_path, line_number, column, endpoint_path, http_method)
+function DjangoFramework._process_django_view_class(parser, content, file_path, line_number, column, endpoint_path, http_method)
   local class_name = content:match "^%s*class%s+([%w_]+)%s*%("
   if not class_name then
     return nil
@@ -308,7 +308,7 @@ function DjangoFramework._process_django_view_class(strategy, content, file_path
         class_name = class_name,
         route_type = "viewset_class",
         supported_methods = methods,
-        parsing_strategy = "django_route_parsing"
+        parser = "django_route_parsing"
       }
     }
   else
@@ -333,7 +333,7 @@ function DjangoFramework._process_django_view_class(strategy, content, file_path
           class_name = class_name,
           route_type = "view_class",
           supported_methods = methods,
-          parsing_strategy = "django_route_parsing"
+          parser = "django_route_parsing"
         }
       }
     end
@@ -343,7 +343,7 @@ function DjangoFramework._process_django_view_class(strategy, content, file_path
 end
 
 ---Processes Django function-based views
-function DjangoFramework._process_django_function_view(strategy, content, file_path, line_number, column, endpoint_path, http_method)
+function DjangoFramework._process_django_function_view(parser, content, file_path, line_number, column, endpoint_path, http_method)
   local function_name = content:match "^%s*def%s+([%w_]+)%s*%("
   if not function_name then
     return nil
@@ -379,7 +379,7 @@ function DjangoFramework._process_django_function_view(strategy, content, file_p
         function_name = function_name,
         route_type = "function_view",
         supported_methods = methods,
-        parsing_strategy = "django_route_parsing"
+        parser = "django_route_parsing"
       }
     }
   end
@@ -388,7 +388,7 @@ function DjangoFramework._process_django_function_view(strategy, content, file_p
 end
 
 ---Processes Django include() patterns
-function DjangoFramework._process_django_include(strategy, content, file_path, line_number, column, endpoint_path, http_method)
+function DjangoFramework._process_django_include(parser, content, file_path, line_number, column, endpoint_path, http_method)
   local include_module = content:match('include\\s*\\(["\']([^"\']+)["\']')
   local cleaned_path = DjangoFramework._clean_django_path(endpoint_path)
 
@@ -406,7 +406,7 @@ function DjangoFramework._process_django_include(strategy, content, file_path, l
       language = "python",
       include_module = include_module,
       route_type = "include",
-      parsing_strategy = "django_route_parsing"
+      parser = "django_route_parsing"
     }
   }
 end
@@ -439,10 +439,10 @@ end
 
 ---Detects if Django is present in the current project
 function DjangoFramework:detect()
-  if not self.detection_strategy then
-    self:_setup_strategies()
+  if not self.detector then
+    self:_initialize()
   end
-  return self.detection_strategy and self.detection_strategy:is_target_detected() or false
+  return self.detector and self.detector:is_target_detected() or false
 end
 
 ---Parses Django content to extract endpoint information
@@ -460,12 +460,12 @@ function DjangoFramework:parse(content, file_path, line_number, column)
     return result
   end
 
-  -- Fallback to strategy
-  if not self.parsing_strategy then
-    self:_setup_strategies()
+  -- Fallback to parser
+  if not self.parser then
+    self:_initialize()
   end
 
-  local parsed_endpoint = self.parsing_strategy and self.parsing_strategy:parse_content(content, file_path, line_number, column)
+  local parsed_endpoint = self.parser and self.parser:parse_content(content, file_path, line_number, column)
 
   if parsed_endpoint then
     -- Enhance with additional Django-specific metadata

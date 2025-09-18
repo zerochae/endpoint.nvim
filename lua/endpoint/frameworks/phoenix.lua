@@ -1,6 +1,6 @@
 local Framework = require "endpoint.core.Framework"
-local DependencyDetectionStrategy = require "endpoint.core.strategies.detection.DependencyDetectionStrategy"
-local AnnotationParsingStrategy = require "endpoint.core.strategies.parsing.AnnotationParsingStrategy"
+local DependencyDetector = require "endpoint.detector.dependency_detector"
+local annotation_parser = require "endpoint.parser.annotation_parser"
 
 ---@class endpoint.PhoenixFramework : endpoint.Framework
 local PhoenixFramework = setmetatable({}, { __index = Framework })
@@ -26,15 +26,15 @@ function PhoenixFramework:new()
 end
 
 ---Sets up detection and parsing strategies for Phoenix
-function PhoenixFramework:_setup_strategies()
-  -- Setup detection strategy
-  self.detection_strategy = DependencyDetectionStrategy:new(
+function PhoenixFramework:_initialize()
+  -- Setup detector
+  self.detector = dependency_detector:new(
     { "phoenix", ":phoenix" },
     { "mix.exs" },
     "phoenix_dependency_detection"
   )
 
-  -- Setup parsing strategy with Phoenix route patterns
+  -- Setup parser with Phoenix route patterns
   local phoenix_annotation_patterns = {
     GET = { "get%s+", "resources%s+" },
     POST = { "post%s+", "resources%s+" },
@@ -59,7 +59,7 @@ function PhoenixFramework:_setup_strategies()
     ["resources%s+"] = "GET" -- Default for resources, will generate multiple
   }
 
-  self.parsing_strategy = AnnotationParsingStrategy:new(
+  self.parser = annotation_parser:new(
     phoenix_annotation_patterns,
     phoenix_path_extraction_patterns,
     phoenix_method_mapping
@@ -68,12 +68,12 @@ end
 
 ---Detects if Phoenix is present in the current project
 function PhoenixFramework:detect()
-  return self.detection_strategy:is_target_detected()
+  return self.detector:is_target_detected()
 end
 
 ---Parses Phoenix content to extract endpoint information
 function PhoenixFramework:parse(content, file_path, line_number, column)
-  local parsed_endpoint = self.parsing_strategy:parse_content(content, file_path, line_number, column)
+  local parsed_endpoint = self.parser:parse_content(content, file_path, line_number, column)
 
   if parsed_endpoint then
     -- Phoenix-specific resource route handling

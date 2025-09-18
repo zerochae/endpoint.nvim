@@ -10,7 +10,7 @@ function Framework:new(name, config)
   instance.name = name
   instance.config = config or {}
   instance:_validate_config()
-  instance:_setup_strategies()
+  instance:_initialize()
   return instance
 end
 
@@ -29,8 +29,8 @@ function Framework:_validate_config()
   end
 end
 
----Sets up detection and parsing strategies
-function Framework:_setup_strategies()
+---Sets up detection and parsing components
+function Framework:_initialize()
   -- Will be overridden by subclasses
 end
 

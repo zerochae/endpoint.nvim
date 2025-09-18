@@ -1,21 +1,21 @@
-local DetectionStrategy = require "endpoint.core.strategies.detection.DetectionStrategy"
+local Detector = require "endpoint.core.Detector"
 
----@class endpoint.FileDetectionStrategy
-local FileDetectionStrategy = setmetatable({}, { __index = DetectionStrategy })
-FileDetectionStrategy.__index = FileDetectionStrategy
+---@class endpoint.FileDetector
+local FileDetector = setmetatable({}, { __index = Detector })
+FileDetector.__index = FileDetector
 
----Creates a new FileDetectionStrategy instance
-function FileDetectionStrategy:new(required_indicator_files, strategy_name)
-  local file_detection_strategy_instance = DetectionStrategy.new(self, strategy_name or "file_based_detection")
-  setmetatable(file_detection_strategy_instance, self)
-
-  file_detection_strategy_instance.required_indicator_files = required_indicator_files or {}
-  file_detection_strategy_instance.file_system_utils = require "endpoint.utils.fs"
-  return file_detection_strategy_instance
+---Creates a new FileDetector instance
+function FileDetector:new(required_indicator_files, detection_name)
+  local file_detector_instance = Detector:new(detection_name or "file_based_detection", {
+    required_indicator_files = required_indicator_files or {},
+    file_system_utils = require "endpoint.utils.fs"
+  })
+  setmetatable(file_detector_instance, self)
+  return file_detector_instance
 end
 
 ---Detects if any of the required indicator files are present
-function FileDetectionStrategy:is_target_detected()
+function FileDetector:is_target_detected()
   for _, indicator_file_path in ipairs(self.required_indicator_files) do
     if self.file_system_utils.has_file { indicator_file_path } then
       return true
@@ -26,8 +26,8 @@ function FileDetectionStrategy:is_target_detected()
 end
 
 ---Gets detailed information about which files were detected
-function FileDetectionStrategy:get_detection_details()
-  local base_detection_details = DetectionStrategy.get_detection_details(self)
+function FileDetector:get_detection_details()
+  local base_detection_details = Detector.get_detection_details(self)
   if not base_detection_details then
     return nil
   end
@@ -47,15 +47,15 @@ function FileDetectionStrategy:get_detection_details()
 end
 
 ---Adds additional required files to the detection criteria
-function FileDetectionStrategy:add_required_files(additional_files)
+function FileDetector:add_required_files(additional_files)
   for _, additional_file_path in ipairs(additional_files) do
     table.insert(self.required_indicator_files, additional_file_path)
   end
 end
 
 ---Gets the list of required indicator files
-function FileDetectionStrategy:get_required_files()
+function FileDetector:get_required_files()
   return vim.deepcopy(self.required_indicator_files)
 end
 
-return FileDetectionStrategy
+return FileDetector

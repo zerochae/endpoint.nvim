@@ -1,6 +1,6 @@
 local Framework = require "endpoint.core.Framework"
-local DependencyDetectionStrategy = require "endpoint.core.strategies.detection.DependencyDetectionStrategy"
-local AnnotationParsingStrategy = require "endpoint.core.strategies.parsing.AnnotationParsingStrategy"
+local DependencyDetector = require "endpoint.detector.dependency_detector"
+local AnnotationParser = require "endpoint.parser.annotation_parser"
 
 ---@class endpoint.FastApiFramework : endpoint.Framework
 local FastApiFramework = setmetatable({}, { __index = Framework })
@@ -26,15 +26,15 @@ function FastApiFramework:new()
 end
 
 ---Sets up detection and parsing strategies for FastAPI
-function FastApiFramework:_setup_strategies()
-  -- Setup detection strategy
-  self.detection_strategy = DependencyDetectionStrategy:new(
+function FastApiFramework:_initialize()
+  -- Setup detector
+  self.detector = DependencyDetector:new(
     { "fastapi", "FastAPI" },
     { "requirements.txt", "pyproject.toml", "setup.py", "Pipfile" },
     "fastapi_dependency_detection"
   )
 
-  -- Setup parsing strategy with FastAPI annotation patterns
+  -- Setup parser with FastAPI annotation patterns
   local fastapi_annotation_patterns = {
     GET = { "@app%.get", "@router%.get" },
     POST = { "@app%.post", "@router%.post" },
@@ -65,7 +65,7 @@ function FastApiFramework:_setup_strategies()
     ["@router%.patch"] = "PATCH"
   }
 
-  self.parsing_strategy = AnnotationParsingStrategy:new(
+  self.parser = AnnotationParser:new(
     fastapi_annotation_patterns,
     fastapi_path_extraction_patterns,
     fastapi_method_mapping
@@ -74,12 +74,12 @@ end
 
 ---Detects if FastAPI is present in the current project
 function FastApiFramework:detect()
-  return self.detection_strategy:is_target_detected()
+  return self.detector:is_target_detected()
 end
 
 ---Parses FastAPI content to extract endpoint information
 function FastApiFramework:parse(content, file_path, line_number, column)
-  local parsed_endpoint = self.parsing_strategy:parse_content(content, file_path, line_number, column)
+  local parsed_endpoint = self.parser:parse_content(content, file_path, line_number, column)
 
   if parsed_endpoint then
     -- Enhance with FastAPI-specific metadata

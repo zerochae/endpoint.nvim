@@ -1,5 +1,5 @@
 local config = require "endpoint.config"
-local EndpointManager = require "endpoint.core.EndpointManager"
+local EndpointManager = require "endpoint.manager.EndpointManager"
 
 local endpoint_manager = EndpointManager:new()
 

@@ -1,6 +1,6 @@
 local Picker = require "endpoint.core.Picker"
 
----@class endpoint.TelescopePicker : endpoint.Picker
+---@class endpoint.TelescopePicker
 local TelescopePicker = setmetatable({}, { __index = Picker })
 TelescopePicker.__index = TelescopePicker
 

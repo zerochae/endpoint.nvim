@@ -1,6 +1,6 @@
 local Framework = require "endpoint.core.Framework"
-local DependencyDetectionStrategy = require "endpoint.core.strategies.detection.DependencyDetectionStrategy"
-local AnnotationParsingStrategy = require "endpoint.core.strategies.parsing.AnnotationParsingStrategy"
+local DependencyDetector = require "endpoint.detector.dependency_detector"
+local annotation_parser = require "endpoint.parser.annotation_parser"
 
 ---@class endpoint.FlaskFramework : endpoint.Framework
 local FlaskFramework = setmetatable({}, { __index = Framework })
@@ -26,15 +26,15 @@ function FlaskFramework:new()
 end
 
 ---Sets up detection and parsing strategies for Flask
-function FlaskFramework:_setup_strategies()
-  -- Setup detection strategy
-  self.detection_strategy = DependencyDetectionStrategy:new(
+function FlaskFramework:_initialize()
+  -- Setup detector
+  self.detector = dependency_detector:new(
     { "flask", "Flask" },
     { "requirements.txt", "pyproject.toml", "setup.py", "Pipfile" },
     "flask_dependency_detection"
   )
 
-  -- Setup parsing strategy with Flask route patterns
+  -- Setup parser with Flask route patterns
   local flask_annotation_patterns = {
     GET = { "@app%.route", "@blueprint%.route" },
     POST = { "@app%.route", "@blueprint%.route" },
@@ -57,7 +57,7 @@ function FlaskFramework:_setup_strategies()
     ["@blueprint%.route"] = "GET"
   }
 
-  self.parsing_strategy = AnnotationParsingStrategy:new(
+  self.parser = annotation_parser:new(
     flask_annotation_patterns,
     flask_path_extraction_patterns,
     flask_method_mapping
@@ -66,12 +66,12 @@ end
 
 ---Detects if Flask is present in the current project
 function FlaskFramework:detect()
-  return self.detection_strategy:is_target_detected()
+  return self.detector:is_target_detected()
 end
 
 ---Parses Flask content to extract endpoint information
 function FlaskFramework:parse(content, file_path, line_number, column)
-  local parsed_endpoint = self.parsing_strategy:parse_content(content, file_path, line_number, column)
+  local parsed_endpoint = self.parser:parse_content(content, file_path, line_number, column)
 
   if parsed_endpoint then
     -- Flask-specific method extraction from methods parameter

@@ -1,6 +1,6 @@
 local Framework = require "endpoint.core.Framework"
-local DependencyDetectionStrategy = require "endpoint.core.strategies.detection.DependencyDetectionStrategy"
-local AnnotationParsingStrategy = require "endpoint.core.strategies.parsing.AnnotationParsingStrategy"
+local DependencyDetector = require "endpoint.detector.dependency_detector"
+local annotation_parser = require "endpoint.parser.annotation_parser"
 
 ---@class endpoint.SymfonyFramework : endpoint.Framework
 local SymfonyFramework = setmetatable({}, { __index = Framework })
@@ -26,15 +26,15 @@ function SymfonyFramework:new()
 end
 
 ---Sets up detection and parsing strategies for Symfony
-function SymfonyFramework:_setup_strategies()
-  -- Setup detection strategy
-  self.detection_strategy = DependencyDetectionStrategy:new(
+function SymfonyFramework:_initialize()
+  -- Setup detector
+  self.detector = dependency_detector:new(
     { "symfony/framework-bundle", "symfony/symfony" },
     { "composer.json" },
     "symfony_dependency_detection"
   )
 
-  -- Setup parsing strategy with Symfony route patterns
+  -- Setup parser with Symfony route patterns
   local symfony_annotation_patterns = {
     GET = { "#%[Route%(", "@Route%(" },
     POST = { "#%[Route%(", "@Route%(" },
@@ -55,7 +55,7 @@ function SymfonyFramework:_setup_strategies()
     ["@Route%("] = "GET"
   }
 
-  self.parsing_strategy = AnnotationParsingStrategy:new(
+  self.parser = annotation_parser:new(
     symfony_annotation_patterns,
     symfony_path_extraction_patterns,
     symfony_method_mapping
@@ -64,12 +64,12 @@ end
 
 ---Detects if Symfony is present in the current project
 function SymfonyFramework:detect()
-  return self.detection_strategy:is_target_detected()
+  return self.detector:is_target_detected()
 end
 
 ---Parses Symfony content to extract endpoint information
 function SymfonyFramework:parse(content, file_path, line_number, column)
-  local parsed_endpoint = self.parsing_strategy:parse_content(content, file_path, line_number, column)
+  local parsed_endpoint = self.parser:parse_content(content, file_path, line_number, column)
 
   if parsed_endpoint then
     -- Symfony-specific method extraction from methods parameter

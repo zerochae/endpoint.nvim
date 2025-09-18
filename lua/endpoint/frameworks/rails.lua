@@ -1,5 +1,5 @@
 local Framework = require "endpoint.core.Framework"
-local DependencyDetectionStrategy = require "endpoint.core.strategies.detection.DependencyDetectionStrategy"
+local DependencyDetector = require "endpoint.detector.dependency_detector"
 local rg = require "endpoint.utils.rg"
 
 ---@class endpoint.RailsFramework
@@ -35,7 +35,7 @@ function RailsFramework:new()
   }
 
   rails_framework_instance:_validate_config()
-  rails_framework_instance:_setup_strategies()
+  rails_framework_instance:_initialize()
   return rails_framework_instance
 end
 
@@ -436,17 +436,17 @@ function RailsFramework:_validate_config()
   end
 end
 
----Sets up detection and parsing strategies for Rails
-function RailsFramework:_setup_strategies()
-  -- Setup detection strategy using file-based detection like the backup logic
-  self.detection_strategy = DependencyDetectionStrategy:new(
+---Sets up detection and parsing for Rails
+function RailsFramework:_initialize()
+  -- Setup detector using file-based detection like the backup logic
+  self.detector = DependencyDetector:new(
     { "rails", "actionpack", "railties" },
     { "Gemfile", "config/routes.rb", "config/application.rb", "app/controllers" },
     "rails_dependency_detection"
   )
 
-  -- Rails framework uses direct parsing instead of RouteParsingStrategy
-  self.parsing_strategy = nil
+  -- Rails framework uses direct parsing instead of RouteParser
+  self.parser = nil
 end
 
 
@@ -473,11 +473,11 @@ end
 
 ---Detects if Rails is present in the current project
 function RailsFramework:detect()
-  if not self.detection_strategy then
-    self:_setup_strategies()
+  if not self.detector then
+    self:_initialize()
   end
-  if self.detection_strategy then
-    return self.detection_strategy:is_target_detected()
+  if self.detector then
+    return self.detector:is_target_detected()
   end
   return false
 end
@@ -522,14 +522,14 @@ function RailsFramework:parse(content, file_path, line_number, column)
     return result
   end
 
-  -- Fallback to strategy if direct parsing fails
-  if not self.parsing_strategy then
-    self:_setup_strategies()
+  -- Fallback to parser if direct parsing fails
+  if not self.parser then
+    self:_initialize()
   end
 
   local parsed_endpoint = nil
-  if self.parsing_strategy then
-    parsed_endpoint = self.parsing_strategy:parse_content(content, file_path, line_number, column)
+  if self.parser then
+    parsed_endpoint = self.parser:parse_content(content, file_path, line_number, column)
   end
 
   if parsed_endpoint then

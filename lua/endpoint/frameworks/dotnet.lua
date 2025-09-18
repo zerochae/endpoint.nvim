@@ -1,6 +1,6 @@
 local Framework = require "endpoint.core.Framework"
-local DependencyDetectionStrategy = require "endpoint.core.strategies.detection.DependencyDetectionStrategy"
-local AnnotationParsingStrategy = require "endpoint.core.strategies.parsing.AnnotationParsingStrategy"
+local DependencyDetector = require "endpoint.detector.dependency_detector"
+local annotation_parser = require "endpoint.parser.annotation_parser"
 
 ---@class endpoint.DotNetFramework : endpoint.Framework
 local DotNetFramework = setmetatable({}, { __index = Framework })
@@ -26,15 +26,15 @@ function DotNetFramework:new()
 end
 
 ---Sets up detection and parsing strategies for .NET
-function DotNetFramework:_setup_strategies()
-  -- Setup detection strategy
-  self.detection_strategy = DependencyDetectionStrategy:new(
+function DotNetFramework:_initialize()
+  -- Setup detector
+  self.detector = dependency_detector:new(
     { "Microsoft.AspNetCore", "Microsoft.AspNet.WebApi" },
     { "*.csproj", "packages.config", "project.json" },
     "dotnet_dependency_detection"
   )
 
-  -- Setup parsing strategy with .NET attribute patterns
+  -- Setup parser with .NET attribute patterns
   local dotnet_annotation_patterns = {
     GET = { "%[HttpGet", "%[Route.*HttpVerbs%.Get" },
     POST = { "%[HttpPost", "%[Route.*HttpVerbs%.Post" },
@@ -67,7 +67,7 @@ function DotNetFramework:_setup_strategies()
     ["%[Route.*HttpVerbs%.Patch"] = "PATCH"
   }
 
-  self.parsing_strategy = AnnotationParsingStrategy:new(
+  self.parser = annotation_parser:new(
     dotnet_annotation_patterns,
     dotnet_path_extraction_patterns,
     dotnet_method_mapping
@@ -76,12 +76,12 @@ end
 
 ---Detects if .NET is present in the current project
 function DotNetFramework:detect()
-  return self.detection_strategy:is_target_detected()
+  return self.detector:is_target_detected()
 end
 
 ---Parses .NET content to extract endpoint information
 function DotNetFramework:parse(content, file_path, line_number, column)
-  local parsed_endpoint = self.parsing_strategy:parse_content(content, file_path, line_number, column)
+  local parsed_endpoint = self.parser:parse_content(content, file_path, line_number, column)
 
   if parsed_endpoint then
     -- Enhance with .NET-specific metadata

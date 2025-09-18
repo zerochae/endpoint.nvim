@@ -1,6 +1,6 @@
 local Framework = require "endpoint.core.Framework"
-local DependencyDetectionStrategy = require "endpoint.core.strategies.detection.DependencyDetectionStrategy"
-local AnnotationParsingStrategy = require "endpoint.core.strategies.parsing.AnnotationParsingStrategy"
+local DependencyDetector = require "endpoint.detector.dependency_detector"
+local annotation_parser = require "endpoint.parser.annotation_parser"
 
 ---@class endpoint.NestJsFramework : endpoint.Framework
 local NestJsFramework = setmetatable({}, { __index = Framework })
@@ -26,15 +26,15 @@ function NestJsFramework:new()
 end
 
 ---Sets up detection and parsing strategies for NestJS
-function NestJsFramework:_setup_strategies()
-  -- Setup detection strategy
-  self.detection_strategy = DependencyDetectionStrategy:new(
+function NestJsFramework:_initialize()
+  -- Setup detector
+  self.detector = dependency_detector:new(
     { "@nestjs/core", "@nestjs/common", "nestjs" },
     { "package.json" },
     "nestjs_dependency_detection"
   )
 
-  -- Setup parsing strategy with NestJS decorator patterns
+  -- Setup parser with NestJS decorator patterns
   local nestjs_annotation_patterns = {
     GET = { "@Get%(", "@Controller%(" },
     POST = { "@Post%(", "@Controller%(" },
@@ -62,7 +62,7 @@ function NestJsFramework:_setup_strategies()
     ["@Controller%("] = "GET" -- Default for controller base path
   }
 
-  self.parsing_strategy = AnnotationParsingStrategy:new(
+  self.parser = annotation_parser:new(
     nestjs_annotation_patterns,
     nestjs_path_extraction_patterns,
     nestjs_method_mapping
@@ -71,12 +71,12 @@ end
 
 ---Detects if NestJS is present in the current project
 function NestJsFramework:detect()
-  return self.detection_strategy:is_target_detected()
+  return self.detector:is_target_detected()
 end
 
 ---Parses NestJS content to extract endpoint information
 function NestJsFramework:parse(content, file_path, line_number, column)
-  local parsed_endpoint = self.parsing_strategy:parse_content(content, file_path, line_number, column)
+  local parsed_endpoint = self.parser:parse_content(content, file_path, line_number, column)
 
   if parsed_endpoint then
     -- NestJS-specific controller base path handling

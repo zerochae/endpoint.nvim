@@ -1,6 +1,6 @@
 local Picker = require "endpoint.core.Picker"
 
----@class endpoint.VimUiSelectPicker : endpoint.Picker
+---@class endpoint.VimUiSelectPicker
 local VimUiSelectPicker = setmetatable({}, { __index = Picker })
 VimUiSelectPicker.__index = VimUiSelectPicker
 

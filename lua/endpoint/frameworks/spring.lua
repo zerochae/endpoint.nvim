@@ -1,6 +1,6 @@
 local Framework = require "endpoint.core.Framework"
-local DependencyDetectionStrategy = require "endpoint.core.strategies.detection.DependencyDetectionStrategy"
-local AnnotationParsingStrategy = require "endpoint.core.strategies.parsing.AnnotationParsingStrategy"
+local DependencyDetector = require "endpoint.detector.dependency_detector"
+local AnnotationParser = require "endpoint.parser.annotation_parser"
 
 ---@class endpoint.SpringFramework
 local SpringFramework = setmetatable({}, { __index = Framework })
@@ -24,16 +24,16 @@ function SpringFramework:new()
   return spring_framework_instance
 end
 
----Sets up detection and parsing strategies for Spring
-function SpringFramework:_setup_strategies()
-  -- Setup detection strategy
-  self.detection_strategy = DependencyDetectionStrategy:new(
+---Sets up detection and parsing for Spring
+function SpringFramework:_initialize()
+  -- Setup detector
+  self.detector = DependencyDetector:new(
     { "spring-web", "spring-boot", "springframework" },
     { "pom.xml", "build.gradle", "build.gradle.kts" },
     "spring_dependency_detection"
   )
 
-  -- Setup parsing strategy with Spring annotation patterns
+  -- Setup parser with Spring annotation patterns
   local spring_annotation_patterns = {
     GET = { "@GetMapping", "@RequestMapping.*method.*=.*GET" },
     POST = { "@PostMapping", "@RequestMapping.*method.*=.*POST" },
@@ -66,7 +66,7 @@ function SpringFramework:_setup_strategies()
     ["@RequestMapping.*method.*=.*PATCH"] = "PATCH"
   }
 
-  self.parsing_strategy = AnnotationParsingStrategy:new(
+  self.parser = AnnotationParser:new(
     spring_annotation_patterns,
     spring_path_extraction_patterns,
     spring_method_mapping
@@ -75,12 +75,12 @@ end
 
 ---Detects if Spring is present in the current project
 function SpringFramework:detect()
-  return self.detection_strategy:is_target_detected()
+  return self.detector:is_target_detected()
 end
 
 ---Parses Spring content to extract endpoint information
 function SpringFramework:parse(content, file_path, line_number, column)
-  local parsed_endpoint = self.parsing_strategy:parse_content(content, file_path, line_number, column)
+  local parsed_endpoint = self.parser:parse_content(content, file_path, line_number, column)
 
   if parsed_endpoint then
     -- Extract controller base path

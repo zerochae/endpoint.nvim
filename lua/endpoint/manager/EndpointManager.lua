@@ -3,10 +3,10 @@ local EndpointManager = {}
 EndpointManager.__index = EndpointManager
 
 local log = require "endpoint.utils.log"
-local EventManager = require "endpoint.core.EventManager"
-local CacheManager = require "endpoint.core.CacheManager"
+local EventManager = require "endpoint.manager.EventManager"
+local CacheManager = require "endpoint.manager.CacheManager"
 local config = require "endpoint.config"
-local PickerManager = require "endpoint.core.PickerManager"
+local PickerManager = require "endpoint.manager.PickerManager"
 
 -- Import all framework classes
 local SpringFramework = require "endpoint.frameworks.spring"

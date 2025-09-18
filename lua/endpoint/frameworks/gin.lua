@@ -1,6 +1,6 @@
 local Framework = require "endpoint.core.Framework"
-local DependencyDetectionStrategy = require "endpoint.core.strategies.detection.DependencyDetectionStrategy"
-local AnnotationParsingStrategy = require "endpoint.core.strategies.parsing.AnnotationParsingStrategy"
+local DependencyDetector = require "endpoint.detector.dependency_detector"
+local annotation_parser = require "endpoint.parser.annotation_parser"
 
 ---@class endpoint.GinFramework : endpoint.Framework
 local GinFramework = setmetatable({}, { __index = Framework })
@@ -26,15 +26,15 @@ function GinFramework:new()
 end
 
 ---Sets up detection and parsing strategies for Gin
-function GinFramework:_setup_strategies()
-  -- Setup detection strategy
-  self.detection_strategy = DependencyDetectionStrategy:new(
+function GinFramework:_initialize()
+  -- Setup detector
+  self.detector = dependency_detector:new(
     { "gin-gonic/gin", "github.com/gin-gonic/gin" },
     { "go.mod", "go.sum" },
     "gin_dependency_detection"
   )
 
-  -- Setup parsing strategy with Gin route patterns
+  -- Setup parser with Gin route patterns
   local gin_annotation_patterns = {
     GET = { "r%.GET%(", "router%.GET%(" },
     POST = { "r%.POST%(", "router%.POST%(" },
@@ -64,7 +64,7 @@ function GinFramework:_setup_strategies()
     ["router%.PATCH%("] = "PATCH"
   }
 
-  self.parsing_strategy = AnnotationParsingStrategy:new(
+  self.parser = annotation_parser:new(
     gin_annotation_patterns,
     gin_path_extraction_patterns,
     gin_method_mapping
@@ -73,12 +73,12 @@ end
 
 ---Detects if Gin is present in the current project
 function GinFramework:detect()
-  return self.detection_strategy:is_target_detected()
+  return self.detector:is_target_detected()
 end
 
 ---Parses Gin content to extract endpoint information
 function GinFramework:parse(content, file_path, line_number, column)
-  local parsed_endpoint = self.parsing_strategy:parse_content(content, file_path, line_number, column)
+  local parsed_endpoint = self.parser:parse_content(content, file_path, line_number, column)
 
   if parsed_endpoint then
     -- Enhance with Gin-specific metadata

@@ -1,22 +1,27 @@
-local ParsingStrategy = require "endpoint.core.strategies.parsing.ParsingStrategy"
+local Parser = require "endpoint.core.Parser"
 
----@class endpoint.AnnotationParsingStrategy
-local AnnotationParsingStrategy = setmetatable({}, { __index = ParsingStrategy })
-AnnotationParsingStrategy.__index = AnnotationParsingStrategy
+---@class endpoint.AnnotationParser
+local AnnotationParser = setmetatable({}, { __index = Parser })
+AnnotationParser.__index = AnnotationParser
 
----Creates a new AnnotationParsingStrategy instance
-function AnnotationParsingStrategy:new(annotation_patterns, path_extraction_patterns, method_mapping, parsing_strategy_name)
-  local annotation_parsing_strategy_instance = ParsingStrategy.new(self, parsing_strategy_name or "annotation_parsing")
-  setmetatable(annotation_parsing_strategy_instance, self)
-
-  annotation_parsing_strategy_instance.annotation_patterns = annotation_patterns or {}
-  annotation_parsing_strategy_instance.path_extraction_patterns = path_extraction_patterns or {}
-  annotation_parsing_strategy_instance.method_mapping = method_mapping or {}
-  return annotation_parsing_strategy_instance
+---Creates a new AnnotationParser instance
+function AnnotationParser:new(annotation_patterns, path_extraction_patterns, method_mapping, parser_name)
+  local annotation_parser = Parser:new(parser_name or "annotation_parser", {
+    annotation_patterns = annotation_patterns or {},
+    path_extraction_patterns = path_extraction_patterns or {},
+    method_mapping = method_mapping or {},
+  })
+  setmetatable(annotation_parser, self)
+  return annotation_parser
 end
 
 ---Parses annotation content to extract endpoint information
-function AnnotationParsingStrategy:parse_content(annotation_content, source_file_path, source_line_number, source_column_position)
+function AnnotationParser:parse_content(
+  annotation_content,
+  source_file_path,
+  source_line_number,
+  source_column_position
+)
   if not self:is_content_valid_for_parsing(annotation_content) then
     return nil
   end
@@ -45,15 +50,15 @@ function AnnotationParsingStrategy:parse_content(annotation_content, source_file
     tags = { "annotation", "api" },
     metadata = {
       annotation_content = annotation_content,
-      parsing_strategy = self.parsing_strategy_name
-    }
+      parser = self:get_name(),
+    },
   }
 
   return endpoint_entry
 end
 
 ---Extracts HTTP method from annotation content
-function AnnotationParsingStrategy:_extract_http_method_from_annotation(annotation_content)
+function AnnotationParser:_extract_http_method_from_annotation(annotation_content)
   -- Check direct method mapping first
   for annotation_name, http_method in pairs(self.method_mapping) do
     if annotation_content:match(annotation_name) then
@@ -74,7 +79,7 @@ function AnnotationParsingStrategy:_extract_http_method_from_annotation(annotati
 end
 
 ---Extracts endpoint path from annotation content
-function AnnotationParsingStrategy:_extract_endpoint_path_from_annotation(annotation_content)
+function AnnotationParser:_extract_endpoint_path_from_annotation(annotation_content)
   for _, path_pattern in ipairs(self.path_extraction_patterns) do
     local extracted_path = annotation_content:match(path_pattern)
     if extracted_path then
@@ -83,7 +88,7 @@ function AnnotationParsingStrategy:_extract_endpoint_path_from_annotation(annota
   end
 
   -- If no explicit path found, assume root path for parameterless annotations
-  if annotation_content:match("@%w+%s*$") or annotation_content:match("@%w+%s*%(%s*%)") then
+  if annotation_content:match "@%w+%s*$" or annotation_content:match "@%w+%s*%(%s*%)" then
     return "/"
   end
 
@@ -91,8 +96,8 @@ function AnnotationParsingStrategy:_extract_endpoint_path_from_annotation(annota
 end
 
 ---Validates if content contains annotations suitable for parsing
-function AnnotationParsingStrategy:is_content_valid_for_parsing(content_to_validate)
-  if not ParsingStrategy.is_content_valid_for_parsing(self, content_to_validate) then
+function AnnotationParser:is_content_valid_for_parsing(content_to_validate)
+  if not Parser.is_content_valid_for_parsing(self, content_to_validate) then
     return false
   end
 
@@ -116,7 +121,7 @@ function AnnotationParsingStrategy:is_content_valid_for_parsing(content_to_valid
 end
 
 ---Gets parsing confidence based on annotation recognition
-function AnnotationParsingStrategy:get_parsing_confidence(content_to_analyze)
+function AnnotationParser:get_parsing_confidence(content_to_analyze)
   if not self:is_content_valid_for_parsing(content_to_analyze) then
     return 0.0
   end
@@ -140,7 +145,7 @@ function AnnotationParsingStrategy:get_parsing_confidence(content_to_analyze)
 end
 
 ---Adds additional annotation patterns for a specific HTTP method
-function AnnotationParsingStrategy:add_annotation_patterns(http_method, additional_patterns)
+function AnnotationParser:add_annotation_patterns(http_method, additional_patterns)
   if not self.annotation_patterns[http_method] then
     self.annotation_patterns[http_method] = {}
   end
@@ -151,10 +156,10 @@ function AnnotationParsingStrategy:add_annotation_patterns(http_method, addition
 end
 
 ---Adds additional path extraction patterns
-function AnnotationParsingStrategy:add_path_extraction_patterns(additional_path_patterns)
+function AnnotationParser:add_path_extraction_patterns(additional_path_patterns)
   for _, additional_pattern in ipairs(additional_path_patterns) do
     table.insert(self.path_extraction_patterns, additional_pattern)
   end
 end
 
-return AnnotationParsingStrategy
+return AnnotationParser

@@ -1,6 +1,6 @@
 local Framework = require "endpoint.core.Framework"
-local DependencyDetectionStrategy = require "endpoint.core.strategies.detection.DependencyDetectionStrategy"
-local AnnotationParsingStrategy = require "endpoint.core.strategies.parsing.AnnotationParsingStrategy"
+local DependencyDetector = require "endpoint.detector.dependency_detector"
+local annotation_parser = require "endpoint.parser.annotation_parser"
 
 ---@class endpoint.AxumFramework : endpoint.Framework
 local AxumFramework = setmetatable({}, { __index = Framework })
@@ -26,15 +26,15 @@ function AxumFramework:new()
 end
 
 ---Sets up detection and parsing strategies for Axum
-function AxumFramework:_setup_strategies()
-  -- Setup detection strategy
-  self.detection_strategy = DependencyDetectionStrategy:new(
+function AxumFramework:_initialize()
+  -- Setup detector
+  self.detector = dependency_detector:new(
     { "axum", "axum =" },
     { "Cargo.toml" },
     "axum_dependency_detection"
   )
 
-  -- Setup parsing strategy with Axum route patterns
+  -- Setup parser with Axum route patterns
   local axum_annotation_patterns = {
     GET = { "%.get%(", "Router::new%(%).*%.route.*get" },
     POST = { "%.post%(", "Router::new%(%).*%.route.*post" },
@@ -64,7 +64,7 @@ function AxumFramework:_setup_strategies()
     ["Router::new%(%).*%.route.*patch"] = "PATCH"
   }
 
-  self.parsing_strategy = AnnotationParsingStrategy:new(
+  self.parser = annotation_parser:new(
     axum_annotation_patterns,
     axum_path_extraction_patterns,
     axum_method_mapping
@@ -73,12 +73,12 @@ end
 
 ---Detects if Axum is present in the current project
 function AxumFramework:detect()
-  return self.detection_strategy:is_target_detected()
+  return self.detector:is_target_detected()
 end
 
 ---Parses Axum content to extract endpoint information
 function AxumFramework:parse(content, file_path, line_number, column)
-  local parsed_endpoint = self.parsing_strategy:parse_content(content, file_path, line_number, column)
+  local parsed_endpoint = self.parser:parse_content(content, file_path, line_number, column)
 
   if parsed_endpoint then
     -- Enhance with Axum-specific metadata

@@ -1,6 +1,6 @@
 local Framework = require "endpoint.core.Framework"
-local DependencyDetectionStrategy = require "endpoint.core.strategies.detection.DependencyDetectionStrategy"
-local AnnotationParsingStrategy = require "endpoint.core.strategies.parsing.AnnotationParsingStrategy"
+local DependencyDetector = require "endpoint.detector.dependency_detector"
+local annotation_parser = require "endpoint.parser.annotation_parser"
 
 ---@class endpoint.ExpressFramework : endpoint.Framework
 local ExpressFramework = setmetatable({}, { __index = Framework })
@@ -26,15 +26,15 @@ function ExpressFramework:new()
 end
 
 ---Sets up detection and parsing strategies for Express
-function ExpressFramework:_setup_strategies()
-  -- Setup detection strategy
-  self.detection_strategy = DependencyDetectionStrategy:new(
+function ExpressFramework:_initialize()
+  -- Setup detector
+  self.detector = dependency_detector:new(
     { "express", "Express" },
     { "package.json" },
     "express_dependency_detection"
   )
 
-  -- Setup parsing strategy with Express route patterns
+  -- Setup parser with Express route patterns
   local express_annotation_patterns = {
     GET = { "app%.get%(", "router%.get%(", "%.get%(" },
     POST = { "app%.post%(", "router%.post%(", "%.post%(" },
@@ -66,7 +66,7 @@ function ExpressFramework:_setup_strategies()
     ["%.delete%("] = "DELETE"
   }
 
-  self.parsing_strategy = AnnotationParsingStrategy:new(
+  self.parser = annotation_parser:new(
     express_annotation_patterns,
     express_path_extraction_patterns,
     express_method_mapping
@@ -75,12 +75,12 @@ end
 
 ---Detects if Express is present in the current project
 function ExpressFramework:detect()
-  return self.detection_strategy:is_target_detected()
+  return self.detector:is_target_detected()
 end
 
 ---Parses Express content to extract endpoint information
 function ExpressFramework:parse(content, file_path, line_number, column)
-  local parsed_endpoint = self.parsing_strategy:parse_content(content, file_path, line_number, column)
+  local parsed_endpoint = self.parser:parse_content(content, file_path, line_number, column)
 
   if parsed_endpoint then
     -- Enhance with Express-specific metadata

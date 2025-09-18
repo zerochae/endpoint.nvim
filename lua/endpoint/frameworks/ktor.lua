@@ -1,6 +1,6 @@
 local Framework = require "endpoint.core.Framework"
-local DependencyDetectionStrategy = require "endpoint.core.strategies.detection.DependencyDetectionStrategy"
-local AnnotationParsingStrategy = require "endpoint.core.strategies.parsing.AnnotationParsingStrategy"
+local DependencyDetector = require "endpoint.detector.dependency_detector"
+local annotation_parser = require "endpoint.parser.annotation_parser"
 
 ---@class endpoint.KtorFramework : endpoint.Framework
 local KtorFramework = setmetatable({}, { __index = Framework })
@@ -26,15 +26,15 @@ function KtorFramework:new()
 end
 
 ---Sets up detection and parsing strategies for Ktor
-function KtorFramework:_setup_strategies()
-  -- Setup detection strategy
-  self.detection_strategy = DependencyDetectionStrategy:new(
+function KtorFramework:_initialize()
+  -- Setup detector
+  self.detector = dependency_detector:new(
     { "io.ktor:ktor", "ktor-server" },
     { "build.gradle", "build.gradle.kts", "pom.xml" },
     "ktor_dependency_detection"
   )
 
-  -- Setup parsing strategy with Ktor route patterns
+  -- Setup parser with Ktor route patterns
   local ktor_annotation_patterns = {
     GET = { "get%(", "routing.*get%(" },
     POST = { "post%(", "routing.*post%(" },
@@ -63,7 +63,7 @@ function KtorFramework:_setup_strategies()
     ["routing.*patch%("] = "PATCH"
   }
 
-  self.parsing_strategy = AnnotationParsingStrategy:new(
+  self.parser = annotation_parser:new(
     ktor_annotation_patterns,
     ktor_path_extraction_patterns,
     ktor_method_mapping
@@ -72,12 +72,12 @@ end
 
 ---Detects if Ktor is present in the current project
 function KtorFramework:detect()
-  return self.detection_strategy:is_target_detected()
+  return self.detector:is_target_detected()
 end
 
 ---Parses Ktor content to extract endpoint information
 function KtorFramework:parse(content, file_path, line_number, column)
-  local parsed_endpoint = self.parsing_strategy:parse_content(content, file_path, line_number, column)
+  local parsed_endpoint = self.parser:parse_content(content, file_path, line_number, column)
 
   if parsed_endpoint then
     -- Enhance with Ktor-specific metadata

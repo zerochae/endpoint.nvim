@@ -1,7 +1,7 @@
 local Picker = require "endpoint.core.Picker"
 local log = require "endpoint.utils.log"
 
----@class endpoint.SnacksPicker : endpoint.Picker
+---@class endpoint.SnacksPicker
 local SnacksPicker = setmetatable({}, { __index = Picker })
 SnacksPicker.__index = SnacksPicker
 
