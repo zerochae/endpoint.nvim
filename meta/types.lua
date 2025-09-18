@@ -229,6 +229,23 @@
 ---@field private _get_full_path fun(self: endpoint.KtorParser, path: string, file_path?: string, line_number?: number): string
 ---@field private _extract_base_paths_from_file fun(self: endpoint.KtorParser, file_path: string, target_line: number): string[]
 
+---@class endpoint.ServletParser : endpoint.Parser
+---@field private _is_servlet_content fun(self: endpoint.ServletParser, content: string): boolean
+---@field private _extract_webservlet_path fun(self: endpoint.ServletParser, content: string): string|nil
+---@field private _extract_servlet_method fun(self: endpoint.ServletParser, content: string): string|nil
+---@field private _detect_servlet_type fun(self: endpoint.ServletParser, content: string): string
+---@field private _has_web_xml_mapping fun(self: endpoint.ServletParser, file_path: string): boolean
+---@field private _find_servlet_mapping_for_file fun(self: endpoint.ServletParser, java_file_path: string): string|nil
+---@field private _find_webservlet_annotation_for_file fun(self: endpoint.ServletParser, java_file_path: string): string|nil
+---@field private _extract_servlet_class_path fun(self: endpoint.ServletParser, content: string): string|nil
+
+---@class endpoint.ReactRouterParser : endpoint.Parser
+---@field private _is_react_router_content fun(self: endpoint.ReactRouterParser, content: string): boolean
+---@field private _extract_route_path fun(self: endpoint.ReactRouterParser, content: string): string|nil
+---@field private _extract_component_name fun(self: endpoint.ReactRouterParser, content: string): string|nil
+---@field private _detect_route_type fun(self: endpoint.ReactRouterParser, content: string): string
+---@field private _find_component_file fun(self: endpoint.ReactRouterParser, component_name?: string): string|nil
+
 -- ========================================
 -- MANAGER CLASSES
 -- ========================================
@@ -309,6 +326,10 @@
 ---@class endpoint.PhoenixFramework : endpoint.Framework
 
 ---@class endpoint.DotNetFramework : endpoint.Framework
+
+---@class endpoint.ServletFramework : endpoint.Framework
+
+---@class endpoint.ReactRouterFramework : endpoint.Framework
 
 -- ========================================
 -- CONCRETE PICKER IMPLEMENTATIONS

@@ -22,6 +22,8 @@ local KtorFramework = require "endpoint.frameworks.ktor"
 local AxumFramework = require "endpoint.frameworks.axum"
 local PhoenixFramework = require "endpoint.frameworks.phoenix"
 local DotNetFramework = require "endpoint.frameworks.dotnet"
+local ServletFramework = require "endpoint.frameworks.servlet"
+local ReactRouterFramework = require "endpoint.frameworks.react_router"
 
 ---Creates a new EndpointManager instance
 function EndpointManager:new()
@@ -62,6 +64,8 @@ function EndpointManager:register_all_frameworks()
     FastApiFramework,
     DotNetFramework,
     KtorFramework,
+    ServletFramework,
+    ReactRouterFramework,
     -- FlaskFramework,
     -- DjangoFramework,
     -- GinFramework,
