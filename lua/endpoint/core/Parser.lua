@@ -22,19 +22,19 @@ end
 
 
 ---Extracts base path from file (controller/class level)
-function Parser:extract_base_path(_file_path, _line_number)
-  -- Default implementation - can be overridden by subclasses
-  return ""
+function Parser:extract_base_path()
+  -- Must be implemented by subclasses
+  error("extract_base_path() must be implemented by subclass: " .. self.parser_name)
 end
 
 ---Extracts endpoint path from content (method level)
-function Parser:extract_endpoint_path(_content)
+function Parser:extract_endpoint_path()
   -- Must be implemented by subclasses
   error("extract_endpoint_path() must be implemented by subclass: " .. self.parser_name)
 end
 
 ---Extracts HTTP method from content
-function Parser:extract_method(_content)
+function Parser:extract_method()
   -- Must be implemented by subclasses
   error("extract_method() must be implemented by subclass: " .. self.parser_name)
 end

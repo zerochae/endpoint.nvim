@@ -150,8 +150,28 @@
 
 
 ---@class endpoint.RailsParser : endpoint.Parser
----
+---@field private _extract_http_method fun(self: endpoint.RailsParser, content: string): string|nil
+---@field private _is_valid_route_line fun(self: endpoint.RailsParser, content: string): boolean
+---@field private _is_private_helper_method fun(self: endpoint.RailsParser, action_name: string): boolean
+---@field private _process_controller_action fun(self: endpoint.RailsParser, content: string, file_path: string, line_number: number, column: number): endpoint.entry|nil
+---@field private _process_resources_route fun(self: endpoint.RailsParser, content: string, file_path: string, line_number: number, column: number): endpoint.entry[]|nil
+---@field private _process_nested_routes fun(self: endpoint.RailsParser, content: string, file_path: string, line_number: number, column: number): endpoint.entry[]|nil
+---@field private _find_namespace_prefix fun(self: endpoint.RailsParser, file_path: string, line_number: number): string
+---@field private _find_parent_resource fun(self: endpoint.RailsParser, file_path: string, line_number: number): string|nil
+---@field private _find_controller_action fun(self: endpoint.RailsParser, resource_name: string, action_name: string): table|nil
+---@field private _is_private_method fun(self: endpoint.RailsParser, file_path: string, line_number: number): boolean
+---@field private _is_rails_content fun(self: endpoint.RailsParser, content: string): boolean
+
 ---@class endpoint.SpringParser : endpoint.Parser
+---@field private _read_file_lines fun(self: endpoint.SpringParser, file_path: string, line_number: number): string[]|nil
+---@field private _find_class_level_request_mapping fun(self: endpoint.SpringParser, lines: string[], line_number: number): string
+---@field private _extract_request_mapping_path fun(self: endpoint.SpringParser, annotation_line: string): string|nil
+---@field private _is_class_level_request_mapping fun(self: endpoint.SpringParser, content: string): boolean
+---@field private _extract_path_from_specific_mapping fun(self: endpoint.SpringParser, content: string): string|nil
+---@field private _extract_path_from_request_mapping_with_method fun(self: endpoint.SpringParser, content: string): string|nil
+---@field private _is_root_path_mapping fun(self: endpoint.SpringParser, content: string): boolean
+---@field private _extract_method_from_specific_mapping fun(self: endpoint.SpringParser, content: string): string|nil
+---@field private _extract_method_from_request_mapping fun(self: endpoint.SpringParser, content: string): string|nil
 
 -- ========================================
 -- MANAGER CLASSES

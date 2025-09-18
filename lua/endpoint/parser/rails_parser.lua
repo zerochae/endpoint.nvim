@@ -5,6 +5,10 @@ local Parser = require "endpoint.core.Parser"
 local RailsParser = setmetatable({}, { __index = Parser })
 RailsParser.__index = RailsParser
 
+-- ========================================
+-- PUBLIC METHODS
+-- ========================================
+
 ---Creates a new RailsParser instance
 function RailsParser:new()
   local rails_parser = Parser:new {
@@ -41,48 +45,7 @@ end
 
 ---Extracts HTTP method from Rails content
 function RailsParser:extract_method(content)
-  return self:extract_http_method(content)
-end
-
----Extracts HTTP method from Rails route content
-function RailsParser:extract_http_method(content)
-  -- Match HTTP verbs followed by space (with more strict validation)
-  local route_method = content:match "(%w+)%s+"
-  if route_method then
-    -- Only accept valid HTTP verbs
-    local valid_methods = {
-      get = true,
-      post = true,
-      put = true,
-      delete = true,
-      patch = true,
-      head = true,
-      options = true,
-    }
-    if valid_methods[route_method:lower()] then
-      return route_method:upper()
-    end
-  end
-
-  -- Special case for root routes
-  if content:match "root%s" then
-    return "GET"
-  end
-
-  return nil
-end
-
----Checks if content represents a valid Rails route line
-function RailsParser:is_valid_route_line(content)
-  return not (
-    content:match "@%w+%s*=" -- Assignment like @post =
-    or content:match "%.%w+" -- Method calls like Post.find
-    or content:match "params%[" -- params[:id] references
-    or content:match "^%s*#" -- Comments
-    or content:match "require" -- require statements
-    or content:match "include" -- include statements
-    or content:match "def%s+%w+" -- method definitions
-  )
+  return self:_extract_http_method(content)
 end
 
 ---Main parsing method that tries different Rails parsing approaches
@@ -126,7 +89,89 @@ function RailsParser:parse_line_to_endpoints(content, file_path, line_number, co
 
   -- Fall back to single endpoint parsing
   local single_result = self:parse_content(content, file_path, line_number, column)
-  return single_result and { single_result } or {}
+  return single_result and {single_result} or {}
+end
+
+---Validates if content contains Rails annotations
+function RailsParser:is_content_valid_for_parsing(content)
+  if not Parser.is_content_valid_for_parsing(self, content) then
+    return false
+  end
+
+  -- Check if content contains Rails route or controller patterns
+  return self:_is_rails_content(content)
+end
+
+---Gets parsing confidence for Rails content
+function RailsParser:get_parsing_confidence(content)
+  if not self:is_content_valid_for_parsing(content) then
+    return 0.0
+  end
+
+  local base_confidence = 0.7
+  local confidence_boost = 0
+
+  -- Boost for explicit route definitions
+  if content:match "to:%s*['\"]" then
+    confidence_boost = confidence_boost + 0.2
+  end
+
+  -- Boost for resource definitions
+  if content:match "resources?%s+:" then
+    confidence_boost = confidence_boost + 0.15
+  end
+
+  -- Boost for controller actions in proper file structure
+  if content:match "def%s+[%w_]+" then
+    confidence_boost = confidence_boost + 0.1
+  end
+
+  return math.min(base_confidence + confidence_boost, 1.0)
+end
+
+-- ========================================
+-- PRIVATE METHODS
+-- ========================================
+
+---Extracts HTTP method from Rails route content
+function RailsParser:_extract_http_method(content)
+  -- Match HTTP verbs followed by space (with more strict validation)
+  local route_method = content:match "(%w+)%s+"
+  if route_method then
+    -- Only accept valid HTTP verbs
+    local valid_methods = {
+      get = true,
+      post = true,
+      put = true,
+      delete = true,
+      patch = true,
+      head = true,
+      options = true,
+    }
+    if valid_methods[route_method:lower()] then
+      return route_method:upper()
+    end
+  end
+
+  -- Special case for root routes
+  if content:match "root%s" then
+    return "GET"
+  end
+
+  return nil
+end
+
+---Checks if content represents a valid Rails route line
+function RailsParser:_is_valid_route_line(content)
+  return not (
+    content:match "@%w+%s*=" -- Assignment like @post =
+    or content:match "%.%w+" -- Method calls like Post.find
+    or content:match "params%[" -- params[:id] references
+    or content:match "^%s*#" -- Comments
+    or content:match "require" -- require statements
+    or content:match "include" -- include statements
+    or content:match "def%s+%w+" -- method definitions
+  )
 end
 
 ---Checks if an action name represents a private helper method
@@ -179,129 +224,6 @@ function RailsParser:_is_private_helper_method(action_name)
   end
 
   return false
-end
-
----Processes explicit route definitions (get, post, etc.)
-function RailsParser:_process_explicit_route(content, file_path, line_number, column)
-  if not self:is_valid_route_line(content) then
-    return nil
-  end
-
-  local route_method = self:extract_http_method(content)
-  if not route_method then
-    return nil
-  end
-
-  local route_path = content:match "['\"]([^'\"]+)['\"]"
-
-  -- Pattern for member/collection routes: get :action_name
-  if not route_path then
-    local action_name = content:match ":([%w_]+)"
-    if action_name then
-      local parent_resource = self:_find_parent_resource(file_path, line_number)
-      if parent_resource then
-        local is_member = self:_is_in_member_block(file_path, line_number)
-        local is_collection = self:_is_in_collection_block(file_path, line_number)
-
-        if is_member or is_collection then
-          local controller_info = self:_find_controller_action(parent_resource, action_name)
-          if controller_info then
-            route_path = is_member and ("/" .. parent_resource .. "/:id/" .. action_name)
-              or ("/" .. parent_resource .. "/" .. action_name)
-            return {
-              method = route_method,
-              endpoint_path = self:_clean_rails_path(route_path),
-              file_path = controller_info.file_path,
-              line_number = controller_info.line_number,
-              column = controller_info.column or 1,
-              display_value = route_method
-                .. "["
-                .. parent_resource
-                .. "#"
-                .. action_name
-                .. "] "
-                .. self:_clean_rails_path(route_path),
-              confidence = 0.9,
-              tags = { "ruby", "rails", "route", "member_action" },
-              metadata = self:create_metadata(is_member and "member" or "collection", {
-                resource_name = parent_resource,
-                action_name = action_name,
-              }, content),
-            }
-          end
-        end
-
-        route_path = is_member and ("/" .. parent_resource .. "/:id/" .. action_name)
-          or is_collection and ("/" .. parent_resource .. "/" .. action_name)
-          or ("/" .. action_name)
-      else
-        route_path = "/" .. action_name
-      end
-    end
-  end
-
-  if not route_method or not route_path then
-    if content:match "root%s+" then
-      local controller_action = content:match "root%s+['\"]([%w_]+#[%w_]+)['\"]"
-        or content:match "root%s+'([%w_]+#[%w_]+)'"
-      local display_text = controller_action and ("GET[" .. controller_action .. "] /") or "GET /"
-
-      return {
-        method = "GET",
-        endpoint_path = "/",
-        file_path = file_path,
-        line_number = line_number,
-        column = column,
-        display_value = display_text,
-        confidence = 0.9,
-        tags = { "ruby", "rails", "route" },
-        metadata = self:create_metadata("root", {
-          controller_action = controller_action,
-        }, content),
-      }
-    end
-    return nil
-  end
-
-  -- Extract controller and action from "to: 'controller#action'" pattern
-  local controller_action = content:match "to:%s*['\"]([%w_]+#[%w_]+)['\"]"
-  local display_text = controller_action and (route_method:upper() .. "[" .. controller_action .. "] " .. route_path)
-    or (route_method:upper() .. " " .. route_path)
-
-  return {
-    method = route_method:upper(),
-    endpoint_path = route_path,
-    file_path = file_path,
-    line_number = line_number,
-    column = column,
-    display_value = display_text,
-    confidence = 0.9,
-    tags = { "ruby", "rails", "route" },
-    metadata = self:create_metadata("explicit", {
-      controller_action = controller_action,
-    }, content),
-  }
-end
-
----Processes namespace definitions
-function RailsParser:_process_namespace(content, file_path, line_number, column)
-  local namespace_name = content:match "^%s*namespace%s+:([%w_]+)"
-  if namespace_name then
-    return {
-      method = "NAMESPACE",
-      endpoint_path = "/" .. namespace_name,
-      file_path = file_path,
-      line_number = line_number,
-      column = column,
-      display_value = "NAMESPACE /" .. namespace_name,
-      confidence = 0.7,
-      tags = { "ruby", "rails", "namespace" },
-      metadata = self:create_metadata("namespace", {
-        namespace = namespace_name,
-      }, content),
-    }
-  end
-  return nil
 end
 
 ---Processes controller action definitions
@@ -382,15 +304,10 @@ function RailsParser:_process_controller_action(content, file_path, line_number,
     display_value = method .. "[" .. controller_name .. "#" .. action_name .. "] " .. endpoint_path,
     confidence = 0.8,
     tags = { "ruby", "rails", "controller_action" },
-    metadata = {
-      parser = self:get_name(),
-      framework_version = "rails",
-      language = "ruby",
+    metadata = self:create_metadata("controller_action", {
       controller_name = controller_name,
       action_name = action_name,
-      route_type = "controller_action",
-      raw_content = content,
-    },
+    }, content),
   }
 end
 
@@ -493,336 +410,16 @@ function RailsParser:_process_resources_route(content, file_path, line_number, c
           display_value = crud.method .. "[" .. resource_name .. "#" .. crud.action .. "] " .. crud.path,
           confidence = 0.9,
           tags = { "ruby", "rails", "resource" },
-          metadata = {
-            parser = self:get_name(),
-            framework_version = "rails",
-            language = "ruby",
+          metadata = self:create_metadata(resource_type == "resource" and "singular_resource" or "collection_resource", {
             resource_name = resource_name,
             action_name = crud.action,
-            route_type = resource_type == "resource" and "singular_resource" or "collection_resource",
-            raw_content = content,
-          },
+          }, content),
         })
       end
     end
   end
 
   return #all_endpoints > 0 and all_endpoints or nil
-end
-
----Find namespace prefix for the current line
-function RailsParser:_find_namespace_prefix(file_path, line_number)
-  if vim.fn.filereadable(file_path) == 0 then
-    return ""
-  end
-
-  local content = vim.fn.readfile(file_path) or {}
-  if #content == 0 then
-    return ""
-  end
-
-  local namespaces = {}
-  local depth = 0
-
-  -- Search backwards from current line to find namespace blocks
-  for i = line_number - 1, 1, -1 do
-    local line = content[i]
-
-    -- Count 'end' statements (going backwards, so 'end' increases depth)
-    if line:match "^%s*end%s*$" then
-      depth = depth + 1
-    -- Found a 'do' block - check what type
-    elseif line:match "%s+do%s*$" then
-      if line:match "namespace%s+:([%w_]+)%s+do" then
-        -- This is a namespace block
-        local namespace_name = line:match "namespace%s+:([%w_]+)"
-        if depth == 0 then
-          -- This is an active namespace for our line
-          table.insert(namespaces, 1, namespace_name)
-        else
-          -- Deeper nested block, reduce depth and continue
-          depth = depth - 1
-        end
-      else
-        -- Other 'do' blocks (resources, member, collection, etc.)
-        depth = depth - 1
-      end
-    elseif line:match "Rails%.application%.routes%.draw" then
-      break
-    end
-  end
-
-  if #namespaces > 0 then
-    return "/" .. table.concat(namespaces, "/")
-  else
-    return ""
-  end
-end
-
----Determines HTTP method from Rails action name
-function RailsParser:_determine_method_from_action(action_name)
-  local action_method_mapping = {
-    index = "GET",
-    show = "GET",
-    new = "GET",
-    edit = "GET",
-    create = "POST",
-    update = "PATCH",
-    destroy = "DELETE",
-  }
-
-  return action_method_mapping[action_name] or "GET"
-end
-
----Cleans Rails path patterns
-function RailsParser:_clean_rails_path(path)
-  if not path then
-    return "/"
-  end
-
-  local cleaned = path
-
-  -- Ensure path starts with /
-  if not cleaned:match "^/" then
-    cleaned = "/" .. cleaned
-  end
-
-  -- Remove trailing slash for consistency (except root)
-  if cleaned ~= "/" and cleaned:match "/$" then
-    cleaned = cleaned:gsub("/$", "")
-  end
-
-  return cleaned
-end
-
----Find the parent resource for a member/collection route
-function RailsParser:_find_parent_resource(file_path, line_number)
-  local file = io.open(file_path, "r")
-  if not file then
-    return nil
-  end
-
-  local content = {}
-  for line in file:lines() do
-    table.insert(content, line)
-  end
-  file:close()
-
-  if #content == 0 then
-    return nil
-  end
-
-  -- First check if we're in a member or collection block
-  local in_member_collection = false
-  local member_start = nil
-
-  -- Search backwards to find member/collection block start
-  for i = line_number - 1, 1, -1 do
-    local line = content[i]
-    if line:match "member%s+do" or line:match "collection%s+do" then
-      in_member_collection = true
-      member_start = i
-      break
-    elseif line:match "^%s*end%s*$" then
-      break -- Hit an end before finding member/collection
-    end
-  end
-
-  -- If we're in member/collection, search from that block start
-  local search_start = in_member_collection and member_start or line_number
-
-  -- Search backwards to find the containing resources block
-  local depth = 0
-
-  for i = (search_start or line_number) - 1, 1, -1 do
-    local line = content[i]
-
-    -- Count 'end' statements (going backwards, so 'end' increases depth)
-    if line:match "^%s*end%s*$" then
-      depth = depth + 1
-    -- Found a 'do' block - check what type
-    elseif line:match "%s+do%s*$" then
-      if line:match "resources%s+:([%w_]+)%s+do" then
-        -- This is a resources block with 'do'
-        local resource_name = line:match "resources%s+:([%w_]+)"
-        if depth == 0 then
-          -- This is the immediate parent resource
-          return resource_name
-        else
-          -- Deeper nested block, reduce depth and continue
-          depth = depth - 1
-        end
-      elseif line:match "namespace%s+:([%w_]+)%s+do" then
-        -- Skip namespace blocks - they don't create nesting relationships
-        depth = depth - 1
-      else
-        -- Other 'do' blocks (member, collection, etc.)
-        depth = depth - 1
-      end
-    elseif line:match "Rails%.application%.routes%.draw" then
-      break
-    end
-  end
-
-  return nil
-end
-
----Check if the current line is inside a member block
-function RailsParser:_is_in_member_block(file_path, line_number)
-  if vim.fn.filereadable(file_path) == 0 then
-    return false
-  end
-
-  local content = vim.fn.readfile(file_path) or {}
-  if #content == 0 then
-    return false
-  end
-  local in_member_block = false
-
-  -- Search backwards from current line
-  for i = line_number - 1, 1, -1 do
-    local line = content[i]
-    if line:match "member%s+do" then
-      in_member_block = true
-      break
-    elseif line:match "collection%s+do" then
-      break
-    elseif line:match "^%s*end%s*$" then
-      break
-    end
-  end
-
-  return in_member_block
-end
-
----Check if the current line is inside a collection block
-function RailsParser:_is_in_collection_block(file_path, line_number)
-  if vim.fn.filereadable(file_path) == 0 then
-    return false
-  end
-
-  local content = vim.fn.readfile(file_path) or {}
-  if #content == 0 then
-    return false
-  end
-  local in_collection_block = false
-
-  -- Search backwards from current line
-  for i = line_number - 1, 1, -1 do
-    local line = content[i]
-    if line:match "collection%s+do" then
-      in_collection_block = true
-      break
-    elseif line:match "member%s+do" then
-      break
-    elseif line:match "^%s*end%s*$" then
-      break
-    end
-  end
-
-  return in_collection_block
-end
-
----Find the controller action implementation for a given action
-function RailsParser:_find_controller_action(resource_name, action_name)
-  -- Convert resource name to controller path
-  local controller_file = "app/controllers/" .. resource_name .. "_controller.rb"
-
-  -- Try different possible paths
-  local possible_paths = {
-    controller_file,
-    "tests/fixtures/rails/" .. controller_file,
-  }
-
-  local actual_file = nil
-  for _, path in ipairs(possible_paths) do
-    local file = io.open(path, "r")
-    if file then
-      file:close()
-      actual_file = path
-      break
-    end
-  end
-
-  if not actual_file then
-    return nil
-  end
-
-  local file = io.open(actual_file, "r")
-  if not file then
-    return nil
-  end
-
-  local content = {}
-  for line in file:lines() do
-    table.insert(content, line)
-  end
-  file:close()
-
-  if #content == 0 then
-    return nil
-  end
-
-  -- Search for the action definition
-  for i, line in ipairs(content) do
-    if line:match("def%s+" .. action_name .. "%s*$") or line:match("def%s+" .. action_name .. "%s*%(") then
-      -- Find the column where 'def' starts
-      local def_start = line:find "def"
-      return {
-        file_path = actual_file,
-        line_number = i,
-        column = def_start or 1,
-      }
-    end
-  end
-
-  return nil
-end
-
----Check if a method is in the private section of a Rails controller
-function RailsParser:_is_private_method(file_path, line_number)
-  if vim.fn.filereadable(file_path) == 0 then
-    return false
-  end
-
-  local content = vim.fn.readfile(file_path) or {}
-  if #content == 0 then
-    return false
-  end
-  local in_private = false
-
-  -- Search backwards from current line to find private keyword
-  for i = line_number - 1, 1, -1 do
-    local line = content[i]
-
-    -- Found private keyword
-    if line:match "^%s*private%s*$" then
-      in_private = true
-      break
-    end
-
-    -- If we hit another public method or class definition, stop
-    if line:match "^%s*def%s+[%w_]+" and not line:match "^%s*def%s+initialize" then
-      -- Check if there's a private keyword before this method
-      for j = i - 1, 1, -1 do
-        local prev_line = content[j]
-        if prev_line and prev_line:match "^%s*private%s*$" then
-          in_private = true
-          break
-        elseif prev_line and (prev_line:match "^%s*def%s+[%w_]+" or prev_line:match "^%s*class%s+") then
-          break
-        end
-      end
-      break
-    end
-
-    -- If we hit class definition, stop
-    if line:match "^%s*class%s+" then
-      break
-    end
-  end
-
-  return in_private
 end
 
 ---Processes nested resources (resources :comments inside resources :posts)
@@ -933,6 +530,229 @@ function RailsParser:_process_nested_routes(content, file_path, line_number, col
   return #endpoints > 0 and endpoints or nil
 end
 
+---Find namespace prefix for the current line
+function RailsParser:_find_namespace_prefix(file_path, line_number)
+  if vim.fn.filereadable(file_path) == 0 then
+    return ""
+  end
+
+  local content = vim.fn.readfile(file_path) or {}
+  if #content == 0 then
+    return ""
+  end
+
+  local namespaces = {}
+  local depth = 0
+
+  -- Search backwards from current line to find namespace blocks
+  for i = line_number - 1, 1, -1 do
+    local line = content[i]
+
+    -- Count 'end' statements (going backwards, so 'end' increases depth)
+    if line:match "^%s*end%s*$" then
+      depth = depth + 1
+    -- Found a 'do' block - check what type
+    elseif line:match "%s+do%s*$" then
+      if line:match "namespace%s+:([%w_]+)%s+do" then
+        -- This is a namespace block
+        local namespace_name = line:match "namespace%s+:([%w_]+)"
+        if depth == 0 then
+          -- This is an active namespace for our line
+          table.insert(namespaces, 1, namespace_name)
+        else
+          -- Deeper nested block, reduce depth and continue
+          depth = depth - 1
+        end
+      else
+        -- Other 'do' blocks (resources, member, collection, etc.)
+        depth = depth - 1
+      end
+    elseif line:match "Rails%.application%.routes%.draw" then
+      break
+    end
+  end
+
+  if #namespaces > 0 then
+    return "/" .. table.concat(namespaces, "/")
+  else
+    return ""
+  end
+end
+
+---Find the parent resource for a member/collection route
+function RailsParser:_find_parent_resource(file_path, line_number)
+  local file = io.open(file_path, "r")
+  if not file then
+    return nil
+  end
+
+  local content = {}
+  for line in file:lines() do
+    table.insert(content, line)
+  end
+  file:close()
+
+  if #content == 0 then
+    return nil
+  end
+
+  -- First check if we're in a member or collection block
+  local in_member_collection = false
+  local member_start = nil
+
+  -- Search backwards to find member/collection block start
+  for i = line_number - 1, 1, -1 do
+    local line = content[i]
+    if line:match "member%s+do" or line:match "collection%s+do" then
+      in_member_collection = true
+      member_start = i
+      break
+    elseif line:match "^%s*end%s*$" then
+      break -- Hit an end before finding member/collection
+    end
+  end
+
+  -- If we're in member/collection, search from that block start
+  local search_start = in_member_collection and member_start or line_number
+
+  -- Search backwards to find the containing resources block
+  local depth = 0
+
+  for i = (search_start or line_number) - 1, 1, -1 do
+    local line = content[i]
+
+    -- Count 'end' statements (going backwards, so 'end' increases depth)
+    if line:match "^%s*end%s*$" then
+      depth = depth + 1
+    -- Found a 'do' block - check what type
+    elseif line:match "%s+do%s*$" then
+      if line:match "resources%s+:([%w_]+)%s+do" then
+        -- This is a resources block with 'do'
+        local resource_name = line:match "resources%s+:([%w_]+)"
+        if depth == 0 then
+          -- This is the immediate parent resource
+          return resource_name
+        else
+          -- Deeper nested block, reduce depth and continue
+          depth = depth - 1
+        end
+      elseif line:match "namespace%s+:([%w_]+)%s+do" then
+        -- Skip namespace blocks - they don't create nesting relationships
+        depth = depth - 1
+      else
+        -- Other 'do' blocks (member, collection, etc.)
+        depth = depth - 1
+      end
+    elseif line:match "Rails%.application%.routes%.draw" then
+      break
+    end
+  end
+
+  return nil
+end
+
+---Find the controller action implementation for a given action
+function RailsParser:_find_controller_action(resource_name, action_name)
+  -- Convert resource name to controller path
+  local controller_file = "app/controllers/" .. resource_name .. "_controller.rb"
+
+  -- Try different possible paths
+  local possible_paths = {
+    controller_file,
+    "tests/fixtures/rails/" .. controller_file,
+  }
+
+  local actual_file = nil
+  for _, path in ipairs(possible_paths) do
+    local file = io.open(path, "r")
+    if file then
+      file:close()
+      actual_file = path
+      break
+    end
+  end
+
+  if not actual_file then
+    return nil
+  end
+
+  local file = io.open(actual_file, "r")
+  if not file then
+    return nil
+  end
+
+  local content = {}
+  for line in file:lines() do
+    table.insert(content, line)
+  end
+  file:close()
+
+  if #content == 0 then
+    return nil
+  end
+
+  -- Search for the action definition
+  for i, line in ipairs(content) do
+    if line:match("def%s+" .. action_name .. "%s*$") or line:match("def%s+" .. action_name .. "%s*%(") then
+      -- Find the column where 'def' starts
+      local def_start = line:find "def"
+      return {
+        file_path = actual_file,
+        line_number = i,
+        column = def_start or 1,
+      }
+    end
+  end
+
+  return nil
+end
+
+---Check if a method is in the private section of a Rails controller
+function RailsParser:_is_private_method(file_path, line_number)
+  if vim.fn.filereadable(file_path) == 0 then
+    return false
+  end
+
+  local content = vim.fn.readfile(file_path) or {}
+  if #content == 0 then
+    return false
+  end
+  local in_private = false
+
+  -- Search backwards from current line to find private keyword
+  for i = line_number - 1, 1, -1 do
+    local line = content[i]
+
+    -- Found private keyword
+    if line:match "^%s*private%s*$" then
+      in_private = true
+      break
+    end
+
+    -- If we hit another public method or class definition, stop
+    if line:match "^%s*def%s+[%w_]+" and not line:match "^%s*def%s+initialize" then
+      -- Check if there's a private keyword before this method
+      for j = i - 1, 1, -1 do
+        local prev_line = content[j]
+        if prev_line and prev_line:match "^%s*private%s*$" then
+          in_private = true
+          break
+        elseif prev_line and (prev_line:match "^%s*def%s+[%w_]+" or prev_line:match "^%s*class%s+") then
+          break
+        end
+      end
+      break
+    end
+
+    -- If we hit class definition, stop
+    if line:match "^%s*class%s+" then
+      break
+    end
+  end
+
+  return in_private
+end
+
 ---Checks if content looks like Rails routing or controller code
 function RailsParser:_is_rails_content(content)
   return content:match "Rails%.application%.routes%.draw"
@@ -947,43 +767,6 @@ function RailsParser:_is_rails_content(content)
     or content:match "scope%s"
     or content:match "root%s"
     or content:match "def%s+[%w_]+"
-end
-
----Validates if content contains Rails annotations
-function RailsParser:is_content_valid_for_parsing(content)
-  if not Parser.is_content_valid_for_parsing(self, content) then
-    return false
-  end
-
-  -- Check if content contains Rails route or controller patterns
-  return self:_is_rails_content(content)
-end
-
----Gets parsing confidence for Rails content
-function RailsParser:get_parsing_confidence(content)
-  if not self:is_content_valid_for_parsing(content) then
-    return 0.0
-  end
-
-  local base_confidence = 0.7
-  local confidence_boost = 0
-
-  -- Boost for explicit route definitions
-  if content:match "to:%s*['\"]" then
-    confidence_boost = confidence_boost + 0.2
-  end
-
-  -- Boost for resource definitions
-  if content:match "resources?%s+:" then
-    confidence_boost = confidence_boost + 0.15
-  end
-
-  -- Boost for controller actions in proper file structure
-  if content:match "def%s+[%w_]+" then
-    confidence_boost = confidence_boost + 0.1
-  end
-
-  return math.min(base_confidence + confidence_boost, 1.0)
 end
 
 return RailsParser
