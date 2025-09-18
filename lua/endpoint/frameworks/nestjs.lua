@@ -1,8 +1,8 @@
 local Framework = require "endpoint.core.Framework"
 local DependencyDetector = require "endpoint.detector.dependency_detector"
-local annotation_parser = require "endpoint.parser.annotation_parser"
+local NestJsParser = require "endpoint.parser.nestjs_parser"
 
----@class endpoint.NestJsFramework : endpoint.Framework
+---@class endpoint.NestJsFramework
 local NestJsFramework = setmetatable({}, { __index = Framework })
 NestJsFramework.__index = NestJsFramework
 
@@ -12,91 +12,60 @@ function NestJsFramework:new()
     file_extensions = { "*.ts", "*.js" },
     exclude_patterns = { "**/node_modules", "**/dist", "**/build" },
     patterns = {
-      GET = { "@Get\\(", "@Controller\\(" },
-      POST = { "@Post\\(", "@Controller\\(" },
-      PUT = { "@Put\\(", "@Controller\\(" },
-      DELETE = { "@Delete\\(", "@Controller\\(" },
-      PATCH = { "@Patch\\(", "@Controller\\(" },
+      GET = { "@Get\\(", "@HttpCode.-@Get" },
+      POST = { "@Post\\(", "@HttpCode.-@Post" },
+      PUT = { "@Put\\(", "@HttpCode.-@Put" },
+      DELETE = { "@Delete\\(", "@HttpCode.-@Delete" },
+      PATCH = { "@Patch\\(", "@HttpCode.-@Patch" },
     },
-    search_options = { "--type", "ts" }
+    search_options = { "--case-sensitive", "--type", "ts" },
   })
   setmetatable(nestjs_framework_instance, self)
-  ---@cast nestjs_framework_instance NestJsFramework
   return nestjs_framework_instance
 end
 
----Sets up detection and parsing strategies for NestJS
+---Sets up detection and parsing for NestJS
 function NestJsFramework:_initialize()
   -- Setup detector
-  self.detector = dependency_detector:new(
+  self.detector = DependencyDetector:new(
     { "@nestjs/core", "@nestjs/common", "nestjs" },
-    { "package.json" },
+    { "package.json", "tsconfig.json", "nest-cli.json" },
     "nestjs_dependency_detection"
   )
 
-  -- Setup parser with NestJS decorator patterns
-  local nestjs_annotation_patterns = {
-    GET = { "@Get%(", "@Controller%(" },
-    POST = { "@Post%(", "@Controller%(" },
-    PUT = { "@Put%(", "@Controller%(" },
-    DELETE = { "@Delete%(", "@Controller%(" },
-    PATCH = { "@Patch%(", "@Controller%(" },
-    OPTIONS = { "@Options%(", "@Controller%(" },
-    HEAD = { "@Head%(", "@Controller%(" }
-  }
-
-  local nestjs_path_extraction_patterns = {
-    '%("([^"]+)"[^)]*%)',   -- @Get("/path")
-    "%('([^']+)'[^)]*%)",   -- @Get('/path')
-    '%(`([^`]+)`[^)]*%)',   -- @Get(`/path`)
-  }
-
-  local nestjs_method_mapping = {
-    ["@Get%("] = "GET",
-    ["@Post%("] = "POST",
-    ["@Put%("] = "PUT",
-    ["@Delete%("] = "DELETE",
-    ["@Patch%("] = "PATCH",
-    ["@Options%("] = "OPTIONS",
-    ["@Head%("] = "HEAD",
-    ["@Controller%("] = "GET" -- Default for controller base path
-  }
-
-  self.parser = annotation_parser:new(
-    nestjs_annotation_patterns,
-    nestjs_path_extraction_patterns,
-    nestjs_method_mapping
-  )
+  -- Setup NestJS-specific parser
+  self.parser = NestJsParser:new()
 end
 
 ---Detects if NestJS is present in the current project
 function NestJsFramework:detect()
-  return self.detector:is_target_detected()
+  if not self.detector then
+    self:_initialize()
+  end
+  if self.detector then
+    return self.detector:is_target_detected()
+  end
+  return false
 end
 
----Parses NestJS content to extract endpoint information
-function NestJsFramework:parse(content, file_path, line_number, column)
-  local parsed_endpoint = self.parser:parse_content(content, file_path, line_number, column)
-
-  if parsed_endpoint then
-    -- NestJS-specific controller base path handling
-    if content:match("@Controller%(") then
-      parsed_endpoint.metadata = parsed_endpoint.metadata or {}
-      parsed_endpoint.metadata.controller_base_path = parsed_endpoint.endpoint_path
-      parsed_endpoint.metadata.decorator_type = "controller"
-    end
-
-    -- Enhance with NestJS-specific metadata
-    parsed_endpoint.tags = parsed_endpoint.tags or {}
-    table.insert(parsed_endpoint.tags, "typescript")
-    table.insert(parsed_endpoint.tags, "nestjs")
-
-    parsed_endpoint.metadata = parsed_endpoint.metadata or {}
-    parsed_endpoint.metadata.framework_version = "nestjs"
-    parsed_endpoint.metadata.language = "typescript"
+---Extract controller name from NestJS file path
+function NestJsFramework:getControllerName(file_path)
+  -- NestJS: src/users/users.controller.ts → UsersController
+  local name = file_path:match "([^/]+)%.controller%.%w+$"
+  if name then
+    -- Convert kebab-case to PascalCase and add Controller suffix
+    local pascal_name = name:gsub("%-(%w)", function(letter) return letter:upper() end)
+    pascal_name = pascal_name:gsub("^%w", string.upper)
+    return pascal_name .. "Controller"
   end
 
-  return parsed_endpoint
+  -- Fallback: any .ts/.js file
+  name = file_path:match "([^/]+)%.%w+$"
+  if name then
+    return name:gsub("Controller$", ""):gsub("Service$", "")
+  end
+
+  return nil
 end
 
 return NestJsFramework

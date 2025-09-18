@@ -1,8 +1,8 @@
 local Framework = require "endpoint.core.Framework"
 local DependencyDetector = require "endpoint.detector.dependency_detector"
-local AnnotationParser = require "endpoint.parser.annotation_parser"
+local FastApiParser = require "endpoint.parser.fastapi_parser"
 
----@class endpoint.FastApiFramework : endpoint.Framework
+---@class endpoint.FastApiFramework
 local FastApiFramework = setmetatable({}, { __index = Framework })
 FastApiFramework.__index = FastApiFramework
 
@@ -18,14 +18,13 @@ function FastApiFramework:new()
       DELETE = { "@app\\.delete", "@router\\.delete" },
       PATCH = { "@app\\.patch", "@router\\.patch" },
     },
-    search_options = { "--type", "py" }
+    search_options = { "--case-sensitive", "--type", "py" },
   })
   setmetatable(fastapi_framework_instance, self)
-  ---@cast fastapi_framework_instance FastApiFramework
   return fastapi_framework_instance
 end
 
----Sets up detection and parsing strategies for FastAPI
+---Sets up detection and parsing for FastAPI
 function FastApiFramework:_initialize()
   -- Setup detector
   self.detector = DependencyDetector:new(
@@ -34,65 +33,30 @@ function FastApiFramework:_initialize()
     "fastapi_dependency_detection"
   )
 
-  -- Setup parser with FastAPI annotation patterns
-  local fastapi_annotation_patterns = {
-    GET = { "@app%.get", "@router%.get" },
-    POST = { "@app%.post", "@router%.post" },
-    PUT = { "@app%.put", "@router%.put" },
-    DELETE = { "@app%.delete", "@router%.delete" },
-    PATCH = { "@app%.patch", "@router%.patch" },
-    OPTIONS = { "@app%.options", "@router%.options" },
-    HEAD = { "@app%.head", "@router%.head" }
-  }
-
-  local fastapi_path_extraction_patterns = {
-    '%("([^"]+)"[^)]*%)',   -- @app.get("/path")
-    "%('([^']+)'[^)]*%)",   -- @app.get('/path')
-    '%(f?"([^"]+)"[^)]*%)', -- @app.get(f"/path")
-    "%(f?'([^']+)'[^)]*%)"  -- @app.get(f'/path')
-  }
-
-  local fastapi_method_mapping = {
-    ["@app%.get"] = "GET",
-    ["@router%.get"] = "GET",
-    ["@app%.post"] = "POST",
-    ["@router%.post"] = "POST",
-    ["@app%.put"] = "PUT",
-    ["@router%.put"] = "PUT",
-    ["@app%.delete"] = "DELETE",
-    ["@router%.delete"] = "DELETE",
-    ["@app%.patch"] = "PATCH",
-    ["@router%.patch"] = "PATCH"
-  }
-
-  self.parser = AnnotationParser:new(
-    fastapi_annotation_patterns,
-    fastapi_path_extraction_patterns,
-    fastapi_method_mapping
-  )
+  -- Setup FastAPI-specific parser
+  self.parser = FastApiParser:new()
 end
 
 ---Detects if FastAPI is present in the current project
 function FastApiFramework:detect()
-  return self.detector:is_target_detected()
+  if not self.detector then
+    self:_initialize()
+  end
+  if self.detector then
+    return self.detector:is_target_detected()
+  end
+  return false
 end
 
----Parses FastAPI content to extract endpoint information
-function FastApiFramework:parse(content, file_path, line_number, column)
-  local parsed_endpoint = self.parser:parse_content(content, file_path, line_number, column)
-
-  if parsed_endpoint then
-    -- Enhance with FastAPI-specific metadata
-    parsed_endpoint.tags = parsed_endpoint.tags or {}
-    table.insert(parsed_endpoint.tags, "python")
-    table.insert(parsed_endpoint.tags, "fastapi")
-
-    parsed_endpoint.metadata = parsed_endpoint.metadata or {}
-    parsed_endpoint.metadata.framework_version = "fastapi"
-    parsed_endpoint.metadata.language = "python"
+---Extract controller name from FastAPI file path
+function FastApiFramework:getControllerName(file_path)
+  -- FastAPI: controllers/users/create_user.py → users or routers/api/v1/users.py → users
+  local name = file_path:match "([^/]+)%.py$"
+  if name then
+    -- Remove common suffixes and convert to readable name
+    return name:gsub("_controller$", ""):gsub("_router$", ""):gsub("_api$", "")
   end
-
-  return parsed_endpoint
+  return nil
 end
 
 return FastApiFramework

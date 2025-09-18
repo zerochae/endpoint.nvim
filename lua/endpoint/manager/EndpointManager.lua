@@ -58,15 +58,15 @@ function EndpointManager:register_all_frameworks()
     RailsFramework,
     SymfonyFramework,
     ExpressFramework,
-    -- FastApiFramework,
+    NestJsFramework,
+    FastApiFramework,
+    DotNetFramework,
+    KtorFramework,
     -- FlaskFramework,
-    -- NestJsFramework,
     -- DjangoFramework,
     -- GinFramework,
-    -- KtorFramework,
     -- AxumFramework,
     -- PhoenixFramework,
-    -- DotNetFramework,
   }
 
   for _, framework_class in ipairs(framework_classes) do

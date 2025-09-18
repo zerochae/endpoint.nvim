@@ -191,6 +191,44 @@
 ---@field private _detect_route_type fun(self: endpoint.ExpressParser, content: string): string
 ---@field private _extract_app_type fun(self: endpoint.ExpressParser, content: string): string
 
+---@class endpoint.NestJsParser : endpoint.Parser
+---@field private _is_nestjs_decorator_content fun(self: endpoint.NestJsParser, content: string): boolean
+---@field private _is_controller_decorator fun(self: endpoint.NestJsParser, content: string): boolean
+---@field private _extract_decorator_type fun(self: endpoint.NestJsParser, content: string): string
+---@field private _has_http_code_decorator fun(self: endpoint.NestJsParser, content: string): boolean
+---@field private _get_controller_path fun(self: endpoint.NestJsParser, file_path: string): string
+---@field private _combine_paths fun(self: endpoint.NestJsParser, base?: string, endpoint?: string): string
+
+---@class endpoint.FastApiParser : endpoint.Parser
+---@field private _is_fastapi_decorator_content fun(self: endpoint.FastApiParser, content: string): boolean
+---@field private _extract_path_single_line fun(self: endpoint.FastApiParser, content: string): string|nil
+---@field private _extract_path_multiline fun(self: endpoint.FastApiParser, file_path: string, start_line: number, content: string): string|nil
+---@field private _is_multiline_decorator fun(self: endpoint.FastApiParser, content: string): boolean
+---@field private _extract_decorator_type fun(self: endpoint.FastApiParser, content: string): string
+---@field private _find_router_prefix fun(self: endpoint.FastApiParser, file_path: string, line_number: number): string
+---@field private _infer_prefix_from_path fun(self: endpoint.FastApiParser, file_path: string): string
+---@field private _combine_paths fun(self: endpoint.FastApiParser, base?: string, endpoint?: string): string
+
+---@class endpoint.DotNetParser : endpoint.Parser
+---@field private _is_dotnet_attribute_content fun(self: endpoint.DotNetParser, content: string): boolean
+---@field private _extract_route_info fun(self: endpoint.DotNetParser, content: string): string|nil, string|nil
+---@field private _extract_path_from_attributes fun(self: endpoint.DotNetParser, content: string): string|nil
+---@field private _extract_method_from_attributes fun(self: endpoint.DotNetParser, content: string): string|nil
+---@field private _detect_attribute_type fun(self: endpoint.DotNetParser, content: string): string
+---@field private _has_route_template fun(self: endpoint.DotNetParser, content: string): boolean
+---@field private _get_controller_base_path fun(self: endpoint.DotNetParser, file_path: string, line_number: number): string
+---@field private _combine_paths fun(self: endpoint.DotNetParser, base?: string, endpoint?: string): string
+
+---@class endpoint.KtorParser : endpoint.Parser
+---@field private _is_ktor_routing_content fun(self: endpoint.KtorParser, content: string): boolean
+---@field private _extract_route_info fun(self: endpoint.KtorParser, content: string, file_path?: string, line_number?: number): string|nil, string|nil
+---@field private _extract_path_from_content fun(self: endpoint.KtorParser, content: string): string|nil
+---@field private _extract_method_from_content fun(self: endpoint.KtorParser, content: string): string|nil
+---@field private _detect_routing_type fun(self: endpoint.KtorParser, content: string): string
+---@field private _has_route_parameters fun(self: endpoint.KtorParser, path?: string): boolean
+---@field private _get_full_path fun(self: endpoint.KtorParser, path: string, file_path?: string, line_number?: number): string
+---@field private _extract_base_paths_from_file fun(self: endpoint.KtorParser, file_path: string, target_line: number): string[]
+
 -- ========================================
 -- MANAGER CLASSES
 -- ========================================
