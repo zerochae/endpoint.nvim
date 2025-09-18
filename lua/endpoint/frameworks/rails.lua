@@ -1,5 +1,4 @@
 local Framework = require "endpoint.core.Framework"
-local Detector = require "endpoint.core.Detector"
 local RailsParser = require "endpoint.parser.rails_parser"
 
 ---@class endpoint.RailsFramework
@@ -29,27 +28,18 @@ function RailsFramework:new()
       DELETE = { "delete\\s+", "resources\\s+", "resource\\s+", "def\\s+destroy" },
     },
     search_options = { "--type", "ruby" },
-    controller_patterns = {
-      { pattern = "controllers/(.*)_controller%.rb$" }
+    controller_extractors = {
+      { pattern = "controllers/(.*)_controller%.rb$" },
     },
+    detector = {
+      dependencies = { "rails", "actionpack", "railties" },
+      manifest_files = { "Gemfile", "config/routes.rb", "config/application.rb", "app/controllers" },
+      name = "rails_dependency_detection",
+    },
+    parser = RailsParser,
   })
   setmetatable(rails_framework_instance, self)
   return rails_framework_instance
 end
-
----Sets up detection and parsing for Rails
-function RailsFramework:_initialize()
-  -- Setup detector
-  self.detector = Detector:new_dependency_detector(
-    { "rails", "actionpack", "railties" },
-    { "Gemfile", "config/routes.rb", "config/application.rb", "app/controllers" },
-    "rails_dependency_detection"
-  )
-
-  -- Setup Rails-specific parser
-  self.parser = RailsParser:new()
-end
-
-
 
 return RailsFramework

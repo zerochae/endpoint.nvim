@@ -10,7 +10,7 @@ function Framework:new(name, config)
   framework.name = name
   framework.config = config or {}
   framework:_validate_config()
-  framework:_initialize()
+  framework:_setup_detector_and_parser()
   return framework
 end
 
@@ -29,9 +29,20 @@ function Framework:_validate_config()
   end
 end
 
----Sets up detection and parsing components
-function Framework:_initialize()
-  -- Will be overridden by subclasses
+---Sets up detector and parser based on configuration
+function Framework:_setup_detector_and_parser()
+  if self.config.detector then
+    local Detector = require "endpoint.core.Detector"
+    self.detector = Detector:new_dependency_detector(
+      self.config.detector.dependencies or {},
+      self.config.detector.manifest_files or {},
+      self.config.detector.name or (self.name .. "_detection")
+    )
+  end
+
+  if self.config.parser then
+    self.parser = self.config.parser:new()
+  end
 end
 
 ---Detects if this framework is present in the current project (unified implementation)

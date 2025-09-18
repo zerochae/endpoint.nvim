@@ -1,5 +1,4 @@
 local Framework = require "endpoint.core.Framework"
-local Detector = require "endpoint.core.Detector"
 local NestJsParser = require "endpoint.parser.nestjs_parser"
 
 ---@class endpoint.NestJsFramework
@@ -19,26 +18,34 @@ function NestJsFramework:new()
       PATCH = { "@Patch\\(", "@HttpCode.-@Patch" },
     },
     search_options = { "--case-sensitive", "--type", "ts" },
-    controller_patterns = {
-      { pattern = "([^/]+)%.controller%.%w+$", transform = function(name) local pascal = name:gsub("%-(%w)", function(l) return l:upper() end):gsub("^%w", string.upper) return pascal .. "Controller" end },
-      { pattern = "([^/]+)%.%w+$", transform = function(name) return name:gsub("Controller$", ""):gsub("Service$", "") end }
+    controller_extractors = {
+      {
+        pattern = "([^/]+)%.controller%.%w+$",
+        transform = function(name)
+          local pascal = name
+            :gsub("%-(%w)", function(l)
+              return l:upper()
+            end)
+            :gsub("^%w", string.upper)
+          return pascal .. "Controller"
+        end,
+      },
+      {
+        pattern = "([^/]+)%.%w+$",
+        transform = function(name)
+          return name:gsub("Controller$", ""):gsub("Service$", "")
+        end,
+      },
     },
+    detector = {
+      dependencies = { "@nestjs/core", "@nestjs/common", "nestjs" },
+      manifest_files = { "package.json", "tsconfig.json", "nest-cli.json" },
+      name = "nestjs_dependency_detection",
+    },
+    parser = NestJsParser,
   })
   setmetatable(nestjs_framework_instance, self)
   return nestjs_framework_instance
-end
-
----Sets up detection and parsing for NestJS
-function NestJsFramework:_initialize()
-  -- Setup detector
-  self.detector = Detector:new_dependency_detector(
-    { "@nestjs/core", "@nestjs/common", "nestjs" },
-    { "package.json", "tsconfig.json", "nest-cli.json" },
-    "nestjs_dependency_detection"
-  )
-
-  -- Setup NestJS-specific parser
-  self.parser = NestJsParser:new()
 end
 
 return NestJsFramework

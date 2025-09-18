@@ -1,5 +1,4 @@
 local Framework = require "endpoint.core.Framework"
-local Detector = require "endpoint.core.Detector"
 local annotation_parser = require "endpoint.parser.annotation_parser"
 
 ---@class endpoint.GinFramework : endpoint.Framework
@@ -18,58 +17,26 @@ function GinFramework:new()
       DELETE = { "r\\.DELETE\\(", "router\\.DELETE\\(" },
       PATCH = { "r\\.PATCH\\(", "router\\.PATCH\\(" },
     },
-    search_options = { "--type", "go" }
+    search_options = { "--type", "go" },
+    controller_extractors = {
+      {
+        pattern = "([^/]+)\\.go$",
+        transform = function(name)
+          return name:gsub("_controller$", ""):gsub("_handler$", "")
+        end,
+      },
+    },
+    detector = {
+      dependencies = { "gin-gonic/gin", "github.com/gin-gonic/gin" },
+      manifest_files = { "go.mod", "go.sum" },
+      name = "gin_dependency_detection",
+    },
+    parser = annotation_parser,
   })
   setmetatable(gin_framework_instance, self)
-  ---@cast gin_framework_instance GinFramework
   return gin_framework_instance
 end
 
----Sets up detection and parsing strategies for Gin
-function GinFramework:_initialize()
-  -- Setup detector
-  self.detector = dependency_detector:new(
-    { "gin-gonic/gin", "github.com/gin-gonic/gin" },
-    { "go.mod", "go.sum" },
-    "gin_dependency_detection"
-  )
-
-  -- Setup parser with Gin route patterns
-  local gin_annotation_patterns = {
-    GET = { "r%.GET%(", "router%.GET%(" },
-    POST = { "r%.POST%(", "router%.POST%(" },
-    PUT = { "r%.PUT%(", "router%.PUT%(" },
-    DELETE = { "r%.DELETE%(", "router%.DELETE%(" },
-    PATCH = { "r%.PATCH%(", "router%.PATCH%(" },
-    OPTIONS = { "r%.OPTIONS%(", "router%.OPTIONS%(" },
-    HEAD = { "r%.HEAD%(", "router%.HEAD%(" }
-  }
-
-  local gin_path_extraction_patterns = {
-    '%("([^"]+)"[^,)]*[,)]',   -- r.GET("/path", ...)
-    "%('([^']+)'[^,)]*[,)]",   -- r.GET('/path', ...)
-    '%(`([^`]+)`[^,)]*[,)]',   -- r.GET(`/path`, ...)
-  }
-
-  local gin_method_mapping = {
-    ["r%.GET%("] = "GET",
-    ["router%.GET%("] = "GET",
-    ["r%.POST%("] = "POST",
-    ["router%.POST%("] = "POST",
-    ["r%.PUT%("] = "PUT",
-    ["router%.PUT%("] = "PUT",
-    ["r%.DELETE%("] = "DELETE",
-    ["router%.DELETE%("] = "DELETE",
-    ["r%.PATCH%("] = "PATCH",
-    ["router%.PATCH%("] = "PATCH"
-  }
-
-  self.parser = annotation_parser:new(
-    gin_annotation_patterns,
-    gin_path_extraction_patterns,
-    gin_method_mapping
-  )
-end
 
 ---Detects if Gin is present in the current project
 function GinFramework:detect()

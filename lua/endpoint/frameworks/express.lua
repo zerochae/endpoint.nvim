@@ -1,5 +1,4 @@
 local Framework = require "endpoint.core.Framework"
-local Detector = require "endpoint.core.Detector"
 local ExpressParser = require "endpoint.parser.express_parser"
 
 ---@class endpoint.ExpressFramework
@@ -19,26 +18,23 @@ function ExpressFramework:new()
       PATCH = { "app\\.patch\\(", "router\\.patch\\(", "\\.patch\\(" },
     },
     search_options = { "--type", "js" },
-    controller_patterns = {
-      { pattern = "([^/]+)%.%w+$", transform = function(name) return name:gsub("Controller$", ""):gsub("Routes$", ""):gsub("Router$", "") end }
+    controller_extractors = {
+      {
+        pattern = "([^/]+)%.%w+$",
+        transform = function(name)
+          return name:gsub("Controller$", ""):gsub("Routes$", ""):gsub("Router$", "")
+        end,
+      },
     },
+    detector = {
+      dependencies = { "express", "Express" },
+      manifest_files = { "package.json", "server.js", "app.js", "index.js" },
+      name = "express_dependency_detection",
+    },
+    parser = ExpressParser,
   })
   setmetatable(express_framework_instance, self)
   return express_framework_instance
 end
 
----Sets up detection and parsing for Express
-function ExpressFramework:_initialize()
-  -- Setup detector
-  self.detector = Detector:new_dependency_detector(
-    { "express", "Express" },
-    { "package.json", "server.js", "app.js", "index.js" },
-    "express_dependency_detection"
-  )
-
-  -- Setup Express-specific parser
-  self.parser = ExpressParser:new()
-end
-
 return ExpressFramework
-

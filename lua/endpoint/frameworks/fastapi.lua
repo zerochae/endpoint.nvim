@@ -1,5 +1,4 @@
 local Framework = require "endpoint.core.Framework"
-local Detector = require "endpoint.core.Detector"
 local FastApiParser = require "endpoint.parser.fastapi_parser"
 
 ---@class endpoint.FastApiFramework
@@ -19,25 +18,23 @@ function FastApiFramework:new()
       PATCH = { "@app\\.patch", "@router\\.patch" },
     },
     search_options = { "--case-sensitive", "--type", "py" },
-    controller_patterns = {
-      { pattern = "([^/]+)%.py$", transform = function(name) return name:gsub("_controller$", ""):gsub("_router$", ""):gsub("_api$", "") end }
+    controller_extractors = {
+      {
+        pattern = "([^/]+)%.py$",
+        transform = function(name)
+          return name:gsub("_controller$", ""):gsub("_router$", ""):gsub("_api$", "")
+        end,
+      },
     },
+    detector = {
+      dependencies = { "fastapi", "FastAPI" },
+      manifest_files = { "requirements.txt", "pyproject.toml", "setup.py", "Pipfile" },
+      name = "fastapi_dependency_detection",
+    },
+    parser = FastApiParser,
   })
   setmetatable(fastapi_framework_instance, self)
   return fastapi_framework_instance
-end
-
----Sets up detection and parsing for FastAPI
-function FastApiFramework:_initialize()
-  -- Setup detector
-  self.detector = Detector:new_dependency_detector(
-    { "fastapi", "FastAPI" },
-    { "requirements.txt", "pyproject.toml", "setup.py", "Pipfile" },
-    "fastapi_dependency_detection"
-  )
-
-  -- Setup FastAPI-specific parser
-  self.parser = FastApiParser:new()
 end
 
 return FastApiFramework

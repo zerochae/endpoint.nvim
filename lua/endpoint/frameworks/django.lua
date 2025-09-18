@@ -1,5 +1,4 @@
 local Framework = require "endpoint.core.Framework"
-local Detector = require "endpoint.core.Detector"
 local route_parser = require "endpoint.parser.route_parser"
 
 ---@class endpoint.DjangoFramework : endpoint.Framework
@@ -8,114 +7,104 @@ DjangoFramework.__index = DjangoFramework
 
 ---Creates a new DjangoFramework instance
 function DjangoFramework:new()
-  local django_framework_instance = setmetatable({}, self)
-  django_framework_instance.name = "django"
-  django_framework_instance.config = {
+  local django_framework_instance = Framework.new(self, "django", {
     file_extensions = { "*.py" },
     exclude_patterns = { "**/__pycache__", "**/venv", "**/.venv", "**/site-packages", "**/migrations" },
     patterns = {
       GET = {
-        "path\\s*\\(", "re_path\\s*\\(", "url\\s*\\(",
-        "class.*View", "def\\s+get\\s*\\(", "def\\s+retrieve\\s*\\(", "def\\s+list\\s*\\("
+        "path\\s*\\(",
+        "re_path\\s*\\(",
+        "url\\s*\\(",
+        "class.*View",
+        "def\\s+get\\s*\\(",
+        "def\\s+retrieve\\s*\\(",
+        "def\\s+list\\s*\\(",
       },
       POST = {
-        "path\\s*\\(", "re_path\\s*\\(", "url\\s*\\(",
-        "class.*View", "def\\s+post\\s*\\(", "def\\s+create\\s*\\("
+        "path\\s*\\(",
+        "re_path\\s*\\(",
+        "url\\s*\\(",
+        "class.*View",
+        "def\\s+post\\s*\\(",
+        "def\\s+create\\s*\\(",
       },
       PUT = {
-        "path\\s*\\(", "re_path\\s*\\(", "url\\s*\\(",
-        "class.*View", "def\\s+put\\s*\\(", "def\\s+update\\s*\\("
+        "path\\s*\\(",
+        "re_path\\s*\\(",
+        "url\\s*\\(",
+        "class.*View",
+        "def\\s+put\\s*\\(",
+        "def\\s+update\\s*\\(",
       },
       DELETE = {
-        "path\\s*\\(", "re_path\\s*\\(", "url\\s*\\(",
-        "class.*View", "def\\s+delete\\s*\\(", "def\\s+destroy\\s*\\("
+        "path\\s*\\(",
+        "re_path\\s*\\(",
+        "url\\s*\\(",
+        "class.*View",
+        "def\\s+delete\\s*\\(",
+        "def\\s+destroy\\s*\\(",
       },
       PATCH = {
-        "path\\s*\\(", "re_path\\s*\\(", "url\\s*\\(",
-        "class.*View", "def\\s+patch\\s*\\(", "def\\s+partial_update\\s*\\("
+        "path\\s*\\(",
+        "re_path\\s*\\(",
+        "url\\s*\\(",
+        "class.*View",
+        "def\\s+patch\\s*\\(",
+        "def\\s+partial_update\\s*\\(",
       },
       ALL = {
-        "path\\s*\\(", "re_path\\s*\\(", "url\\s*\\(",
-        "class.*View", "class.*ViewSet",
-        "def\\s+get\\s*\\(", "def\\s+post\\s*\\(", "def\\s+put\\s*\\(", "def\\s+patch\\s*\\(", "def\\s+delete\\s*\\(",
-        "def\\s+create\\s*\\(", "def\\s+update\\s*\\(", "def\\s+destroy\\s*\\(", "def\\s+list\\s*\\(", "def\\s+retrieve\\s*\\(", "def\\s+partial_update\\s*\\("
-      }
+        "path\\s*\\(",
+        "re_path\\s*\\(",
+        "url\\s*\\(",
+        "class.*View",
+        "class.*ViewSet",
+        "def\\s+get\\s*\\(",
+        "def\\s+post\\s*\\(",
+        "def\\s+put\\s*\\(",
+        "def\\s+patch\\s*\\(",
+        "def\\s+delete\\s*\\(",
+        "def\\s+create\\s*\\(",
+        "def\\s+update\\s*\\(",
+        "def\\s+destroy\\s*\\(",
+        "def\\s+list\\s*\\(",
+        "def\\s+retrieve\\s*\\(",
+        "def\\s+partial_update\\s*\\(",
+      },
     },
-    search_options = { "--type", "py" }
-  }
-
-  django_framework_instance:_validate_config()
-  django_framework_instance:_initialize()
-  ---@cast django_framework_instance DjangoFramework
+    search_options = { "--type", "py" },
+    controller_extractors = {
+      {
+        pattern = "([^/]+)\\.py$",
+        transform = function(name)
+          return name:gsub("_views$", ""):gsub("_viewsets$", "")
+        end,
+      },
+    },
+    detector = {
+      dependencies = { "django", "Django" },
+      manifest_files = { "manage.py", "settings.py", "requirements.txt", "pyproject.toml", "setup.py", "Pipfile" },
+      name = "django_dependency_detection",
+    },
+    parser = route_parser,
+  })
+  setmetatable(django_framework_instance, self)
   return django_framework_instance
 end
 
----Validates the framework configuration
-function DjangoFramework:_validate_config()
-  if not self.name then
-    error("Framework name is required")
-  end
-
-  if not self.config.file_extensions then
-    self.config.file_extensions = { "*.*" }
-  end
-
-  if not self.config.exclude_patterns then
-    self.config.exclude_patterns = {}
-  end
-end
-
----Sets up detection and parsing strategies for Django
-function DjangoFramework:_initialize()
-  -- Setup detector using backup logic patterns
-  self.detector = dependency_detector:new(
-    { "django", "Django" },
-    { "manage.py", "settings.py", "requirements.txt", "pyproject.toml", "setup.py", "Pipfile" },
-    "django_dependency_detection"
-  )
-
-  -- Setup route parser with comprehensive Django patterns from backup
-  local django_route_patterns = {
-    ["url_pattern"] = { "path\\s*\\(", "re_path\\s*\\(", "url\\s*\\(" },
-    ["include_pattern"] = { "include\\s*\\(" },
-    ["view_method"] = { "def\\s+get\\s*\\(", "def\\s+post\\s*\\(", "def\\s+put\\s*\\(", "def\\s+patch\\s*\\(", "def\\s+delete\\s*\\(" },
-    ["viewset_action"] = { "def\\s+list\\s*\\(", "def\\s+create\\s*\\(", "def\\s+retrieve\\s*\\(", "def\\s+update\\s*\\(", "def\\s+destroy\\s*\\(", "def\\s+partial_update\\s*\\(" },
-    ["view_class"] = { "class.*View", "class.*ViewSet" },
-    ["function_view"] = { "def\\s+[%w_]+\\s*\\(" }
-  }
-
-  local django_path_extraction_patterns = {
-    'r?["\']([^"\']+)["\']',   -- path("users/", ...)
-    "r?'([^']+)'",            -- path('users/', ...)
-    'r?"([^"]+)"',            -- re_path(r"^users/$", ...)
-  }
-
-  local django_route_processors = {
-    ["url_pattern"] = self._process_django_url_pattern,
-    ["include_pattern"] = self._process_django_include,
-    ["view_method"] = self._process_django_view_method,
-    ["viewset_action"] = self._process_django_viewset_action,
-    ["view_class"] = self._process_django_view_class,
-    ["function_view"] = self._process_django_function_view
-  }
-
-  self.parser = route_parser:new(
-    django_route_patterns,
-    django_path_extraction_patterns,
-    django_route_processors,
-    "django_route_parsing"
-  )
-
-  -- Add include processor
-  self.parser:add_route_patterns("include_pattern", { "include\\s*\\(" })
-end
-
 ---Processes Django URL patterns (path, re_path, url) using backup logic
-function DjangoFramework._process_django_url_pattern(parser, content, file_path, line_number, column, endpoint_path, http_method)
+function DjangoFramework._process_django_url_pattern(
+  parser,
+  content,
+  file_path,
+  line_number,
+  column,
+  endpoint_path,
+  http_method
+)
   -- Extract URL pattern from content
-  local url_path = content:match 'path%s*%(%s*["\']([^"\']*)["\']'
-    or content:match 're_path%s*%(%s*r?["\']([^"\']+)["\']'
-    or content:match 'url%s*%(%s*r?["\']([^"\']+)["\']'
+  local url_path = content:match "path%s*%(%s*[\"']([^\"']*)[\"']"
+    or content:match "re_path%s*%(%s*r?[\"']([^\"']+)[\"']"
+    or content:match "url%s*%(%s*r?[\"']([^\"']+)[\"']"
 
   if not url_path then
     return nil
@@ -156,13 +145,21 @@ function DjangoFramework._process_django_url_pattern(parser, content, file_path,
       view_reference = view_ref,
       route_type = "url_pattern",
       app_prefix = app_prefix,
-      parser = "django_route_parsing"
-    }
+      parser = "django_route_parsing",
+    },
   }
 end
 
 ---Processes Django view method implementations (get, post, etc.)
-function DjangoFramework._process_django_view_method(parser, content, file_path, line_number, column, endpoint_path, http_method)
+function DjangoFramework._process_django_view_method(
+  parser,
+  content,
+  file_path,
+  line_number,
+  column,
+  endpoint_path,
+  http_method
+)
   -- Filter out class definitions
   if content:match "^%s*class%s+[%w_]+.*:" then
     return nil
@@ -210,8 +207,8 @@ function DjangoFramework._process_django_view_method(parser, content, file_path,
           class_name = class_name,
           method_name = method_name,
           route_type = "view_method",
-          parser = "django_route_parsing"
-        }
+          parser = "django_route_parsing",
+        },
       }
     end
   end
@@ -220,7 +217,15 @@ function DjangoFramework._process_django_view_method(parser, content, file_path,
 end
 
 ---Processes Django ViewSet action methods (list, create, retrieve, etc.)
-function DjangoFramework._process_django_viewset_action(parser, content, file_path, line_number, column, endpoint_path, http_method)
+function DjangoFramework._process_django_viewset_action(
+  parser,
+  content,
+  file_path,
+  line_number,
+  column,
+  endpoint_path,
+  http_method
+)
   -- Extract ViewSet action method name
   local action_name
   if content:match "^%s*def%s+list%s*%(" then
@@ -266,8 +271,8 @@ function DjangoFramework._process_django_viewset_action(parser, content, file_pa
         class_name = class_name,
         action_name = action_name,
         route_type = "viewset_action",
-        parser = "django_route_parsing"
-      }
+        parser = "django_route_parsing",
+      },
     }
   end
 
@@ -275,7 +280,15 @@ function DjangoFramework._process_django_viewset_action(parser, content, file_pa
 end
 
 ---Processes Django view class definitions
-function DjangoFramework._process_django_view_class(parser, content, file_path, line_number, column, endpoint_path, http_method)
+function DjangoFramework._process_django_view_class(
+  parser,
+  content,
+  file_path,
+  line_number,
+  column,
+  endpoint_path,
+  http_method
+)
   local class_name = content:match "^%s*class%s+([%w_]+)%s*%("
   if not class_name then
     return nil
@@ -308,8 +321,8 @@ function DjangoFramework._process_django_view_class(parser, content, file_path, 
         class_name = class_name,
         route_type = "viewset_class",
         supported_methods = methods,
-        parser = "django_route_parsing"
-      }
+        parser = "django_route_parsing",
+      },
     }
   else
     -- Regular class-based view
@@ -333,8 +346,8 @@ function DjangoFramework._process_django_view_class(parser, content, file_path, 
           class_name = class_name,
           route_type = "view_class",
           supported_methods = methods,
-          parser = "django_route_parsing"
-        }
+          parser = "django_route_parsing",
+        },
       }
     end
   end
@@ -343,7 +356,15 @@ function DjangoFramework._process_django_view_class(parser, content, file_path, 
 end
 
 ---Processes Django function-based views
-function DjangoFramework._process_django_function_view(parser, content, file_path, line_number, column, endpoint_path, http_method)
+function DjangoFramework._process_django_function_view(
+  parser,
+  content,
+  file_path,
+  line_number,
+  column,
+  endpoint_path,
+  http_method
+)
   local function_name = content:match "^%s*def%s+([%w_]+)%s*%("
   if not function_name then
     return nil
@@ -379,8 +400,8 @@ function DjangoFramework._process_django_function_view(parser, content, file_pat
         function_name = function_name,
         route_type = "function_view",
         supported_methods = methods,
-        parser = "django_route_parsing"
-      }
+        parser = "django_route_parsing",
+      },
     }
   end
 
@@ -388,8 +409,16 @@ function DjangoFramework._process_django_function_view(parser, content, file_pat
 end
 
 ---Processes Django include() patterns
-function DjangoFramework._process_django_include(parser, content, file_path, line_number, column, endpoint_path, http_method)
-  local include_module = content:match('include\\s*\\(["\']([^"\']+)["\']')
+function DjangoFramework._process_django_include(
+  parser,
+  content,
+  file_path,
+  line_number,
+  column,
+  endpoint_path,
+  http_method
+)
+  local include_module = content:match "include\\s*\\([\"']([^\"']+)[\"']"
   local cleaned_path = DjangoFramework._clean_django_path(endpoint_path)
 
   return {
@@ -406,14 +435,16 @@ function DjangoFramework._process_django_include(parser, content, file_path, lin
       language = "python",
       include_module = include_module,
       route_type = "include",
-      parser = "django_route_parsing"
-    }
+      parser = "django_route_parsing",
+    },
   }
 end
 
 ---Cleans Django path patterns
 function DjangoFramework._clean_django_path(path)
-  if not path then return "/" end
+  if not path then
+    return "/"
+  end
 
   -- Remove regex anchors
   local cleaned = path:gsub("^%^", ""):gsub("%$$", "")
@@ -425,12 +456,12 @@ function DjangoFramework._clean_django_path(path)
   cleaned = cleaned:gsub("%%(%?P<([^>]+)>[^)]*%%)", "{%1}")
 
   -- Ensure path starts with /
-  if not cleaned:match("^/") then
+  if not cleaned:match "^/" then
     cleaned = "/" .. cleaned
   end
 
   -- Remove trailing slash for consistency (except root)
-  if cleaned ~= "/" and cleaned:match("/$") then
+  if cleaned ~= "/" and cleaned:match "/$" then
     cleaned = cleaned:gsub("/$", "")
   end
 
@@ -448,9 +479,16 @@ end
 ---Parses Django content to extract endpoint information
 function DjangoFramework:parse(content, file_path, line_number, column)
   -- Only process if this looks like Django code
-  if not (content:match("urlpatterns") or content:match("path%s*%(") or
-          content:match("re_path%s*%(") or content:match("url%s*%(") or
-          content:match("class.*View") or content:match("def%s+[%w_]+%s*%(")) then
+  if
+    not (
+      content:match "urlpatterns"
+      or content:match "path%s*%("
+      or content:match "re_path%s*%("
+      or content:match "url%s*%("
+      or content:match "class.*View"
+      or content:match "def%s+[%w_]+%s*%("
+    )
+  then
     return nil
   end
 
@@ -477,12 +515,20 @@ function DjangoFramework:parse(content, file_path, line_number, column)
     local has_python = false
     local has_django = false
     for _, tag in ipairs(parsed_endpoint.tags) do
-      if tag == "python" then has_python = true end
-      if tag == "django" then has_django = true end
+      if tag == "python" then
+        has_python = true
+      end
+      if tag == "django" then
+        has_django = true
+      end
     end
 
-    if not has_python then table.insert(parsed_endpoint.tags, "python") end
-    if not has_django then table.insert(parsed_endpoint.tags, "django") end
+    if not has_python then
+      table.insert(parsed_endpoint.tags, "python")
+    end
+    if not has_django then
+      table.insert(parsed_endpoint.tags, "django")
+    end
 
     -- Set framework metadata
     parsed_endpoint.metadata = parsed_endpoint.metadata or {}
@@ -505,7 +551,7 @@ function DjangoFramework:get_search_cmd()
     method_patterns = self.config.patterns,
     file_globs = self.config.file_extensions,
     exclude_globs = self.config.exclude_patterns,
-    extra_flags = self.config.search_options or {}
+    extra_flags = self.config.search_options or {},
   }
 
   return rg.create_command(search_options)
@@ -526,12 +572,12 @@ function DjangoFramework:scan(options)
   -- Get search command and execute it
   local search_cmd = self:get_search_cmd()
   local handle = io.popen(search_cmd)
-  local result = handle:read("*a")
+  local result = handle:read "*a"
   handle:close()
 
   local endpoints = {}
-  for line in result:gmatch("[^\n]+") do
-    local file_path, line_number, column, content = line:match("([^:]+):(%d+):(%d+):(.*)")
+  for line in result:gmatch "[^\n]+" do
+    local file_path, line_number, column, content = line:match "([^:]+):(%d+):(%d+):(.*)"
     if file_path and line_number and column and content then
       local endpoint = self:parse(content, file_path, tonumber(line_number), tonumber(column))
       if endpoint then
@@ -565,7 +611,7 @@ function DjangoFramework._extract_app_prefix(app_name)
         local main_content = vim.fn.readfile(main_urls_file)
         for _, main_line in ipairs(main_content) do
           if main_line:match(app_name .. "%.urls") then
-            local prefix = main_line:match 'path%s*%(%s*["\']([^"\']*)["\']'
+            local prefix = main_line:match "path%s*%(%s*[\"']([^\"']*)[\"']"
             if prefix then
               return "/" .. prefix:gsub("/$", "")
             end
@@ -588,7 +634,7 @@ function DjangoFramework._find_url_for_view(view_name, current_file)
 
       for _, line in ipairs(content) do
         if line:match(view_name) then
-          local path = line:match 'path%s*%(%s*["\']([^"\']+)["\']'
+          local path = line:match "path%s*%(%s*[\"']([^\"']+)[\"']"
           if path then
             local normalized_path = DjangoFramework._clean_django_path(path)
             return app_prefix .. normalized_path
@@ -611,9 +657,9 @@ function DjangoFramework._find_url_for_function(function_name, file_path)
 
       for _, line in ipairs(content) do
         if line:match("views%." .. function_name) then
-          local path = line:match 'path%s*%(%s*["\']([^"\']*)["\']'
-            or line:match 're_path%s*%(%s*r?["\']([^"\']+)["\']'
-            or line:match 'url%s*%(%s*r?["\']([^"\']+)["\']'
+          local path = line:match "path%s*%(%s*[\"']([^\"']*)[\"']"
+            or line:match "re_path%s*%(%s*r?[\"']([^\"']+)[\"']"
+            or line:match "url%s*%(%s*r?[\"']([^\"']+)[\"']"
           if path then
             local normalized_path = DjangoFramework._clean_django_path(path)
             return app_prefix .. normalized_path
@@ -717,15 +763,15 @@ function DjangoFramework._analyze_function_view_methods(function_name, file_path
       elseif in_function and (line:match "^def%s+" or line:match "^class%s+") then
         break
       elseif in_function then
-        if line:match 'request%.method%s*==%s*["\']GET["\']' then
+        if line:match "request%.method%s*==%s*[\"']GET[\"']" then
           table.insert(methods, "GET")
-        elseif line:match 'request%.method%s*==%s*["\']POST["\']' then
+        elseif line:match "request%.method%s*==%s*[\"']POST[\"']" then
           table.insert(methods, "POST")
-        elseif line:match 'request%.method%s*==%s*["\']PUT["\']' then
+        elseif line:match "request%.method%s*==%s*[\"']PUT[\"']" then
           table.insert(methods, "PUT")
-        elseif line:match 'request%.method%s*==%s*["\']PATCH["\']' then
+        elseif line:match "request%.method%s*==%s*[\"']PATCH[\"']" then
           table.insert(methods, "PATCH")
-        elseif line:match 'request%.method%s*==%s*["\']DELETE["\']' then
+        elseif line:match "request%.method%s*==%s*[\"']DELETE[\"']" then
           table.insert(methods, "DELETE")
         end
       end
@@ -812,9 +858,9 @@ function DjangoFramework._find_router_urls_for_viewset(viewset_name, file_path)
 
         for _, line in ipairs(content) do
           if line:match "router%.urls" then
-            router_prefix = line:match 'path%s*%(%s*["\']([^"\']*)["\']' or ""
+            router_prefix = line:match "path%s*%(%s*[\"']([^\"']*)[\"']" or ""
           elseif line:match "router%.register" and line:match(viewset_name) then
-            viewset_route_prefix = line:match 'router%.register%s*%(%s*r?["\']([^"\']+)["\']' or ""
+            viewset_route_prefix = line:match "router%.register%s*%(%s*r?[\"']([^\"']+)[\"']" or ""
             break
           end
         end
@@ -834,7 +880,11 @@ end
 ---Build ViewSet fallback URL
 function DjangoFramework._build_viewset_fallback_url(class_name, file_path)
   local resource_name = class_name:gsub("ViewSet$", ""):lower()
-  resource_name = resource_name:gsub("([A-Z])", function(c) return "_" .. c:lower() end):gsub("^_", "")
+  resource_name = resource_name
+    :gsub("([A-Z])", function(c)
+      return "_" .. c:lower()
+    end)
+    :gsub("^_", "")
 
   local app_name = file_path:match "([%w_]+)/viewsets%.py$"
   if app_name then

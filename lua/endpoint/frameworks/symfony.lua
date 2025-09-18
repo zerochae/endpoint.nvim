@@ -1,5 +1,4 @@
 local Framework = require "endpoint.core.Framework"
-local Detector = require "endpoint.core.Detector"
 local SymfonyParser = require "endpoint.parser.symfony_parser"
 
 ---@class endpoint.SymfonyFramework
@@ -20,24 +19,17 @@ function SymfonyFramework:new()
     },
     search_options = { "--case-sensitive", "--type", "php" },
     controller_extractors = {
-      { pattern = "([^/]+)%.php$" }
+      { pattern = "([^/]+)%.php$" },
     },
+    detector = {
+      dependencies = { "symfony/framework-bundle", "symfony/symfony", "symfony" },
+      manifest_files = { "composer.json", "composer.lock", "config/services.yaml", "config/routes.yaml" },
+      name = "symfony_dependency_detection",
+    },
+    parser = SymfonyParser,
   })
   setmetatable(symfony_framework_instance, self)
   return symfony_framework_instance
-end
-
----Sets up detection and parsing for Symfony
-function SymfonyFramework:_initialize()
-  -- Setup detector
-  self.detector = Detector:new_dependency_detector(
-    { "symfony/framework-bundle", "symfony/symfony", "symfony" },
-    { "composer.json", "composer.lock", "config/services.yaml", "config/routes.yaml" },
-    "symfony_dependency_detection"
-  )
-
-  -- Setup Symfony-specific parser
-  self.parser = SymfonyParser:new()
 end
 
 return SymfonyFramework

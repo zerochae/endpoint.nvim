@@ -1,5 +1,4 @@
 local Framework = require "endpoint.core.Framework"
-local Detector = require "endpoint.core.Detector"
 local SpringParser = require "endpoint.parser.spring_parser"
 
 ---@class endpoint.SpringFramework
@@ -19,30 +18,26 @@ function SpringFramework:new()
       PATCH = { "@PatchMapping", "@RequestMapping.*method.*=.*PATCH" },
     },
     search_options = { "--case-sensitive", "--type", "java" },
-    controller_patterns = {
+    controller_extractors = {
       { pattern = "([^/]+)%.java$" },
-      { pattern = "([^/]+)%.kt$" }
+      { pattern = "([^/]+)%.kt$" },
     },
+    detector = {
+      dependencies = { "spring-boot", "spring-web", "spring-webmvc", "org.springframework" },
+      manifest_files = {
+        "pom.xml",
+        "build.gradle",
+        "build.gradle.kts",
+        "application.properties",
+        "application.yml",
+        "application.yaml",
+      },
+      name = "spring_dependency_detection",
+    },
+    parser = SpringParser,
   })
   setmetatable(spring_framework_instance, self)
   return spring_framework_instance
 end
-
----Sets up detection and parsing for Spring
-function SpringFramework:_initialize()
-  -- Setup detector with improved logic from new backup
-  self.detector = Detector:new_dependency_detector(
-    { "spring-boot", "spring-web", "spring-webmvc", "org.springframework" },
-    { "pom.xml", "build.gradle", "build.gradle.kts", "application.properties", "application.yml", "application.yaml" },
-    "spring_dependency_detection"
-  )
-
-  -- Setup Spring-specific parser
-  self.parser = SpringParser:new()
-end
-
-
-
-
 
 return SpringFramework

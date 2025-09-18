@@ -1,5 +1,4 @@
 local Framework = require "endpoint.core.Framework"
-local Detector = require "endpoint.core.Detector"
 local ServletParser = require "endpoint.parser.servlet_parser"
 
 ---@class endpoint.ServletFramework
@@ -20,24 +19,18 @@ function ServletFramework:new()
     },
     search_options = { "--case-sensitive", "--type", "java" },
     controller_extractors = {
-      { pattern = "([^/]+)%.java$" }
+      { pattern = "([^/]+)%.java$" },
     },
+    detector = {
+      dependencies = { "servlet-api", "javax.servlet", "jakarta.servlet" },
+      manifest_files = { "web.xml", "WEB-INF/web.xml", "src/main/webapp/WEB-INF/web.xml", "pom.xml", "build.gradle" },
+      name = "servlet_dependency_detection",
+    },
+    parser = ServletParser,
   })
   setmetatable(servlet_framework_instance, self)
   return servlet_framework_instance
 end
 
----Sets up detection and parsing for Servlet
-function ServletFramework:_initialize()
-  -- Setup detector
-  self.detector = Detector:new_dependency_detector(
-    { "servlet-api", "javax.servlet", "jakarta.servlet" },
-    { "web.xml", "WEB-INF/web.xml", "src/main/webapp/WEB-INF/web.xml", "pom.xml", "build.gradle" },
-    "servlet_dependency_detection"
-  )
-
-  -- Setup Servlet-specific parser
-  self.parser = ServletParser:new()
-end
-
 return ServletFramework
+
