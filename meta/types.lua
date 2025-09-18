@@ -173,6 +173,19 @@
 ---@field private _extract_method_from_specific_mapping fun(self: endpoint.SpringParser, content: string): string|nil
 ---@field private _extract_method_from_request_mapping fun(self: endpoint.SpringParser, content: string): string|nil
 
+---@class endpoint.SymfonyParser : endpoint.Parser
+---@field private _read_file_lines fun(self: endpoint.SymfonyParser, file_path: string, line_number: number): string[]|nil
+---@field private _find_controller_level_route fun(self: endpoint.SymfonyParser, lines: string[], line_number: number): string
+---@field private _extract_controller_route_path fun(self: endpoint.SymfonyParser, annotation_line: string): string|nil
+---@field private _is_controller_level_route fun(self: endpoint.SymfonyParser, content: string): boolean
+---@field private _extract_path_from_php8_attributes fun(self: endpoint.SymfonyParser, content: string): string|nil
+---@field private _extract_path_from_annotations fun(self: endpoint.SymfonyParser, content: string): string|nil
+---@field private _extract_path_from_docblock fun(self: endpoint.SymfonyParser, content: string): string|nil
+---@field private _extract_methods_from_annotation fun(self: endpoint.SymfonyParser, content: string): string[]
+---@field private _combine_paths fun(self: endpoint.SymfonyParser, base?: string, endpoint?: string): string
+---@field private _detect_annotation_type fun(self: endpoint.SymfonyParser, content: string): string
+---@field private _is_symfony_route_content fun(self: endpoint.SymfonyParser, content: string): boolean
+
 -- ========================================
 -- MANAGER CLASSES
 -- ========================================

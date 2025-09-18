@@ -55,14 +55,14 @@ function EndpointManager:register_all_frameworks()
   -- Register all framework instances
   local framework_classes = {
     SpringFramework,
+    RailsFramework,
+    SymfonyFramework,
     -- FastApiFramework,
     -- ExpressFramework,
     -- FlaskFramework,
-    RailsFramework,
     -- NestJsFramework,
     -- DjangoFramework,
     -- GinFramework,
-    -- SymfonyFramework,
     -- KtorFramework,
     -- AxumFramework,
     -- PhoenixFramework,

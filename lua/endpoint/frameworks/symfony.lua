@@ -1,8 +1,8 @@
 local Framework = require "endpoint.core.Framework"
 local DependencyDetector = require "endpoint.detector.dependency_detector"
-local annotation_parser = require "endpoint.parser.annotation_parser"
+local SymfonyParser = require "endpoint.parser.symfony_parser"
 
----@class endpoint.SymfonyFramework : endpoint.Framework
+---@class endpoint.SymfonyFramework
 local SymfonyFramework = setmetatable({}, { __index = Framework })
 SymfonyFramework.__index = SymfonyFramework
 
@@ -10,91 +10,48 @@ SymfonyFramework.__index = SymfonyFramework
 function SymfonyFramework:new()
   local symfony_framework_instance = Framework.new(self, "symfony", {
     file_extensions = { "*.php" },
-    exclude_patterns = { "**/vendor", "**/cache" },
+    exclude_patterns = { "**/vendor", "**/var", "**/cache" },
     patterns = {
-      GET = { "#\\[Route\\(", "@Route\\(" },
-      POST = { "#\\[Route\\(", "@Route\\(" },
-      PUT = { "#\\[Route\\(", "@Route\\(" },
-      DELETE = { "#\\[Route\\(", "@Route\\(" },
-      PATCH = { "#\\[Route\\(", "@Route\\(" },
+      GET = { "#\\[Route\\(.*methods.*GET", "@Route\\(.*methods.*GET", "\\* @Route\\(.*methods.*GET" },
+      POST = { "#\\[Route\\(.*methods.*POST", "@Route\\(.*methods.*POST", "\\* @Route\\(.*methods.*POST" },
+      PUT = { "#\\[Route\\(.*methods.*PUT", "@Route\\(.*methods.*PUT", "\\* @Route\\(.*methods.*PUT" },
+      DELETE = { "#\\[Route\\(.*methods.*DELETE", "@Route\\(.*methods.*DELETE", "\\* @Route\\(.*methods.*DELETE" },
+      PATCH = { "#\\[Route\\(.*methods.*PATCH", "@Route\\(.*methods.*PATCH", "\\* @Route\\(.*methods.*PATCH" },
     },
-    search_options = { "--type", "php" }
+    search_options = { "--case-sensitive", "--type", "php" },
   })
   setmetatable(symfony_framework_instance, self)
-  ---@cast symfony_framework_instance SymfonyFramework
   return symfony_framework_instance
 end
 
----Sets up detection and parsing strategies for Symfony
+---Sets up detection and parsing for Symfony
 function SymfonyFramework:_initialize()
   -- Setup detector
-  self.detector = dependency_detector:new(
-    { "symfony/framework-bundle", "symfony/symfony" },
-    { "composer.json" },
+  self.detector = DependencyDetector:new(
+    { "symfony/framework-bundle", "symfony/symfony", "symfony" },
+    { "composer.json", "composer.lock", "config/services.yaml", "config/routes.yaml" },
     "symfony_dependency_detection"
   )
 
-  -- Setup parser with Symfony route patterns
-  local symfony_annotation_patterns = {
-    GET = { "#%[Route%(", "@Route%(" },
-    POST = { "#%[Route%(", "@Route%(" },
-    PUT = { "#%[Route%(", "@Route%(" },
-    DELETE = { "#%[Route%(", "@Route%(" },
-    PATCH = { "#%[Route%(", "@Route%(" },
-    OPTIONS = { "#%[Route%(", "@Route%(" },
-    HEAD = { "#%[Route%(", "@Route%(" }
-  }
-
-  local symfony_path_extraction_patterns = {
-    '["\']([^"\']+)["\']',        -- #[Route("/path")]
-    'path:%s*["\']([^"\']+)["\']', -- @Route(path="/path")
-  }
-
-  local symfony_method_mapping = {
-    ["#%[Route%("] = "GET", -- Default to GET, will be overridden by methods parameter
-    ["@Route%("] = "GET"
-  }
-
-  self.parser = annotation_parser:new(
-    symfony_annotation_patterns,
-    symfony_path_extraction_patterns,
-    symfony_method_mapping
-  )
+  -- Setup Symfony-specific parser
+  self.parser = SymfonyParser:new()
 end
 
 ---Detects if Symfony is present in the current project
 function SymfonyFramework:detect()
-  return self.detector:is_target_detected()
+  if not self.detector then
+    self:_initialize()
+  end
+  if self.detector then
+    return self.detector:is_target_detected()
+  end
+  return false
 end
 
----Parses Symfony content to extract endpoint information
-function SymfonyFramework:parse(content, file_path, line_number, column)
-  local parsed_endpoint = self.parser:parse_content(content, file_path, line_number, column)
-
-  if parsed_endpoint then
-    -- Symfony-specific method extraction from methods parameter
-    local methods_match = content:match('methods:%s*%[([^%]]+)%]')
-    if methods_match then
-      -- Extract first method from methods array
-      local first_method = methods_match:match('["\']([^"\']+)["\']')
-      if first_method then
-        parsed_endpoint.method = first_method:upper()
-        parsed_endpoint.display_value = parsed_endpoint.method .. " " .. parsed_endpoint.endpoint_path
-      end
-    end
-
-    -- Enhance with Symfony-specific metadata
-    parsed_endpoint.tags = parsed_endpoint.tags or {}
-    table.insert(parsed_endpoint.tags, "php")
-    table.insert(parsed_endpoint.tags, "symfony")
-
-    parsed_endpoint.metadata = parsed_endpoint.metadata or {}
-    parsed_endpoint.metadata.framework_version = "symfony"
-    parsed_endpoint.metadata.language = "php"
-    parsed_endpoint.metadata.methods_parameter = methods_match
-  end
-
-  return parsed_endpoint
+---Extract controller name from Symfony file path
+function SymfonyFramework:getControllerName(file_path)
+  -- Symfony: src/Controller/UserController.php → UserController
+  return file_path:match "([^/]+)%.php$"
 end
 
 return SymfonyFramework
