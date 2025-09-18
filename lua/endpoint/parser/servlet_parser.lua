@@ -20,7 +20,7 @@ function ServletParser:new()
 end
 
 ---Extracts base path from Servlet file
-function ServletParser:extract_base_path(file_path, line_number)
+function ServletParser:extract_base_path()
   return ""  -- Servlets typically don't have base paths
 end
 
@@ -192,7 +192,7 @@ function ServletParser:_detect_servlet_type(content)
 end
 
 ---Checks if file has web.xml mapping
-function ServletParser:_has_web_xml_mapping(file_path)
+function ServletParser:_has_web_xml_mapping()
   local web_xml_paths = { "WEB-INF/web.xml", "web.xml", "src/main/webapp/WEB-INF/web.xml" }
   for _, web_xml_path in ipairs(web_xml_paths) do
     local file = io.open(web_xml_path, "r")

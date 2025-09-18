@@ -20,7 +20,7 @@ function NestJsParser:new()
 end
 
 ---Extracts base path from NestJS controller file
-function NestJsParser:extract_base_path(file_path, line_number)
+function NestJsParser:extract_base_path(file_path)
   return self:_get_controller_path(file_path)
 end
 

@@ -20,7 +20,7 @@ function ExpressParser:new()
 end
 
 ---Extracts base path from Express router file
-function ExpressParser:extract_base_path(file_path, line_number)
+function ExpressParser:extract_base_path()
   -- Express doesn't have base path concept like Spring/Symfony
   return ""
 end
@@ -151,8 +151,12 @@ function ExpressParser:_is_express_route_content(content)
     local method = content:match "(%w+)%(['\"]"
     if method then
       local http_method = method:lower()
-      return http_method == "get" or http_method == "post" or http_method == "put"
-          or http_method == "delete" or http_method == "del" or http_method == "patch"
+      return http_method == "get"
+        or http_method == "post"
+        or http_method == "put"
+        or http_method == "delete"
+        or http_method == "del"
+        or http_method == "patch"
     end
   end
 
@@ -190,3 +194,4 @@ function ExpressParser:_extract_app_type(content)
 end
 
 return ExpressParser
+

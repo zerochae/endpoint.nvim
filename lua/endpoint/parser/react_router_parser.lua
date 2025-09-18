@@ -20,8 +20,8 @@ function ReactRouterParser:new()
 end
 
 ---Extracts base path from React Router file
-function ReactRouterParser:extract_base_path(file_path, line_number)
-  return ""  -- React Router routes are typically absolute
+function ReactRouterParser:extract_base_path()
+  return "" -- React Router routes are typically absolute
 end
 
 ---Extracts endpoint path from React Router content
@@ -35,8 +35,8 @@ function ReactRouterParser:extract_endpoint_path(content)
 end
 
 ---Extracts HTTP method from React Router content (always returns ROUTE)
-function ReactRouterParser:extract_method(content)
-  return "ROUTE"  -- React Router doesn't use HTTP methods, it's client-side routing
+function ReactRouterParser:extract_method()
+  return "ROUTE" -- React Router doesn't use HTTP methods, it's client-side routing
 end
 
 ---Parses React Router line and returns array of endpoints
@@ -272,3 +272,4 @@ function ReactRouterParser:_find_component_file(component_name)
 end
 
 return ReactRouterParser
+

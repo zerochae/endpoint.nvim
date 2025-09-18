@@ -326,7 +326,7 @@ function DotNetParser:_combine_paths(base, endpoint)
     return endpoint ~= "" and endpoint or "/"
   end
   if not endpoint or endpoint == "" then
-    return base:match("^/") and base or "/" .. base
+    return base:match "^/" and base or "/" .. base
   end
 
   -- Handle special cases for .NET routing
@@ -341,7 +341,7 @@ function DotNetParser:_combine_paths(base, endpoint)
   end
 
   -- Ensure base starts with /
-  if not base:match("^/") then
+  if not base:match "^/" then
     base = "/" .. base
   end
 
@@ -358,3 +358,4 @@ function DotNetParser:_combine_paths(base, endpoint)
 end
 
 return DotNetParser
+
