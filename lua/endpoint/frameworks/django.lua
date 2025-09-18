@@ -1,5 +1,5 @@
 local Framework = require "endpoint.core.Framework"
-local DependencyDetector = require "endpoint.detector.dependency_detector"
+local Detector = require "endpoint.core.Detector"
 local route_parser = require "endpoint.parser.route_parser"
 
 ---@class endpoint.DjangoFramework : endpoint.Framework

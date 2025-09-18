@@ -1,5 +1,5 @@
 local Framework = require "endpoint.core.Framework"
-local DependencyDetector = require "endpoint.detector.dependency_detector"
+local Detector = require "endpoint.core.Detector"
 local NestJsParser = require "endpoint.parser.nestjs_parser"
 
 ---@class endpoint.NestJsFramework
@@ -31,7 +31,7 @@ end
 ---Sets up detection and parsing for NestJS
 function NestJsFramework:_initialize()
   -- Setup detector
-  self.detector = DependencyDetector:new(
+  self.detector = Detector:new_dependency_detector(
     { "@nestjs/core", "@nestjs/common", "nestjs" },
     { "package.json", "tsconfig.json", "nest-cli.json" },
     "nestjs_dependency_detection"

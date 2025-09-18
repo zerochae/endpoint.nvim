@@ -1,5 +1,5 @@
 local Framework = require "endpoint.core.Framework"
-local DependencyDetector = require "endpoint.detector.dependency_detector"
+local Detector = require "endpoint.core.Detector"
 local SymfonyParser = require "endpoint.parser.symfony_parser"
 
 ---@class endpoint.SymfonyFramework
@@ -30,7 +30,7 @@ end
 ---Sets up detection and parsing for Symfony
 function SymfonyFramework:_initialize()
   -- Setup detector
-  self.detector = DependencyDetector:new(
+  self.detector = Detector:new_dependency_detector(
     { "symfony/framework-bundle", "symfony/symfony", "symfony" },
     { "composer.json", "composer.lock", "config/services.yaml", "config/routes.yaml" },
     "symfony_dependency_detection"

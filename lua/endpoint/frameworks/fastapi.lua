@@ -1,5 +1,5 @@
 local Framework = require "endpoint.core.Framework"
-local DependencyDetector = require "endpoint.detector.dependency_detector"
+local Detector = require "endpoint.core.Detector"
 local FastApiParser = require "endpoint.parser.fastapi_parser"
 
 ---@class endpoint.FastApiFramework
@@ -30,7 +30,7 @@ end
 ---Sets up detection and parsing for FastAPI
 function FastApiFramework:_initialize()
   -- Setup detector
-  self.detector = DependencyDetector:new(
+  self.detector = Detector:new_dependency_detector(
     { "fastapi", "FastAPI" },
     { "requirements.txt", "pyproject.toml", "setup.py", "Pipfile" },
     "fastapi_dependency_detection"

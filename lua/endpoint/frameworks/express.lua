@@ -1,5 +1,5 @@
 local Framework = require "endpoint.core.Framework"
-local DependencyDetector = require "endpoint.detector.dependency_detector"
+local Detector = require "endpoint.core.Detector"
 local ExpressParser = require "endpoint.parser.express_parser"
 
 ---@class endpoint.ExpressFramework
@@ -30,7 +30,7 @@ end
 ---Sets up detection and parsing for Express
 function ExpressFramework:_initialize()
   -- Setup detector
-  self.detector = DependencyDetector:new(
+  self.detector = Detector:new_dependency_detector(
     { "express", "Express" },
     { "package.json", "server.js", "app.js", "index.js" },
     "express_dependency_detection"

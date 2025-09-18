@@ -1,5 +1,5 @@
 local Framework = require "endpoint.core.Framework"
-local DependencyDetector = require "endpoint.detector.dependency_detector"
+local Detector = require "endpoint.core.Detector"
 local annotation_parser = require "endpoint.parser.annotation_parser"
 
 ---@class endpoint.FlaskFramework : endpoint.Framework

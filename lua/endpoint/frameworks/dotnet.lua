@@ -1,5 +1,5 @@
 local Framework = require "endpoint.core.Framework"
-local DependencyDetector = require "endpoint.detector.dependency_detector"
+local Detector = require "endpoint.core.Detector"
 local DotNetParser = require "endpoint.parser.dotnet_parser"
 
 ---@class endpoint.DotNetFramework
@@ -30,7 +30,7 @@ end
 ---Sets up detection and parsing for .NET
 function DotNetFramework:_initialize()
   -- Setup detector
-  self.detector = DependencyDetector:new(
+  self.detector = Detector:new_dependency_detector(
     { "Microsoft.AspNetCore", "Microsoft.AspNet.WebApi" },
     { "*.csproj", "*.sln", "global.json", "appsettings.json", "Program.cs", "Startup.cs" },
     "dotnet_dependency_detection"

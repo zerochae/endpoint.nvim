@@ -1,5 +1,5 @@
 local Framework = require "endpoint.core.Framework"
-local DependencyDetector = require "endpoint.detector.dependency_detector"
+local Detector = require "endpoint.core.Detector"
 local SpringParser = require "endpoint.parser.spring_parser"
 
 ---@class endpoint.SpringFramework
@@ -31,7 +31,7 @@ end
 ---Sets up detection and parsing for Spring
 function SpringFramework:_initialize()
   -- Setup detector with improved logic from new backup
-  self.detector = DependencyDetector:new(
+  self.detector = Detector:new_dependency_detector(
     { "spring-boot", "spring-web", "spring-webmvc", "org.springframework" },
     { "pom.xml", "build.gradle", "build.gradle.kts", "application.properties", "application.yml", "application.yaml" },
     "spring_dependency_detection"

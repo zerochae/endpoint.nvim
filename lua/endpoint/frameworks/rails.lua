@@ -1,5 +1,5 @@
 local Framework = require "endpoint.core.Framework"
-local DependencyDetector = require "endpoint.detector.dependency_detector"
+local Detector = require "endpoint.core.Detector"
 local RailsParser = require "endpoint.parser.rails_parser"
 
 ---@class endpoint.RailsFramework
@@ -40,7 +40,7 @@ end
 ---Sets up detection and parsing for Rails
 function RailsFramework:_initialize()
   -- Setup detector
-  self.detector = DependencyDetector:new(
+  self.detector = Detector:new_dependency_detector(
     { "rails", "actionpack", "railties" },
     { "Gemfile", "config/routes.rb", "config/application.rb", "app/controllers" },
     "rails_dependency_detection"

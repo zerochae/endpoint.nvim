@@ -117,21 +117,19 @@
 -- Detection Pattern
 ---@class endpoint.Detector
 ---@field protected detection_name string
+---@field private required_dependencies? string[]
+---@field private manifest_files? string[]
+---@field private file_system_utils table
 ---@field new fun(self: endpoint.Detector, detection_name: string, fields: table?): endpoint.Detector
+---@field new_dependency_detector fun(self: endpoint.Detector, required_dependencies: string[], manifest_files: string[], name?: string): endpoint.Detector
 ---@field is_target_detected fun(self: endpoint.Detector): boolean
 ---@field get_name fun(self: endpoint.Detector): string
 ---@field get_detection_details fun(self: endpoint.Detector): table|nil
-
----@class endpoint.DependencyDetector : endpoint.Detector
----@field private required_dependencies string[]
----@field private manifest_files string[]
----@field private file_system_utils table
----@field new fun(self: endpoint.DependencyDetector, required_dependencies: string[], manifest_files: string[], name?: string): endpoint.DependencyDetector
----@field _check_manifest_file_for_dependencies fun(self: endpoint.DependencyDetector, manifest_file_path: string): boolean
----@field add_required_dependencies fun(self: endpoint.DependencyDetector, additional_dependencies: string[])
----@field add_manifest_files fun(self: endpoint.DependencyDetector, additional_manifest_files: string[])
----@field get_required_dependencies fun(self: endpoint.DependencyDetector): string[]
----@field get_manifest_files fun(self: endpoint.DependencyDetector): string[]
+---@field _check_manifest_file_for_dependencies fun(self: endpoint.Detector, manifest_file_path: string): boolean
+---@field add_required_dependencies fun(self: endpoint.Detector, additional_dependencies: string[])
+---@field add_manifest_files fun(self: endpoint.Detector, additional_manifest_files: string[])
+---@field get_required_dependencies fun(self: endpoint.Detector): string[]
+---@field get_manifest_files fun(self: endpoint.Detector): string[]
 
 
 -- Parsing Pattern

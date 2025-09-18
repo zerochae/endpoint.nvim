@@ -1,5 +1,5 @@
 local Framework = require "endpoint.core.Framework"
-local DependencyDetector = require "endpoint.detector.dependency_detector"
+local Detector = require "endpoint.core.Detector"
 local ReactRouterParser = require "endpoint.parser.react_router_parser"
 
 ---@class endpoint.ReactRouterFramework
@@ -26,7 +26,7 @@ end
 ---Sets up detection and parsing for React Router
 function ReactRouterFramework:_initialize()
   -- Setup detector
-  self.detector = DependencyDetector:new(
+  self.detector = Detector:new_dependency_detector(
     { "react-router", "react-router-dom", "@reach/router" },
     { "package.json", "tsconfig.json", "src/" },
     "react_router_dependency_detection"

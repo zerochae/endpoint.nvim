@@ -1,5 +1,5 @@
 local Framework = require "endpoint.core.Framework"
-local DependencyDetector = require "endpoint.detector.dependency_detector"
+local Detector = require "endpoint.core.Detector"
 local ServletParser = require "endpoint.parser.servlet_parser"
 
 ---@class endpoint.ServletFramework
@@ -30,7 +30,7 @@ end
 ---Sets up detection and parsing for Servlet
 function ServletFramework:_initialize()
   -- Setup detector
-  self.detector = DependencyDetector:new(
+  self.detector = Detector:new_dependency_detector(
     { "servlet-api", "javax.servlet", "jakarta.servlet" },
     { "web.xml", "WEB-INF/web.xml", "src/main/webapp/WEB-INF/web.xml", "pom.xml", "build.gradle" },
     "servlet_dependency_detection"

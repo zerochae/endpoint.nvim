@@ -1,5 +1,5 @@
 local Framework = require "endpoint.core.Framework"
-local DependencyDetector = require "endpoint.detector.dependency_detector"
+local Detector = require "endpoint.core.Detector"
 local KtorParser = require "endpoint.parser.ktor_parser"
 
 ---@class endpoint.KtorFramework
@@ -30,7 +30,7 @@ end
 ---Sets up detection and parsing for Ktor
 function KtorFramework:_initialize()
   -- Setup detector
-  self.detector = DependencyDetector:new(
+  self.detector = Detector:new_dependency_detector(
     { "io.ktor:ktor", "ktor-server", "io.ktor.plugin" },
     { "build.gradle", "build.gradle.kts", "pom.xml" },
     "ktor_dependency_detection"
