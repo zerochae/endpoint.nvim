@@ -37,17 +37,6 @@ function KtorFramework:_initialize()
   self.parser = KtorParser:new()
 end
 
----Detects if Ktor is present in the current project
-function KtorFramework:detect()
-  if not self.detector then
-    self:_initialize()
-  end
-  if self.detector then
-    return self.detector:is_target_detected()
-  end
-  return false
-end
-
 ---Extract controller name from Ktor file path
 function KtorFramework:getControllerName(file_path)
   -- Ktor: src/main/kotlin/routes/UserRoutes.kt → UserRoutes

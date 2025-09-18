@@ -47,16 +47,6 @@ function RailsFramework:_initialize()
   self.parser = RailsParser:new()
 end
 
----Detects if Rails is present in the current project
-function RailsFramework:detect()
-  if not self.detector then
-    self:_initialize()
-  end
-  if self.detector then
-    return self.detector:is_target_detected()
-  end
-  return false
-end
 
 ---Extract controller name from Rails file path
 function RailsFramework:getControllerName(file_path)

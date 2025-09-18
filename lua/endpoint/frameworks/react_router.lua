@@ -33,17 +33,6 @@ function ReactRouterFramework:_initialize()
   self.parser = ReactRouterParser:new()
 end
 
----Detects if React Router is present in the current project
-function ReactRouterFramework:detect()
-  if not self.detector then
-    self:_initialize()
-  end
-  if self.detector then
-    return self.detector:is_target_detected()
-  end
-  return false
-end
-
 ---Extract component name from React Router file path
 function ReactRouterFramework:getControllerName(file_path)
   -- React Router: src/components/UserProfile.tsx → UserProfile

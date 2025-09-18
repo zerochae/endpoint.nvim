@@ -37,17 +37,6 @@ function FastApiFramework:_initialize()
   self.parser = FastApiParser:new()
 end
 
----Detects if FastAPI is present in the current project
-function FastApiFramework:detect()
-  if not self.detector then
-    self:_initialize()
-  end
-  if self.detector then
-    return self.detector:is_target_detected()
-  end
-  return false
-end
-
 ---Extract controller name from FastAPI file path
 function FastApiFramework:getControllerName(file_path)
   -- FastAPI: controllers/users/create_user.py → users or routers/api/v1/users.py → users

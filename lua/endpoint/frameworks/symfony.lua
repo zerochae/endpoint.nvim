@@ -37,17 +37,6 @@ function SymfonyFramework:_initialize()
   self.parser = SymfonyParser:new()
 end
 
----Detects if Symfony is present in the current project
-function SymfonyFramework:detect()
-  if not self.detector then
-    self:_initialize()
-  end
-  if self.detector then
-    return self.detector:is_target_detected()
-  end
-  return false
-end
-
 ---Extract controller name from Symfony file path
 function SymfonyFramework:getControllerName(file_path)
   -- Symfony: src/Controller/UserController.php → UserController

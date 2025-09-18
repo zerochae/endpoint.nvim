@@ -37,16 +37,6 @@ function SpringFramework:_initialize()
   self.parser = SpringParser:new()
 end
 
----Detects if Spring is present in the current project
-function SpringFramework:detect()
-  if not self.detector then
-    self:_initialize()
-  end
-  if self.detector then
-    return self.detector:is_target_detected()
-  end
-  return false
-end
 
 ---Extract controller name from Spring file path
 function SpringFramework:getControllerName(file_path)

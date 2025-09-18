@@ -37,17 +37,6 @@ function DotNetFramework:_initialize()
   self.parser = DotNetParser:new()
 end
 
----Detects if .NET is present in the current project
-function DotNetFramework:detect()
-  if not self.detector then
-    self:_initialize()
-  end
-  if self.detector then
-    return self.detector:is_target_detected()
-  end
-  return false
-end
-
 ---Extract controller name from .NET file path
 function DotNetFramework:getControllerName(file_path)
   -- .NET: Controllers/UsersController.cs → UsersController
