@@ -67,27 +67,17 @@ function Framework:parse(content, file_path, line_number, column)
     return nil
   end
 
-  local parsed_result = self.parser:parse_content(content, file_path, line_number, column)
+  local parsed_endpoint = self.parser:parse_content(content, file_path, line_number, column)
 
-  -- Handle both single endpoint and array of endpoints
-  if parsed_result then
-    if type(parsed_result) == "table" and #parsed_result > 0 then
-      -- Array of endpoints
-      for _, endpoint in ipairs(parsed_result) do
-        endpoint.framework = self.name
-        self:_enhance_endpoint(endpoint, file_path)
-      end
-      -- Return first endpoint for backward compatibility
-      return parsed_result[1]
-    else
-      -- Single endpoint
-      parsed_result.framework = self.name
-      self:_enhance_endpoint(parsed_result, file_path)
-      return parsed_result
-    end
+  if parsed_endpoint then
+    -- Set framework name
+    parsed_endpoint.framework = self.name
+
+    -- Call framework-specific enhancement hook
+    self:_enhance_endpoint(parsed_endpoint, file_path)
   end
 
-  return nil
+  return parsed_endpoint
 end
 
 ---Hook for framework-specific endpoint enhancement
@@ -179,14 +169,11 @@ function Framework:_search_and_parse()
     return {}
   end
 
-  local found_endpoints = {}
   local result_lines = vim.split(search_result, "\n", { trimempty = true })
+  local found_endpoints = {}
 
   for _, result_line in ipairs(result_lines) do
-    local endpoints = self:_parse_result_line(result_line)
-    for _, endpoint in ipairs(endpoints) do
-      table.insert(found_endpoints, endpoint)
-    end
+    vim.list_extend(found_endpoints, self:_parse_result_line(result_line))
   end
 
   return found_endpoints
@@ -208,36 +195,26 @@ function Framework:_parse_result_line(result_line)
   local line_num = tonumber(source_line_number) or 1
   local col_pos = tonumber(source_column_position) or 1
 
+  -- TODO: 너무 복잡해서 나중에 개선하겠다 
   -- Use parser's parse method directly
   local endpoints = {}
   if self.parser then
-    local parsed_result = self.parser:parse_content(line_content, source_file_path, line_num, col_pos)
-    if parsed_result then
-      if type(parsed_result) == "table" and #parsed_result > 0 then
-        -- Array of endpoints
-        for _, endpoint in ipairs(parsed_result) do
-          endpoint.framework = self.name
-          self:_enhance_endpoint(endpoint, source_file_path)
-          table.insert(endpoints, endpoint)
-        end
-      else
-        -- Single endpoint
-        parsed_result.framework = self.name
-        self:_enhance_endpoint(parsed_result, source_file_path)
-        endpoints = { parsed_result }
-      end
+    local endpoint_entry = self.parser:parse_content(line_content, source_file_path, line_num, col_pos)
+    if endpoint_entry then
+      endpoint_entry.framework = self.name
+      self:_enhance_endpoint(endpoint_entry, source_file_path)
+      endpoints = { endpoint_entry }
     end
   else
     -- Fallback to framework's parse method
-    local single_endpoint = self:parse(line_content, source_file_path, line_num, col_pos)
-    if single_endpoint then
-      endpoints = { single_endpoint }
+    local endpoint_entry = self:parse(line_content, source_file_path, line_num, col_pos)
+    if endpoint_entry then
+      endpoints = { endpoint_entry }
     end
   end
 
-  -- Enhance each endpoint with framework metadata
+  -- Enhance each endpoint with ripgrep result metadata
   for _, endpoint in ipairs(endpoints) do
-    endpoint.framework = self.name
     endpoint.file_path = endpoint.file_path or source_file_path
     endpoint.line_number = endpoint.line_number or line_num
     endpoint.column = endpoint.column or col_pos

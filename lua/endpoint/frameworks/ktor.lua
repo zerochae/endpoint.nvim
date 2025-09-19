@@ -1,5 +1,4 @@
 local Framework = require "endpoint.core.Framework"
-local Detector = require "endpoint.core.Detector"
 local KtorParser = require "endpoint.parser.ktor_parser"
 
 ---@class endpoint.KtorFramework
@@ -9,35 +8,29 @@ KtorFramework.__index = KtorFramework
 ---Creates a new KtorFramework instance
 function KtorFramework:new()
   local ktor_framework_instance = Framework.new(self, "ktor", {
-    file_extensions = { "*.kt", "*.java" },
+    file_extensions = { "*.kt" },
     exclude_patterns = { "**/build", "**/target", "**/.gradle" },
     patterns = {
-      GET = { "get\\(", "get<.*>\\(" },
-      POST = { "post\\(", "post<.*>\\(" },
-      PUT = { "put\\(", "put<.*>\\(" },
-      DELETE = { "delete\\(", "delete<.*>\\(" },
-      PATCH = { "patch\\(", "patch<.*>\\(" },
+      GET = { "get\\s*\\(", "get\\s*\\{", "get<.*>\\s*\\(" },
+      POST = { "post\\s*\\(", "post\\s*\\{", "post<.*>\\s*\\(" },
+      PUT = { "put\\s*\\(", "put\\s*\\{", "put<.*>\\s*\\(" },
+      DELETE = { "delete\\s*\\(", "delete\\s*\\{", "delete<.*>\\s*\\(" },
+      PATCH = { "patch\\s*\\(", "patch\\s*\\{", "patch<.*>\\s*\\(" },
     },
     search_options = { "--case-sensitive", "--type", "kotlin" },
     controller_extractors = {
       { pattern = "([^/]+)%.kt$", transform = function(name) return name:gsub("Routes$", ""):gsub("Routing$", "") end }
     },
+    detector = {
+      dependencies = { "io.ktor:ktor", "ktor-server", "io.ktor.plugin" },
+      manifest_files = { "build.gradle", "build.gradle.kts", "pom.xml" },
+      name = "ktor_dependency_detection"
+    },
+    parser = KtorParser
   })
   setmetatable(ktor_framework_instance, self)
   return ktor_framework_instance
 end
 
----Sets up detection and parsing for Ktor
-function KtorFramework:_initialize()
-  -- Setup detector
-  self.detector = Detector:new_dependency_detector(
-    { "io.ktor:ktor", "ktor-server", "io.ktor.plugin" },
-    { "build.gradle", "build.gradle.kts", "pom.xml" },
-    "ktor_dependency_detection"
-  )
-
-  -- Setup Ktor-specific parser
-  self.parser = KtorParser:new()
-end
 
 return KtorFramework
