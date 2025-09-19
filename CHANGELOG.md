@@ -1,5 +1,49 @@
 # Changelog
 
+## [2.0.0](https://github.com/zerochae/endpoint.nvim/compare/v1.11.0...v2.0.0) (2025-09-19)
+
+
+### ⚠ BREAKING CHANGES
+
+* complete framework system refactor with comprehensive parser improvements
+
+### Features
+
+* add Django framework support for Python projects ([139237b](https://github.com/zerochae/endpoint.nvim/commit/139237be0a94aac75b98380e22d3ae9efabe5bc7))
+* complete framework system refactor with comprehensive parser improvements ([84c0e4b](https://github.com/zerochae/endpoint.nvim/commit/84c0e4b74cd5da7ddd6ae63ab294613135007feb))
+* complete framework system refactor with comprehensive parser improvements ([8f92a3d](https://github.com/zerochae/endpoint.nvim/commit/8f92a3da92d611b5cf4be369d0cd612aa02998cc))
+* complete Ktor framework implementation with clean code ([79a8a18](https://github.com/zerochae/endpoint.nvim/commit/79a8a18166a767527f39850f28166deecc7aab23))
+* completely refactor framework system architecture ([daf0057](https://github.com/zerochae/endpoint.nvim/commit/daf005793e5215dc74d8236fd356d1a970a3b886))
+* finalize framework system refactor with comprehensive improvements ([bae1b23](https://github.com/zerochae/endpoint.nvim/commit/bae1b239286618d589f061f320072deaf3aa87e4))
+* fix and reorganize framework tests ([52b6f4d](https://github.com/zerochae/endpoint.nvim/commit/52b6f4d17816df11db747ece56bb1e76e6fac546))
+* fix Symfony and React Router framework tests ([5dd7163](https://github.com/zerochae/endpoint.nvim/commit/5dd71638aaf48e5ba869f1393e8141aac25b870d))
+* implement complete servlet framework support with multiple URL patterns ([f919b7d](https://github.com/zerochae/endpoint.nvim/commit/f919b7d0b0384a24c1ac84381014d4a6f757e9b3))
+* implement Express framework with unified parser architecture ([ebc0a22](https://github.com/zerochae/endpoint.nvim/commit/ebc0a224800bd49e412f22f133407243ed84af1c))
+* implement NestJS, FastAPI, DotNet, and Ktor frameworks with unified architecture ([147263f](https://github.com/zerochae/endpoint.nvim/commit/147263f6024c3fae63bdd14b9257fcef1b367c06))
+* implement Servlet and React Router frameworks completing framework ecosystem ([b94d722](https://github.com/zerochae/endpoint.nvim/commit/b94d722a8f51c697cc7c5fdcf92dae8ab02f30a3))
+* implement Symfony framework with unified parser architecture ([30ae5c6](https://github.com/zerochae/endpoint.nvim/commit/30ae5c672040402dcc7f847c7378167c8fc065f8))
+* refactor framework system to modular architecture ([13196b5](https://github.com/zerochae/endpoint.nvim/commit/13196b53e23cb439230aa7a8bb48a9bcff8856da))
+* refactor to proper OOP architecture with encapsulation ([7a435af](https://github.com/zerochae/endpoint.nvim/commit/7a435afb9fde47529f38ebdd871a6db297b7c7ce))
+* remove Strategy naming pattern and reorganize codebase structure ([38d7d11](https://github.com/zerochae/endpoint.nvim/commit/38d7d11eb17c70b20f6186a574f50f01c48e4354))
+* simplify framework system and add comprehensive documentation ([dbac762](https://github.com/zerochae/endpoint.nvim/commit/dbac76207e23d1c2a9631f00efce9ba1614981f4))
+
+
+### Bug Fixes
+
+* add missing orders_controller.rb to fix Rails resources navigation ([42441a5](https://github.com/zerochae/endpoint.nvim/commit/42441a54655745bba453983124c6bd05e411f1a8))
+* eliminate duplicate .NET endpoint results by focusing search on Route attributes ([e412617](https://github.com/zerochae/endpoint.nvim/commit/e412617e6e2b7ca439e9ae3b86df4a0cc4de741d))
+* filter member/collection routes in Rails parser ([c0d5b24](https://github.com/zerochae/endpoint.nvim/commit/c0d5b2402534733a99654da286ee4a82bf6173b4))
+* filter out URL patterns and class definitions from Django search results ([16ac2b5](https://github.com/zerochae/endpoint.nvim/commit/16ac2b5897063da0b4827b908310837f161ed60a))
+* filter standalone HTTP attributes without Route in .NET parser ([8738203](https://github.com/zerochae/endpoint.nvim/commit/8738203ef1cc3ae930efc0778cdd344688de84d0))
+* improve .NET and Rails parser accuracy ([2e89755](https://github.com/zerochae/endpoint.nvim/commit/2e897550282a1ab6e1a963a2389431cb2c32b2cc))
+* improve Django ViewSet URL generation and action display ([ca33f3e](https://github.com/zerochae/endpoint.nvim/commit/ca33f3ecb3869a4675249b4aa4c8ffd9e9e438c0))
+* resolve .NET [controller] token replacement in Route attributes ([9e85230](https://github.com/zerochae/endpoint.nvim/commit/9e85230600340fad23bbd98739681446647877d9))
+* resolve .NET controller endpoint parsing issues ([40f3880](https://github.com/zerochae/endpoint.nvim/commit/40f3880766119bf5628914bf09eb6678fe0acd51))
+* simplify .NET duplicate filtering using Spring approach ([d5bbf2f](https://github.com/zerochae/endpoint.nvim/commit/d5bbf2fc0e41a10807b475181646730abcdb7877))
+* update parser files after framework refactoring ([add88fc](https://github.com/zerochae/endpoint.nvim/commit/add88fc7d03dad4f976a70bb9b90adcfbe29638b))
+* update Rails test to match actual framework implementation ([4b8cba0](https://github.com/zerochae/endpoint.nvim/commit/4b8cba0e3e5f405f62b841f5b0abb147e7e61cba))
+* update type definitions for Strategy naming removal ([24ed81f](https://github.com/zerochae/endpoint.nvim/commit/24ed81f3c27c629bc7de6840eef62a14f7bf208c))
+
 ## [1.12.0] (2025-09-17)
 
 ### Features
