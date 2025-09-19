@@ -79,7 +79,14 @@ function DotNetParser:parse_content(content, file_path, line_number, column)
   local endpoint_path = self:extract_endpoint_path(content, file_path, line_number)
   local method = self:extract_method(content, file_path, line_number)
 
+  -- Require both endpoint path and method to be present
   if not endpoint_path or not method then
+    return nil
+  end
+
+  -- If endpoint path is empty, this is likely a standalone HTTP attribute
+  -- without a Route attribute, which should not be parsed as an endpoint
+  if not endpoint_path or endpoint_path == "" then
     return nil
   end
 
