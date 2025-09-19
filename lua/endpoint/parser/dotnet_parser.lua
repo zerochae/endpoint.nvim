@@ -27,7 +27,7 @@ end
 ---Extracts endpoint path from .NET attribute content
 function DotNetParser:extract_endpoint_path(content, file_path, line_number)
   -- Use _extract_route_info for better accuracy
-  local http_method, endpoint_path = self:_extract_route_info(content)
+  local http_method, endpoint_path = self:_extract_route_info(content, file_path, line_number)
   if endpoint_path then
     -- If the path starts with '/', it's an absolute path and shouldn't be combined with base path
     if endpoint_path:match("^/") then
@@ -187,16 +187,18 @@ function DotNetParser:_is_dotnet_attribute_content(content)
 end
 
 ---Extracts route information from .NET patterns
-function DotNetParser:_extract_route_info(content)
+function DotNetParser:_extract_route_info(content, file_path, line_number)
   -- Pattern 1: Attribute-based routing - [HttpGet("/path")]
   local method, path = content:match "%[Http(%w+)%([\"']([^\"']+)[\"']"
   if method and path then
     return method, path
   end
 
-  -- Pattern 2: Attribute-based routing without path - [HttpGet]
+  -- Pattern 2: Attribute-based routing without path - [HttpGet] (only if no Route in same context)
   method = content:match "%[Http(%w+)%]"
   if method then
+    -- Only process standalone HTTP methods if we're sure there's no Route attribute
+    -- This will be handled by class-level Route logic
     return method, ""
   end
 
@@ -221,6 +223,11 @@ function DotNetParser:_extract_route_info(content)
   -- Pattern 6: [Route] attribute - process and get HTTP method from surrounding lines
   local route_path = content:match "%[Route%([\"']([^\"']+)[\"']"
   if route_path then
+    -- Handle [controller] token replacement if file_path and line_number are provided
+    if file_path and line_number and route_path:match "%[controller%]" then
+      route_path = self:_replace_controller_token(route_path, file_path, line_number)
+    end
+
     -- Check if there's an HTTP method attribute on the same line
     local http_method_match = content:match "%[Http(%w+)%]"
     if http_method_match then
@@ -425,6 +432,32 @@ function DotNetParser:_get_controller_base_path(file_path, line_number)
   end
 
   return ""
+end
+
+---Replaces [controller] token with actual controller name
+function DotNetParser:_replace_controller_token(route_path, file_path, line_number)
+  local file = io.open(file_path, "r")
+  if not file then
+    return route_path
+  end
+
+  local lines = {}
+  for line in file:lines() do
+    table.insert(lines, line)
+  end
+  file:close()
+
+  -- Look for class declaration around the given line
+  for i = math.max(1, line_number - 10), math.min(#lines, line_number + 10) do
+    local line = lines[i]
+    local controller_name = line:match "class%s+(%w+)Controller"
+    if controller_name then
+      local controller_lower = controller_name:gsub("^%u", string.lower):lower()
+      return route_path:gsub("%[controller%]", controller_lower)
+    end
+  end
+
+  return route_path
 end
 
 ---Combines base path with endpoint path
