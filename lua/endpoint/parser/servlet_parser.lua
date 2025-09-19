@@ -28,19 +28,19 @@ end
 function ServletParser:extract_endpoint_paths(content, file_path, line_number)
   local paths = {}
 
-  -- For Java files, try to find @WebServlet annotation paths in the full file
-  if file_path and file_path:match "%.java$" then
-    local webservlet_paths = self:_find_webservlet_annotation_paths_for_file(file_path)
-    if webservlet_paths then
-      for _, path in ipairs(webservlet_paths) do
-        table.insert(paths, path)
-      end
+  -- First try to extract from content directly
+  local webservlet_paths = self:_extract_webservlet_paths(content)
+  if webservlet_paths then
+    for _, path in ipairs(webservlet_paths) do
+      table.insert(paths, path)
     end
-  else
-    -- For content-based parsing (like XML or inline content)
-    local webservlet_paths = self:_extract_webservlet_paths(content)
-    if webservlet_paths then
-      for _, path in ipairs(webservlet_paths) do
+  end
+
+  -- For Java files, also try to find @WebServlet annotation paths in the full file
+  if #paths == 0 and file_path and file_path:match "%.java$" then
+    local file_webservlet_paths = self:_find_webservlet_annotation_paths_for_file(file_path)
+    if file_webservlet_paths then
+      for _, path in ipairs(file_webservlet_paths) do
         table.insert(paths, path)
       end
     end
@@ -252,7 +252,7 @@ function ServletParser:_extract_webservlet_paths(content)
   local paths = {}
 
   -- @WebServlet annotation with urlPatterns (array) - match everything between braces
-  local urlPatterns = content:match "@WebServlet[^)]*urlPatterns[^=]*=%s*{([^}]+)}"
+  local urlPatterns = content:match "urlPatterns%s*=%s*{([^}]+)}"
   if urlPatterns then
     -- Extract all quoted strings from the array
     for path in urlPatterns:gmatch '"([^"]+)"' do
@@ -262,7 +262,7 @@ function ServletParser:_extract_webservlet_paths(content)
 
   -- @WebServlet annotation with value attribute (array) - match everything between braces
   if #paths == 0 then
-    local value = content:match "@WebServlet[^)]*value[^=]*=%s*{([^}]+)}"
+    local value = content:match "@WebServlet%(.*value[^=]*=%s*{([^}]+)}"
     if value then
       for path in value:gmatch '"([^"]+)"' do
         table.insert(paths, path)
@@ -272,7 +272,7 @@ function ServletParser:_extract_webservlet_paths(content)
 
   -- @WebServlet annotation with urlPatterns (single string)
   if #paths == 0 then
-    local path = content:match '@WebServlet[^)]*urlPatterns[^=]*=%s*"([^"]+)"'
+    local path = content:match '@WebServlet%(.*urlPatterns[^=]*=%s*"([^"]+)"'
     if path then
       table.insert(paths, path)
     end
@@ -280,7 +280,7 @@ function ServletParser:_extract_webservlet_paths(content)
 
   -- @WebServlet annotation with value attribute (single string)
   if #paths == 0 then
-    local path = content:match '@WebServlet[^)]*value[^=]*=%s*"([^"]+)"'
+    local path = content:match '@WebServlet%(.*value[^=]*=%s*"([^"]+)"'
     if path then
       table.insert(paths, path)
     end
@@ -288,7 +288,7 @@ function ServletParser:_extract_webservlet_paths(content)
 
   -- @WebServlet simple form (single path)
   if #paths == 0 then
-    local path = content:match '@WebServlet%s*%([^)]*"([^"]+)"'
+    local path = content:match '@WebServlet%s*%(%s*"([^"]+)"'
     if path then
       table.insert(paths, path)
     end

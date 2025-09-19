@@ -59,16 +59,30 @@ function RailsParser:parse_content(content, file_path, line_number, column)
     return nil
   end
 
-  -- Check for resources routes first (they generate multiple endpoints)
-  local resources_results = self:_process_resources_route(content, file_path, line_number, column)
-  if resources_results then
-    return resources_results
+  -- Handle routes.rb files for resource discovery
+  if file_path and file_path:match "routes%.rb$" then
+    -- Process resources routes first (they generate multiple endpoints)
+    local resources_results = self:_process_resources_route(content, file_path, line_number, column)
+    if resources_results then
+      return resources_results
+    end
+
+    -- Check for nested routes
+    local nested_results = self:_process_nested_routes(content, file_path, line_number, column)
+    if nested_results then
+      return nested_results
+    end
+
+    -- Skip other routes.rb content for line-by-line parsing
+    return nil
   end
 
-  -- Check for nested routes
-  local nested_results = self:_process_nested_routes(content, file_path, line_number, column)
-  if nested_results then
-    return nested_results
+  -- For controller files, check for controller actions
+  if file_path and file_path:match "controllers/.*%.rb$" then
+    local controller_result = self:_process_controller_action(content, file_path, line_number, column)
+    if controller_result then
+      return controller_result
+    end
   end
 
   -- Fall back to parent implementation for single endpoint parsing
@@ -151,6 +165,11 @@ end
 
 ---Checks if content represents a valid Rails route line
 function RailsParser:_is_valid_route_line(content)
+  -- Allow method definitions (controller actions) but filter out other patterns
+  if content:match "def%s+%w+" then
+    return true -- Allow controller action definitions
+  end
+
   return not (
     content:match "@%w+%s*=" -- Assignment like @post =
     or content:match "%.%w+" -- Method calls like Post.find
@@ -158,7 +177,6 @@ function RailsParser:_is_valid_route_line(content)
     or content:match "^%s*#" -- Comments
     or content:match "require" -- require statements
     or content:match "include" -- include statements
-    or content:match "def%s+%w+" -- method definitions
   )
 end
 
@@ -278,10 +296,28 @@ function RailsParser:_process_controller_action(content, file_path, line_number,
   end
 
   local base_path = namespace_path .. "/" .. controller_name
-  local endpoint_path = action_name == "index" and base_path
-    or (action_name == "show" or action_name == "edit" or action_name == "update" or action_name == "destroy") and (base_path .. "/:id")
-    or action_name == "new" and (base_path .. "/new")
-    or (base_path .. "/" .. action_name)
+  local endpoint_path
+  if action_name == "index" then
+    endpoint_path = base_path
+  elseif action_name == "show" or action_name == "update" or action_name == "destroy" then
+    endpoint_path = base_path .. "/:id"
+  elseif action_name == "edit" then
+    endpoint_path = base_path .. "/:id/edit"
+  elseif action_name == "new" then
+    endpoint_path = base_path .. "/new"
+  elseif action_name == "create" then
+    endpoint_path = base_path  -- create uses base path without /create suffix
+  else
+    -- Custom actions: determine if member or collection based on routes.rb
+    local is_member_route = self:_is_member_route(controller_name, action_name)
+    if is_member_route then
+      -- Member routes: require ID
+      endpoint_path = base_path .. "/:id/" .. action_name
+    else
+      -- Collection routes: no ID required
+      endpoint_path = base_path .. "/" .. action_name
+    end
+  end
 
   return {
     method = method,
@@ -315,8 +351,22 @@ function RailsParser:_process_resources_route(content, file_path, line_number, c
 
   -- Extract all resource names (handling both single and multiple)
   local resource_names = {}
-  for resource_name in content:gmatch ":([%w_]+)" do
-    table.insert(resource_names, resource_name)
+
+  -- More specific pattern to extract resource names only from the start of resources declaration
+  -- This avoids matching symbols in except/only clauses
+
+  -- First, extract the part before any options (only:, except:, do)
+  local main_part = content:match("^%s*resources?%s+(.+)$")
+  if main_part then
+    -- Clean up the main part by removing any trailing options and 'do'
+    main_part = main_part:gsub("%s*do%s*$", "")  -- remove trailing 'do'
+    main_part = main_part:gsub("%s*,%s*only:.*$", "")  -- remove only clause
+    main_part = main_part:gsub("%s*,%s*except:.*$", "")  -- remove except clause
+
+    -- Now extract resource names from the cleaned part
+    for resource_name in main_part:gmatch ":([%w_]+)" do
+      table.insert(resource_names, resource_name)
+    end
   end
 
   if #resource_names == 0 then
@@ -331,17 +381,30 @@ function RailsParser:_process_resources_route(content, file_path, line_number, c
     local only_actions = {}
     local except_actions = {}
 
-    local only_clause = content:match "only:%s*%[([^%]]+)%]"
+    -- Handle both :symbol syntax and %i[] syntax for only/except clauses
+    local only_clause = content:match "only:%s*%[([^%]]+)%]" or content:match "only:%s*%%i%[([^%]]+)%]"
     if only_clause then
+      -- Handle both :symbol and word syntax
       for action in only_clause:gmatch ":([%w_]+)" do
         only_actions[action] = true
       end
+      for action in only_clause:gmatch "([%w_]+)" do
+        if not action:match "^:" then -- Skip if it starts with :, already processed
+          only_actions[action] = true
+        end
+      end
     end
 
-    local except_clause = content:match "except:%s*%[([^%]]+)%]"
+    local except_clause = content:match "except:%s*%[([^%]]+)%]" or content:match "except:%s*%%i%[([^%]]+)%]"
     if except_clause then
+      -- Handle both :symbol and word syntax
       for action in except_clause:gmatch ":([%w_]+)" do
         except_actions[action] = true
+      end
+      for action in except_clause:gmatch "([%w_]+)" do
+        if not action:match "^:" then -- Skip if it starts with :, already processed
+          except_actions[action] = true
+        end
       end
     end
 
@@ -584,29 +647,11 @@ function RailsParser:_find_parent_resource(file_path, line_number)
     return nil
   end
 
-  -- First check if we're in a member or collection block
-  local in_member_collection = false
-  local member_start = nil
-
-  -- Search backwards to find member/collection block start
-  for i = line_number - 1, 1, -1 do
-    local line = content[i]
-    if line:match "member%s+do" or line:match "collection%s+do" then
-      in_member_collection = true
-      member_start = i
-      break
-    elseif line:match "^%s*end%s*$" then
-      break -- Hit an end before finding member/collection
-    end
-  end
-
-  -- If we're in member/collection, search from that block start
-  local search_start = in_member_collection and member_start or line_number
-
-  -- Search backwards to find the containing resources block
+  -- Track nesting depth to properly handle nested structures
   local depth = 0
 
-  for i = (search_start or line_number) - 1, 1, -1 do
+  -- Search backwards from current line to find the parent resources block
+  for i = line_number - 1, 1, -1 do
     local line = content[i]
 
     -- Count 'end' statements (going backwards, so 'end' increases depth)
@@ -614,24 +659,33 @@ function RailsParser:_find_parent_resource(file_path, line_number)
       depth = depth + 1
     -- Found a 'do' block - check what type
     elseif line:match "%s+do%s*$" then
-      if line:match "resources%s+:([%w_]+)%s+do" then
-        -- This is a resources block with 'do'
-        local resource_name = line:match "resources%s+:([%w_]+)"
+      -- Check if this is a resources block with 'do'
+      local resource_name = line:match "^%s*resources%s+:([%w_]+)%s+do"
+      if resource_name then
         if depth == 0 then
-          -- This is the immediate parent resource
+          -- This is the immediate parent resources block
           return resource_name
         else
           -- Deeper nested block, reduce depth and continue
           depth = depth - 1
         end
-      elseif line:match "namespace%s+:([%w_]+)%s+do" then
-        -- Skip namespace blocks - they don't create nesting relationships
-        depth = depth - 1
       else
-        -- Other 'do' blocks (member, collection, etc.)
-        depth = depth - 1
+        -- Other 'do' blocks (member, collection, namespace, etc.)
+        if depth > 0 then
+          depth = depth - 1
+        end
       end
-    elseif line:match "Rails%.application%.routes%.draw" then
+    -- Check for resources without 'do' (single line resources)
+    elseif depth == 0 then
+      local resource_name = line:match "^%s*resources%s+:([%w_]+)"
+      if resource_name and not line:match "except:" and not line:match "only:" then
+        -- Found a parent resources declaration
+        return resource_name
+      end
+    end
+
+    -- If we hit the start of routes, stop searching
+    if line:match "Rails%.application%.routes%.draw" then
       break
     end
   end
@@ -799,6 +853,79 @@ function RailsParser:_is_rails_content(content)
     or content:match "scope%s"
     or content:match "root%s"
     or content:match "def%s+[%w_]+"     -- Method definitions
+end
+
+---Checks if a controller has resources defined in routes.rb
+function RailsParser:_has_resources_defined(resource_name)
+  -- Find the routes.rb file
+  local routes_file = "config/routes.rb"
+  if vim.fn.filereadable(routes_file) == 0 then
+    routes_file = "tests/fixtures/rails/config/routes.rb"
+    if vim.fn.filereadable(routes_file) == 0 then
+      return false
+    end
+  end
+
+  local lines = vim.fn.readfile(routes_file) or {}
+
+  for _, line in ipairs(lines) do
+    -- Check for resources declarations for this resource
+    if line:match("resources%s+:" .. resource_name) or line:match("resource%s+:" .. resource_name) then
+      return true
+    end
+  end
+
+  return false
+end
+
+---Checks if an action is defined as a member route in routes.rb
+function RailsParser:_is_member_route(controller_name, action_name)
+  -- Find the routes.rb file
+  local routes_file = "config/routes.rb"
+  if vim.fn.filereadable(routes_file) == 0 then
+    routes_file = "tests/fixtures/rails/config/routes.rb"
+    if vim.fn.filereadable(routes_file) == 0 then
+      -- Default to collection route if routes.rb not found
+      return false
+    end
+  end
+
+  local lines = vim.fn.readfile(routes_file) or {}
+  local in_resources_block = false
+  local in_member_block = false
+  local in_collection_block = false
+  local resource_name = controller_name
+
+  for _, line in ipairs(lines) do
+    -- Check if we're entering the correct resources block
+    if line:match("resources%s+:" .. resource_name) then
+      in_resources_block = true
+    elseif in_resources_block and line:match("^%s*end%s*$") then
+      -- Exiting resources block
+      in_resources_block = false
+      in_member_block = false
+      in_collection_block = false
+    elseif in_resources_block then
+      -- Check for member/collection blocks
+      if line:match("member%s+do") then
+        in_member_block = true
+        in_collection_block = false
+      elseif line:match("collection%s+do") then
+        in_collection_block = true
+        in_member_block = false
+      elseif line:match("^%s*end%s*$") then
+        in_member_block = false
+        in_collection_block = false
+      elseif in_member_block and line:match(":" .. action_name) then
+        return true
+      elseif in_collection_block and line:match(":" .. action_name) then
+        return false
+      end
+    end
+  end
+
+  -- Default to collection route if not found in member block
+  return false
 end
 
 return RailsParser

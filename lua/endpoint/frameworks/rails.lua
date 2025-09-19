@@ -21,11 +21,34 @@ function RailsFramework:new()
         "def\\s+show",
         "def\\s+new",
         "def\\s+edit",
+        "def\\s+profile",
+        "def\\s+search",
+        "def\\s+featured",
+        "def\\s+on_sale",
       },
-      POST = { "post\\s+", "resources\\s+", "resource\\s+", "def\\s+create" },
+      POST = {
+        "post\\s+",
+        "resources\\s+",
+        "resource\\s+",
+        "def\\s+create",
+        "def\\s+like",
+        "def\\s+share"
+      },
       PUT = { "put\\s+", "resources\\s+", "resource\\s+", "def\\s+update" },
-      PATCH = { "patch\\s+", "resources\\s+", "resource\\s+", "def\\s+update" },
-      DELETE = { "delete\\s+", "resources\\s+", "resource\\s+", "def\\s+destroy" },
+      PATCH = {
+        "patch\\s+",
+        "resources\\s+",
+        "resource\\s+",
+        "def\\s+update",
+        "def\\s+update_status"
+      },
+      DELETE = {
+        "delete\\s+",
+        "resources\\s+",
+        "resource\\s+",
+        "def\\s+destroy",
+        "def\\s+unlike"
+      },
     },
     search_options = { "--type", "ruby" },
     controller_extractors = {

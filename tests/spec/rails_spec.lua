@@ -77,8 +77,8 @@ describe("RailsFramework", function()
 
       assert.is_not_nil(result)
       assert.equals("POST", result.method)
-      -- According to current implementation, create generates /users/create path
-      assert.equals("/users/create", result.endpoint_path)
+      -- Rails create action uses base path without /create suffix
+      assert.equals("/users", result.endpoint_path)
     end)
 
     it("should parse update action with PATCH method", function()
@@ -114,7 +114,7 @@ describe("RailsFramework", function()
 
       assert.is_not_nil(result)
       assert.equals("GET", result.method)
-      assert.equals("/users/profile", result.endpoint_path)
+      assert.equals("/users/:id/profile", result.endpoint_path)
     end)
   end)
 

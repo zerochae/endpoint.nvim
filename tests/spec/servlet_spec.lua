@@ -119,7 +119,7 @@ describe("ServletFramework", function()
       local result = parser:parse_content(content, "UserServlet.java", 1, 1)
 
       if result then
-        assert.is_string(result.endpoint_path)
+        assert.is_true(#result == 2)
       end
     end)
   end)
@@ -270,4 +270,3 @@ describe("ServletParser", function()
     end)
   end)
 end)
-
