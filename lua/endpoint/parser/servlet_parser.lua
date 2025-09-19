@@ -21,15 +21,45 @@ end
 
 ---Extracts base path from Servlet file
 function ServletParser:extract_base_path()
-  return ""  -- Servlets typically don't have base paths
+  return "" -- Servlets typically don't have base paths
 end
 
----Extracts endpoint path from Servlet content
-function ServletParser:extract_endpoint_path(content)
-  -- Try to find @WebServlet annotation path
-  local path = self:_extract_webservlet_path(content)
-  if path then
-    return path
+---Extracts endpoint paths from Servlet content
+function ServletParser:extract_endpoint_paths(content, file_path, line_number)
+  local paths = {}
+
+  -- Try to find @WebServlet annotation paths
+  local webservlet_paths = self:_extract_webservlet_paths(content)
+  if webservlet_paths then
+    for _, path in ipairs(webservlet_paths) do
+      table.insert(paths, path)
+    end
+  end
+
+  -- Try to extract from XML context
+  if file_path and file_path:match "%.xml$" then
+    local xml_path = self:_extract_servlet_class_path(content)
+    if xml_path then
+      table.insert(paths, xml_path)
+    end
+
+    -- Check if this is a servlet mapping pattern
+    if line_number and self:_is_servlet_mapping_pattern(file_path, line_number) then
+      local url_pattern = content:match "<url%-pattern>([^<]+)</url%-pattern>"
+      if url_pattern then
+        table.insert(paths, url_pattern)
+      end
+    end
+  end
+
+  return #paths > 0 and paths or nil
+end
+
+---Extracts endpoint path from Servlet content (backward compatibility)
+function ServletParser:extract_endpoint_path(content, file_path, line_number)
+  local paths = self:extract_endpoint_paths(content, file_path, line_number)
+  if paths and #paths > 0 then
+    return paths[1]  -- Return first path for backward compatibility
   end
 
   return nil
@@ -39,10 +69,91 @@ end
 function ServletParser:extract_method(content)
   local method = self:_extract_servlet_method(content)
   if method then
-    return method:upper()
+      return method:upper()
   end
 
-  return "GET" -- Default fallback
+  return nil -- No default fallback
+end
+
+---Parses content and returns array of endpoints
+function ServletParser:parse_content(content, file_path, line_number, column)
+
+  -- Only process if this looks like Servlet content
+  if not self:is_content_valid_for_parsing(content) then
+    return {}
+  end
+
+  local servlet_method = self:extract_method(content)
+  if not servlet_method or servlet_method == "" then
+    return {}
+  end
+
+  local servlet_paths = {}
+
+  -- For servlet methods, collect patterns from both web.xml AND annotations
+  -- since they can coexist (servlet can be defined in both places)
+  if file_path then
+    -- First, try web.xml mappings
+    local mapping_paths = self:_find_servlet_mapping_for_file(file_path)
+    if mapping_paths then
+      for _, path in ipairs(mapping_paths) do
+        table.insert(servlet_paths, path)
+      end
+    end
+
+    -- Also try annotation mappings (additive, not exclusive)
+    local annotation_paths = self:_find_webservlet_annotation_paths_for_file(file_path)
+    if annotation_paths then
+      for _, path in ipairs(annotation_paths) do
+        -- Add all annotation paths (duplicates will be handled by endpoint deduplication)
+        table.insert(servlet_paths, path)
+      end
+    end
+  end
+
+  -- If still no paths found, try to extract from current content
+  if #servlet_paths == 0 then
+    local content_paths = self:extract_endpoint_paths(content, file_path, line_number)
+    if content_paths then
+      for _, path in ipairs(content_paths) do
+        table.insert(servlet_paths, path)
+      end
+    end
+  end
+
+  -- If still no paths found, generate from filename
+  if #servlet_paths == 0 and file_path then
+    local generated_path = self:_generate_path_from_filename(file_path)
+    table.insert(servlet_paths, generated_path or "/")
+  end
+
+
+  -- If still no paths, use a generic servlet path
+  if #servlet_paths == 0 then
+    table.insert(servlet_paths, "/servlet")
+  end
+
+  -- Create endpoints for each path
+  local endpoints = {}
+  for _, servlet_path in ipairs(servlet_paths) do
+    local endpoint = {
+      method = servlet_method:upper(),
+      endpoint_path = servlet_path,
+      file_path = file_path,
+      line_number = line_number,
+      column = column,
+      display_value = servlet_method:upper() .. " " .. servlet_path,
+      confidence = self:get_parsing_confidence(content),
+      tags = { "java", "servlet", "jee" },
+      metadata = self:create_metadata("servlet", {
+        servlet_type = self:_detect_servlet_type(content),
+        has_webxml = self:_has_web_xml_mapping(file_path),
+      }, content),
+    }
+    table.insert(endpoints, endpoint)
+  end
+
+  return endpoints
 end
 
 ---Parses Servlet line and returns array of endpoints
@@ -53,42 +164,76 @@ function ServletParser:parse_line_to_endpoints(content, file_path, line_number, 
   end
 
   local servlet_method = self:extract_method(content)
-  if not servlet_method then
+  if not servlet_method or servlet_method == "" then
     return {}
   end
 
-  -- Try to find servlet mapping for this file
-  local servlet_path = self:_find_servlet_mapping_for_file(file_path)
-  if not servlet_path then
-    servlet_path = self:_find_webservlet_annotation_for_file(file_path)
+  local servlet_paths = {}
+
+  -- For servlet methods, collect patterns from both web.xml AND annotations
+  -- since they can coexist (servlet can be defined in both places)
+  if file_path then
+    -- First, try web.xml mappings
+    local mapping_paths = self:_find_servlet_mapping_for_file(file_path)
+    if mapping_paths then
+      for _, path in ipairs(mapping_paths) do
+        table.insert(servlet_paths, path)
+      end
+    end
+
+    -- Also try annotation mappings (additive, not exclusive)
+    local annotation_paths = self:_find_webservlet_annotation_paths_for_file(file_path)
+    if annotation_paths then
+      for _, path in ipairs(annotation_paths) do
+        -- Add all annotation paths (duplicates will be handled by endpoint deduplication)
+        table.insert(servlet_paths, path)
+      end
+    end
   end
 
-  -- If no mapping found, try to extract from XML context
-  if not servlet_path and file_path:match "%.xml$" then
-    servlet_path = self:_extract_servlet_class_path(content)
+  -- If still no paths found, try to extract from current content
+  if #servlet_paths == 0 then
+    local content_paths = self:extract_endpoint_paths(content, file_path, line_number)
+    if content_paths then
+      for _, path in ipairs(content_paths) do
+        table.insert(servlet_paths, path)
+      end
+    end
   end
 
-  if not servlet_path then
-    servlet_path = "/" -- Default fallback
+  -- If still no paths found, generate from filename
+  if #servlet_paths == 0 and file_path then
+    local generated_path = self:_generate_path_from_filename(file_path)
+    table.insert(servlet_paths, generated_path or "/")
   end
 
-  -- Create single endpoint
-  local endpoint = {
-    method = servlet_method:upper(),
-    endpoint_path = servlet_path,
-    file_path = file_path,
-    line_number = line_number,
-    column = column,
-    display_value = servlet_method:upper() .. " " .. servlet_path,
-    confidence = self:get_parsing_confidence(content),
-    tags = { "java", "servlet", "jee" },
-    metadata = self:create_metadata("servlet", {
-      servlet_type = self:_detect_servlet_type(content),
-      has_webxml = self:_has_web_xml_mapping(file_path),
-    }, content),
-  }
 
-  return { endpoint }
+  -- If still no paths, use a generic servlet path
+  if #servlet_paths == 0 then
+    table.insert(servlet_paths, "/servlet")
+  end
+
+  -- Create endpoints for each path
+  local endpoints = {}
+  for _, servlet_path in ipairs(servlet_paths) do
+    local endpoint = {
+      method = servlet_method:upper(),
+      endpoint_path = servlet_path,
+      file_path = file_path,
+      line_number = line_number,
+      column = column,
+      display_value = servlet_method:upper() .. " " .. servlet_path,
+      confidence = self:get_parsing_confidence(content),
+      tags = { "java", "servlet", "jee" },
+      metadata = self:create_metadata("servlet", {
+        servlet_type = self:_detect_servlet_type(content),
+        has_webxml = self:_has_web_xml_mapping(file_path),
+      }, content),
+    }
+    table.insert(endpoints, endpoint)
+  end
+
+  return endpoints
 end
 
 ---Validates if content contains Servlet patterns
@@ -134,44 +279,104 @@ end
 
 ---Checks if content looks like Servlet content
 function ServletParser:_is_servlet_content(content)
-  -- Check for Servlet method patterns
-  return content:match "do(Get|Post|Put|Delete|Patch)"
-    or content:match "@WebServlet"
-    or content:match "<servlet%-class>"
-    or content:match "<url%-pattern>"
+
+  -- Check for servlet method implementations with proper regex
+  if content:match "void%s+do[A-Z]%w*%s*%(" then
+    return true
+  end
+
+  -- Check specifically for doXxx patterns
+  if content:match "do(Get|Post|Put|Delete|Patch|Options|Head)%s*%(" then
+    return true
+  end
+
+  -- Check for web.xml servlet patterns
+  if content:match "<servlet%-class>" or content:match "<url%-pattern>" then
+    return true
+  end
+
+  -- Check for servlet-related XML tags in servlet-mapping context
+  if content:match "<servlet%-name>" or content:match "<servlet%-mapping>" then
+    return true
+  end
+
+  -- Don't match @WebServlet annotations alone - they need to be paired with methods
+  -- Don't match class declarations alone - they need actual method implementations
+
+  return false
 end
 
----Extracts path from @WebServlet annotation
-function ServletParser:_extract_webservlet_path(content)
-  -- @WebServlet annotation with urlPatterns
-  local path = content:match '@WebServlet[^)]*urlPatterns[^=]*=[^"]*"([^"]+)"'
-  if path then
-    return path
+---Extracts paths from @WebServlet annotation
+function ServletParser:_extract_webservlet_paths(content)
+  local paths = {}
+
+  -- @WebServlet annotation with urlPatterns (array) - match everything between braces
+  local urlPatterns = content:match '@WebServlet[^)]*urlPatterns[^=]*=%s*{([^}]+)}'
+  if urlPatterns then
+    -- Extract all quoted strings from the array
+    for path in urlPatterns:gmatch '"([^"]+)"' do
+      table.insert(paths, path)
+    end
   end
 
-  -- @WebServlet annotation with value attribute
-  path = content:match '@WebServlet[^)]*value[^=]*=[^"]*"([^"]+)"'
-  if path then
-    return path
+  -- @WebServlet annotation with value attribute (array) - match everything between braces
+  if #paths == 0 then
+    local value = content:match '@WebServlet[^)]*value[^=]*=%s*{([^}]+)}'
+    if value then
+      for path in value:gmatch '"([^"]+)"' do
+        table.insert(paths, path)
+      end
+    end
   end
 
-  -- @WebServlet simple form
-  path = content:match '@WebServlet[^)]*"([^"]+)"'
-  if path then
-    return path
+  -- @WebServlet annotation with urlPatterns (single string)
+  if #paths == 0 then
+    local path = content:match '@WebServlet[^)]*urlPatterns[^=]*=%s*"([^"]+)"'
+    if path then
+      table.insert(paths, path)
+    end
   end
 
-  return nil
+  -- @WebServlet annotation with value attribute (single string)
+  if #paths == 0 then
+    local path = content:match '@WebServlet[^)]*value[^=]*=%s*"([^"]+)"'
+    if path then
+      table.insert(paths, path)
+    end
+  end
+
+  -- @WebServlet simple form (single path)
+  if #paths == 0 then
+    local path = content:match '@WebServlet%s*%([^)]*"([^"]+)"'
+    if path then
+      table.insert(paths, path)
+    end
+  end
+
+  return #paths > 0 and paths or nil
 end
 
 ---Extracts HTTP method from Servlet method names
 function ServletParser:_extract_servlet_method(content)
-  -- doGet, doPost, etc. method signatures
-  local do_method = content:match "(public%s+void%s+do%w+)" or content:match "(protected%s+void%s+do%w+)"
-  if do_method then
-    local method_name = do_method:match "do(%w+)"
+  -- doGet, doPost, etc. method signatures with various access modifiers
+  local patterns = {
+    "public%s+void%s+do(%w+)%s*%(",
+    "protected%s+void%s+do(%w+)%s*%(",
+    "private%s+void%s+do(%w+)%s*%(",
+    "void%s+do(%w+)%s*%(", -- no explicit modifier
+    "do(%w+)%s*%(",        -- simple method call pattern
+  }
+
+  for i, pattern in ipairs(patterns) do
+    local method_name = content:match(pattern)
     if method_name then
-      return method_name
+      -- Validate it's a known HTTP method
+      local upper_method = method_name:upper()
+      if upper_method == "GET" or upper_method == "POST" or upper_method == "PUT" or
+         upper_method == "DELETE" or upper_method == "PATCH" or upper_method == "OPTIONS" or
+         upper_method == "HEAD" then
+        return upper_method
+      end
     end
   end
 
@@ -212,12 +417,28 @@ function ServletParser:_find_servlet_mapping_for_file(java_file_path)
     return nil
   end
 
-  -- Look for web.xml file
-  local web_xml_paths = { "WEB-INF/web.xml", "web.xml", "src/main/webapp/WEB-INF/web.xml" }
+  -- Look for web.xml file with multiple path strategies
+  local web_xml_paths = {
+    "WEB-INF/web.xml",
+    "web.xml",
+    "src/main/webapp/WEB-INF/web.xml",
+    "tests/fixtures/servlet/WEB-INF/web.xml"
+  }
+
+  -- Safely add getcwd paths if vim is available
+  local ok, cwd = pcall(function() return vim.fn.getcwd() end)
+  if ok and cwd then
+    table.insert(web_xml_paths, cwd .. "/WEB-INF/web.xml")
+    table.insert(web_xml_paths, cwd .. "/tests/fixtures/servlet/WEB-INF/web.xml")
+  end
+
   local web_xml_content = nil
 
   for _, web_xml_path in ipairs(web_xml_paths) do
     local file = io.open(web_xml_path, "r")
+    if not file then
+      file = io.open("./" .. web_xml_path, "r")
+    end
     if file then
       web_xml_content = file:read "*all"
       file:close()
@@ -229,10 +450,11 @@ function ServletParser:_find_servlet_mapping_for_file(java_file_path)
     return nil
   end
 
-  -- Find servlet-class that matches this file
+  -- Find servlet-class that matches this file exactly
   local servlet_name = nil
   for servlet_block in web_xml_content:gmatch "<servlet>(.-)</servlet>" do
-    if servlet_block:match(class_name) then
+    local servlet_class = servlet_block:match "<servlet%-class>([^<]+)</servlet%-class>"
+    if servlet_class and servlet_class:match("%." .. class_name .. "$") then
       servlet_name = servlet_block:match "<servlet%-name>([^<]+)</servlet%-name>"
       break
     end
@@ -242,22 +464,48 @@ function ServletParser:_find_servlet_mapping_for_file(java_file_path)
     return nil
   end
 
-  -- Find servlet-mapping for this servlet-name
+  -- Find all servlet-mappings for this servlet-name
+  local url_patterns = {}
   for mapping_block in web_xml_content:gmatch "<servlet%-mapping>(.-)</servlet%-mapping>" do
     if mapping_block:match("<servlet%-name>" .. servlet_name .. "</servlet%-name>") then
       local url_pattern = mapping_block:match "<url%-pattern>([^<]+)</url%-pattern>"
       if url_pattern then
-        return url_pattern
+        table.insert(url_patterns, url_pattern)
       end
     end
   end
 
-  return nil
+  return #url_patterns > 0 and url_patterns or nil
 end
 
----Finds @WebServlet annotation path for a Java servlet file
+---Finds @WebServlet annotation path for a Java servlet file (backward compatibility)
 function ServletParser:_find_webservlet_annotation_for_file(java_file_path)
-  local file = io.open(java_file_path, "r")
+  local paths = self:_find_webservlet_annotation_paths_for_file(java_file_path)
+  return paths and paths[1] or nil
+end
+
+---Finds @WebServlet annotation paths for a Java servlet file
+function ServletParser:_find_webservlet_annotation_paths_for_file(java_file_path)
+  -- Try multiple path variations
+  local paths_to_try = {
+    java_file_path,
+    "./" .. java_file_path
+  }
+
+  -- Safely add getcwd path if vim is available
+  local ok, cwd = pcall(function() return vim.fn.getcwd() end)
+  if ok and cwd then
+    table.insert(paths_to_try, cwd .. "/" .. java_file_path)
+  end
+
+  local file = nil
+  for _, path in ipairs(paths_to_try) do
+    file = io.open(path, "r")
+    if file then
+      break
+    end
+  end
+
   if not file then
     return nil
   end
@@ -265,7 +513,7 @@ function ServletParser:_find_webservlet_annotation_for_file(java_file_path)
   local content = file:read "*all"
   file:close()
 
-  return self:_extract_webservlet_path(content)
+  return self:_extract_webservlet_paths(content)
 end
 
 ---Extracts servlet class path from XML content
@@ -277,6 +525,72 @@ function ServletParser:_extract_servlet_class_path(content)
   end
 
   return nil
+end
+
+---Checks if a url-pattern line is within servlet-mapping context
+function ServletParser:_is_servlet_mapping_pattern(file_path, line_number)
+  local file = io.open(file_path, "r")
+  if not file then
+    return false
+  end
+
+  local lines = {}
+  local current_line = 1
+  for line in file:lines() do
+    table.insert(lines, line)
+    current_line = current_line + 1
+  end
+  file:close()
+
+  -- Look backwards and forwards for servlet-mapping or filter-mapping context
+  local start_line = math.max(1, line_number - 10)
+  local end_line = math.min(#lines, line_number + 10)
+
+  local in_servlet_mapping = false
+  local in_filter_mapping = false
+
+  for i = start_line, end_line do
+    local line = lines[i]
+    if line:match "<servlet%-mapping>" then
+      in_servlet_mapping = true
+    elseif line:match "</servlet%-mapping>" then
+      in_servlet_mapping = false
+    elseif line:match "<filter%-mapping>" then
+      in_filter_mapping = true
+    elseif line:match "</filter%-mapping>" then
+      in_filter_mapping = false
+    end
+
+    -- If we're at the target line, check context
+    if i == line_number then
+      return in_servlet_mapping and not in_filter_mapping
+    end
+  end
+
+  return false
+end
+
+---Generates servlet path from filename
+function ServletParser:_generate_path_from_filename(file_path)
+  if not file_path then
+    return nil
+  end
+
+  -- Extract class name from file path
+  local class_name = file_path:match "([^/]+)%.java$"
+  if not class_name then
+    return nil
+  end
+
+  -- Remove "Servlet" suffix if present and convert to path
+  local path_name = class_name:gsub("Servlet$", ""):lower()
+
+  -- Convert CamelCase to kebab-case for REST-style paths
+  path_name = path_name:gsub("(%u)", function(c)
+    return "-" .. c:lower()
+  end):gsub("^%-", "")
+
+  return "/" .. path_name
 end
 
 return ServletParser

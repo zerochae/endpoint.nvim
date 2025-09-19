@@ -27,7 +27,9 @@
         <servlet-name>LegacyUserServlet</servlet-name>
         <url-pattern>/legacy/users</url-pattern>
     </servlet-mapping>
-    
+
+    <!-- UserServlet now uses @WebServlet annotation only -->
+
     <!-- Another legacy servlet -->
     <servlet>
         <servlet-name>AdminServlet</servlet-name>
@@ -38,7 +40,20 @@
         <servlet-name>AdminServlet</servlet-name>
         <url-pattern>/admin/*</url-pattern>
     </servlet-mapping>
-    
+
+    <!-- ApiServlet now uses @WebServlet annotation only -->
+
+    <!-- Product servlet -->
+    <servlet>
+        <servlet-name>ProductServlet</servlet-name>
+        <servlet-class>com.example.servlet.ProductServlet</servlet-class>
+    </servlet>
+
+    <servlet-mapping>
+        <servlet-name>ProductServlet</servlet-name>
+        <url-pattern>/products</url-pattern>
+    </servlet-mapping>
+
     <!-- Filter configuration -->
     <filter>
         <filter-name>AuthenticationFilter</filter-name>

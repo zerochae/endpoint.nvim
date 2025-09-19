@@ -67,17 +67,27 @@ function Framework:parse(content, file_path, line_number, column)
     return nil
   end
 
-  local parsed_endpoint = self.parser:parse_content(content, file_path, line_number, column)
+  local parsed_result = self.parser:parse_content(content, file_path, line_number, column)
 
-  if parsed_endpoint then
-    -- Set framework name
-    parsed_endpoint.framework = self.name
-
-    -- Call framework-specific enhancement hook
-    self:_enhance_endpoint(parsed_endpoint, file_path)
+  -- Handle both single endpoint and array of endpoints
+  if parsed_result then
+    if type(parsed_result) == "table" and #parsed_result > 0 then
+      -- Array of endpoints
+      for _, endpoint in ipairs(parsed_result) do
+        endpoint.framework = self.name
+        self:_enhance_endpoint(endpoint, file_path)
+      end
+      -- Return first endpoint for backward compatibility
+      return parsed_result[1]
+    else
+      -- Single endpoint
+      parsed_result.framework = self.name
+      self:_enhance_endpoint(parsed_result, file_path)
+      return parsed_result
+    end
   end
 
-  return parsed_endpoint
+  return nil
 end
 
 ---Hook for framework-specific endpoint enhancement
@@ -201,9 +211,21 @@ function Framework:_parse_result_line(result_line)
   -- Use parser's parse method directly
   local endpoints = {}
   if self.parser then
-    local single_endpoint = self.parser:parse_content(line_content, source_file_path, line_num, col_pos)
-    if single_endpoint then
-      endpoints = { single_endpoint }
+    local parsed_result = self.parser:parse_content(line_content, source_file_path, line_num, col_pos)
+    if parsed_result then
+      if type(parsed_result) == "table" and #parsed_result > 0 then
+        -- Array of endpoints
+        for _, endpoint in ipairs(parsed_result) do
+          endpoint.framework = self.name
+          self:_enhance_endpoint(endpoint, source_file_path)
+          table.insert(endpoints, endpoint)
+        end
+      else
+        -- Single endpoint
+        parsed_result.framework = self.name
+        self:_enhance_endpoint(parsed_result, source_file_path)
+        endpoints = { parsed_result }
+      end
     end
   else
     -- Fallback to framework's parse method
