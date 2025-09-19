@@ -218,7 +218,7 @@ function DotNetParser:_extract_route_info(content)
     return method, path
   end
 
-  -- Pattern 6: [Route] attribute alone (default to GET)
+  -- Pattern 6: [Route] attribute - process and get HTTP method from surrounding lines
   local route_path = content:match "%[Route%([\"']([^\"']+)[\"']"
   if route_path then
     -- Check if there's an HTTP method attribute on the same line
@@ -226,8 +226,8 @@ function DotNetParser:_extract_route_info(content)
     if http_method_match then
       return http_method_match, route_path
     else
-      -- Default to GET if only [Route] is present
-      return "GET", route_path:match("^/") and route_path or ("/" .. route_path)
+      -- If only [Route], default to GET - HTTP method will be determined later
+      return "GET", route_path
     end
   end
 

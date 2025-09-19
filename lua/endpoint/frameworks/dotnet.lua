@@ -11,12 +11,12 @@ function DotNetFramework:new()
     file_extensions = { "*.cs" },
     exclude_patterns = { "**/bin", "**/obj", "**/packages" },
     patterns = {
-      GET = { "\\[Route\\(", "app\\.MapGet", "endpoints\\.MapGet", "\\.Get\\(" },
-      POST = { "\\[Route\\(", "app\\.MapPost", "endpoints\\.MapPost", "\\.Post\\(" },
-      PUT = { "\\[Route\\(", "app\\.MapPut", "endpoints\\.MapPut", "\\.Put\\(" },
-      DELETE = { "\\[Route\\(", "app\\.MapDelete", "endpoints\\.MapDelete", "\\.Delete\\(" },
-      PATCH = { "\\[Route\\(", "app\\.MapPatch", "endpoints\\.MapPatch", "\\.Patch\\(" },
-      HTTP = { "\\[Http(Get|Post|Put|Delete|Patch)" }, -- Catch HTTP attributes for class-level Route controllers
+      ALL = {
+        "\\[Route\\(",
+        "app\\.MapGet", "app\\.MapPost", "app\\.MapPut", "app\\.MapDelete", "app\\.MapPatch",
+        "endpoints\\.MapGet", "endpoints\\.MapPost", "endpoints\\.MapPut", "endpoints\\.MapDelete", "endpoints\\.MapPatch",
+        "\\.Get\\(", "\\.Post\\(", "\\.Put\\(", "\\.Delete\\(", "\\.Patch\\("
+      },
     },
     search_options = { "--case-sensitive", "--type", "csharp" },
     controller_extractors = {
