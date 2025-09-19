@@ -86,10 +86,15 @@ function DotNetParser:parse_content(content, file_path, line_number, column)
 
   -- If endpoint path is empty, check if there's a class-level Route attribute
   if not endpoint_path or endpoint_path == "" then
-    -- For HTTP method attributes without explicit paths, use base path from controller
+    -- For HTTP method attributes without explicit paths, check if there's a meaningful base path
     local base_path = self:extract_base_path(file_path, line_number)
     if base_path and base_path ~= "" then
-      endpoint_path = base_path  -- Use controller base path
+      -- Only use base path if it contains actual route information (not just controller name)
+      if base_path:match("^api/") or base_path:match("^/api/") then
+        endpoint_path = base_path  -- Use controller base path
+      else
+        return nil  -- Base path is just controller name, not useful for routing
+      end
     else
       return nil  -- No route information available
     end
@@ -100,8 +105,11 @@ function DotNetParser:parse_content(content, file_path, line_number, column)
   if endpoint_path:match("^/") then
     -- Absolute path - use as is
     final_path = endpoint_path
+  elseif endpoint_path:match("^api/") then
+    -- Path starting with api/ - treat as absolute
+    final_path = "/" .. endpoint_path
   else
-    -- Relative path or endpoint_path equals base_path - combine properly
+    -- Relative path - combine with base path
     local base_path = self:extract_base_path(file_path, line_number)
 
     -- If endpoint_path is the same as base_path, don't combine

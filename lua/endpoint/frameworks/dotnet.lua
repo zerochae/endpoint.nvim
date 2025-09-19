@@ -11,11 +11,11 @@ function DotNetFramework:new()
     file_extensions = { "*.cs" },
     exclude_patterns = { "**/bin", "**/obj", "**/packages" },
     patterns = {
-      GET = { "\\[Route\\(", "\\[HttpGet", "app\\.MapGet", "endpoints\\.MapGet", "\\.Get\\(" },
-      POST = { "\\[Route\\(", "\\[HttpPost", "app\\.MapPost", "endpoints\\.MapPost", "\\.Post\\(" },
-      PUT = { "\\[Route\\(", "\\[HttpPut", "app\\.MapPut", "endpoints\\.MapPut", "\\.Put\\(" },
-      DELETE = { "\\[Route\\(", "\\[HttpDelete", "app\\.MapDelete", "endpoints\\.MapDelete", "\\.Delete\\(" },
-      PATCH = { "\\[Route\\(", "\\[HttpPatch", "app\\.MapPatch", "endpoints\\.MapPatch", "\\.Patch\\(" },
+      GET = { "\\[Route\\(", "\\[HttpGet\\(", "app\\.MapGet", "endpoints\\.MapGet", "\\.Get\\(" },
+      POST = { "\\[Route\\(", "\\[HttpPost\\(", "app\\.MapPost", "endpoints\\.MapPost", "\\.Post\\(" },
+      PUT = { "\\[Route\\(", "\\[HttpPut\\(", "app\\.MapPut", "endpoints\\.MapPut", "\\.Put\\(" },
+      DELETE = { "\\[Route\\(", "\\[HttpDelete\\(", "app\\.MapDelete", "endpoints\\.MapDelete", "\\.Delete\\(" },
+      PATCH = { "\\[Route\\(", "\\[HttpPatch\\(", "app\\.MapPatch", "endpoints\\.MapPatch", "\\.Patch\\(" },
     },
     search_options = { "--case-sensitive", "--type", "csharp" },
     controller_extractors = {
