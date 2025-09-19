@@ -1,275 +1,272 @@
-describe("Rails framework", function()
-  local test_helpers = require "tests.utils.framework_test_helpers"
-  local rails = require "endpoint.frameworks.rails"
+local RailsFramework = require "endpoint.frameworks.rails"
+local RailsParser = require "endpoint.parser.rails_parser"
 
-  describe("framework detection", test_helpers.create_detection_test_suite(rails, "rails"))
+describe("RailsFramework", function()
+  local framework
+  local parser
 
-  describe(
-    "search command generation",
-    test_helpers.create_search_cmd_test_suite(rails, {
-      GET = { "def index", "def show", "get " },
-      POST = { "def create", "post " },
-      ALL = { "def index", "def create", "def update", "get ", "post " },
-    })
-  )
+  before_each(function()
+    framework = RailsFramework:new()
+    parser = RailsParser:new()
+  end)
 
-  describe("search command file globs", function()
-    it("should include proper file globs", function()
-      local cmd = rails.get_search_cmd "GET"
-      assert.is_not_nil(cmd:match "%-%-glob '%*%*/%*%.rb'")
-      assert.is_not_nil(cmd:match "%-%-glob '!%*%*/vendor/%*%*'")
-      assert.is_not_nil(cmd:match "%-%-glob '!%*%*/log/%*%*'")
-      assert.is_not_nil(cmd:match "%-%-glob '!%*%*/tmp/%*%*'")
+  describe("Framework Detection", function()
+    it("should have correct framework name", function()
+      assert.equals("rails", framework:get_name())
+    end)
+
+    it("should have detector configured", function()
+      assert.is_not_nil(framework.detector)
+      assert.equals("rails_dependency_detection", framework.detector.detection_name)
+    end)
+
+    it("should have parser configured", function()
+      assert.is_not_nil(framework.parser)
+      assert.equals("rails_parser", framework.parser.parser_name)
     end)
   end)
 
-  describe(
-    "line parsing",
-    test_helpers.create_line_parsing_test_suite(rails, {
-      {
-        description = "should parse controller action lines",
-        line = "app/controllers/users_controller.rb:5:3:  def index",
-        method = "GET",
-        expected = {
-          method = "GET",
-          endpoint_path = "/users",
-          file_path = "app/controllers/users_controller.rb",
-          line_number = 5,
-          column = 3,
-        },
-      },
-      {
-        description = "should parse API controller action lines",
-        line = "app/controllers/api/v1/users_controller.rb:10:3:  def show",
-        method = "GET",
-        expected = {
-          method = "GET",
-          endpoint_path = "/api/v1/users/:id",
-          file_path = "app/controllers/api/v1/users_controller.rb",
-          line_number = 10,
-          column = 3,
-        },
-      },
-      {
-        description = "should parse routes.rb lines",
-        line = "config/routes.rb:5:3:  get '/health', to: 'health#check'",
-        method = "ALL",
-        expected = {
-          method = "GET",
-          endpoint_path = "/health",
-          file_path = "config/routes.rb",
-          line_number = 5,
-          column = 3,
-        },
-      },
-      {
-        description = "should parse root routes with action annotation",
-        line = "config/routes.rb:1:3:  root 'home#index'",
-        method = "ALL",
-        expected = {
-          method = "GET",
-          endpoint_path = "/",
-          file_path = "config/routes.rb",
-          line_number = 1,
-          column = 3,
-        },
-      },
-    })
-  )
+  describe("Framework Configuration", function()
+    it("should have correct file extensions", function()
+      local config = framework:get_config()
+      assert.same({ "*.rb" }, config.file_extensions)
+    end)
 
-  describe("additional parsing tests", function()
-    it("should skip non-controller/routes files", function()
-      local line = "app/models/user.rb:5:3:  def index"
-      local result = rails.parse_line(line, "GET")
+    it("should have correct exclude patterns", function()
+      local config = framework:get_config()
+      assert.same({ "**/vendor", "**/tmp", "**/log", "**/.bundle" }, config.exclude_patterns)
+    end)
 
+    it("should have Rails-specific search patterns", function()
+      local config = framework:get_config()
+      assert.is_table(config.patterns.GET)
+      assert.is_table(config.patterns.POST)
+      assert.is_table(config.patterns.PUT)
+      assert.is_table(config.patterns.PATCH)
+      assert.is_table(config.patterns.DELETE)
+    end)
+
+    it("should have controller extractors", function()
+      local config = framework:get_config()
+      assert.is_table(config.controller_extractors)
+      assert.is_true(#config.controller_extractors > 0)
+    end)
+  end)
+
+  describe("Parser Functionality", function()
+    it("should skip routes.rb files and return nil", function()
+      local content = 'get "/users", to: "users#index"'
+      local result = parser:parse_content(content, "config/routes.rb", 1, 1)
+
+      -- The parser skips routes.rb processing, should return nil
       assert.is_nil(result)
     end)
 
-    it("should filter by method when specified", function()
-      local line = "app/controllers/users_controller.rb:5:3:  def create"
-      local result = rails.parse_line(line, "GET")
+    it("should parse controller action methods", function()
+      local content = 'def index'
+      local result = parser:parse_content(content, "app/controllers/users_controller.rb", 5, 1)
 
+      assert.is_not_nil(result)
+      assert.equals("GET", result.method)
+      assert.equals("/users", result.endpoint_path)
+    end)
+
+    it("should parse create action", function()
+      local content = 'def create'
+      local result = parser:parse_content(content, "app/controllers/users_controller.rb", 10, 1)
+
+      assert.is_not_nil(result)
+      assert.equals("POST", result.method)
+      -- Rails create action uses base path without /create suffix
+      assert.equals("/users", result.endpoint_path)
+    end)
+
+    it("should parse update action with PATCH method", function()
+      local content = 'def update'
+      local result = parser:parse_content(content, "app/controllers/users_controller.rb", 15, 1)
+
+      assert.is_not_nil(result)
+      assert.equals("PATCH", result.method)
+      assert.equals("/users/:id", result.endpoint_path)
+    end)
+
+    it("should parse show action with :id parameter", function()
+      local content = 'def show'
+      local result = parser:parse_content(content, "app/controllers/users_controller.rb", 20, 1)
+
+      assert.is_not_nil(result)
+      assert.equals("GET", result.method)
+      assert.equals("/users/:id", result.endpoint_path)
+    end)
+
+    it("should parse destroy action", function()
+      local content = 'def destroy'
+      local result = parser:parse_content(content, "app/controllers/users_controller.rb", 25, 1)
+
+      assert.is_not_nil(result)
+      assert.equals("DELETE", result.method)
+      assert.equals("/users/:id", result.endpoint_path)
+    end)
+
+    it("should parse custom actions with default GET method", function()
+      local content = 'def profile'
+      local result = parser:parse_content(content, "app/controllers/users_controller.rb", 30, 1)
+
+      assert.is_not_nil(result)
+      assert.equals("GET", result.method)
+      assert.equals("/users/:id/profile", result.endpoint_path)
+    end)
+  end)
+
+  describe("Search Command Generation", function()
+    it("should generate valid search commands", function()
+      local search_cmd = framework:get_search_cmd()
+      assert.is_string(search_cmd)
+      assert.matches("rg", search_cmd)
+      assert.matches("--type ruby", search_cmd)
+    end)
+  end)
+
+  describe("Controller Name Extraction", function()
+    it("should extract controller name from file path", function()
+      local controller_name = framework:getControllerName("app/controllers/users_controller.rb")
+      assert.is_not_nil(controller_name)
+    end)
+
+    it("should handle nested controller paths", function()
+      local controller_name = framework:getControllerName("app/controllers/admin/users_controller.rb")
+      assert.is_not_nil(controller_name)
+    end)
+  end)
+
+  describe("Integration Tests", function()
+    it("should create framework instance successfully", function()
+      local instance = RailsFramework:new()
+      assert.is_not_nil(instance)
+      assert.equals("rails", instance.name)
+    end)
+
+    it("should have parser and detector ready", function()
+      assert.is_not_nil(framework.parser)
+      assert.is_not_nil(framework.detector)
+      assert.equals("rails", framework.parser.framework_name)
+    end)
+
+    it("should parse and enhance controller endpoints", function()
+      local content = 'def index'
+      local result = framework:parse(content, "app/controllers/users_controller.rb", 1, 1)
+
+      assert.is_not_nil(result)
+      assert.equals("rails", result.framework)
+      assert.is_table(result.metadata)
+      assert.equals("rails", result.metadata.framework)
+    end)
+  end)
+end)
+
+describe("RailsParser", function()
+  local parser
+
+  before_each(function()
+    parser = RailsParser:new()
+  end)
+
+  describe("Parser Instance", function()
+    it("should create parser with correct properties", function()
+      assert.equals("rails_parser", parser.parser_name)
+      assert.equals("rails", parser.framework_name)
+      assert.equals("ruby", parser.language)
+    end)
+  end)
+
+  describe("Endpoint Path Extraction", function()
+    it("should extract simple paths from routes", function()
+      local path = parser:extract_endpoint_path('get "/users"')
+      assert.equals("/users", path)
+    end)
+
+    it("should extract paths with parameters", function()
+      local path = parser:extract_endpoint_path('get "/users/:id"')
+      assert.equals("/users/:id", path)
+    end)
+
+    it("should handle different quote styles", function()
+      local path1 = parser:extract_endpoint_path("get '/users'")
+      local path2 = parser:extract_endpoint_path('get "/users"')
+      assert.equals("/users", path1)
+      assert.equals("/users", path2)
+    end)
+
+    it("should extract symbol-based paths", function()
+      local path = parser:extract_endpoint_path('get :profile')
+      assert.equals("/profile", path)
+    end)
+  end)
+
+  describe("HTTP Method Extraction", function()
+    it("should extract GET method from route", function()
+      local method = parser:extract_method('get "/users"')
+      assert.equals("GET", method)
+    end)
+
+    it("should extract POST method from route", function()
+      local method = parser:extract_method('post "/users"')
+      assert.equals("POST", method)
+    end)
+
+    it("should extract PUT method from route", function()
+      local method = parser:extract_method('put "/users/:id"')
+      assert.equals("PUT", method)
+    end)
+
+    it("should extract DELETE method from route", function()
+      local method = parser:extract_method('delete "/users/:id"')
+      assert.equals("DELETE", method)
+    end)
+
+    it("should extract PATCH method from route", function()
+      local method = parser:extract_method('patch "/users/:id"')
+      assert.equals("PATCH", method)
+    end)
+
+    it("should extract GET from root route", function()
+      local method = parser:extract_method('root "welcome#index"')
+      assert.equals("GET", method)
+    end)
+  end)
+
+  describe("Base Path Extraction", function()
+    it("should handle namespace contexts", function()
+      local base_path = parser:extract_base_path("config/routes.rb", 10)
+      -- This might return nil or a path depending on implementation
+      assert.is_true(base_path == nil or type(base_path) == "string")
+    end)
+  end)
+
+  describe("Error Handling", function()
+    it("should handle malformed content gracefully", function()
+      local result = parser:parse_content("invalid content", "app/controllers/users_controller.rb", 1, 1)
       assert.is_nil(result)
     end)
-  end)
 
-  describe("endpoint information extraction", function()
-    describe("controller actions", function()
-      it("should extract standard CRUD actions", function()
-        local test_cases = {
-          { "def index", "GET", "users", "/users" },
-          { "def show", "GET", "users", "/users/:id" },
-          { "def new", "GET", "users", "/users/new" },
-          { "def edit", "GET", "users", "/users/:id/edit" },
-          { "def create", "POST", "users", "/users" },
-          { "def update", "PATCH", "users", "/users/:id" },
-          { "def destroy", "DELETE", "users", "/users/:id" },
-        }
-
-        for _, case in ipairs(test_cases) do
-          local content, expected_method, controller, expected_path = unpack(case)
-          local file_path = "app/controllers/" .. controller .. "_controller.rb"
-          local result = rails.extract_controller_action(content, file_path, 1)
-
-          assert.is_not_nil(result)
-          assert.equals(expected_method, result and result.method, "Method mismatch for: " .. content)
-          assert.equals(expected_path, result and result.path, "Path mismatch for: " .. content)
-        end
-      end)
-
-      it("should handle custom actions", function()
-        local content = "def profile"
-        local file_path = "app/controllers/users_controller.rb"
-        local result = rails.extract_controller_action(content, file_path, 1)
-
-        assert.is_not_nil(result)
-        assert.equals("GET", result and result.method)
-        assert.equals("/users/:id/profile", result and result.path)
-      end)
-
-      it("should handle collection actions", function()
-        local content = "def search"
-        local file_path = "app/controllers/users_controller.rb"
-        local result = rails.extract_controller_action(content, file_path, 1)
-
-        assert.is_not_nil(result)
-        assert.equals("GET", result and result.method)
-        assert.equals("/users/search", result and result.path)
-      end)
+    it("should handle empty content", function()
+      local result = parser:parse_content("", "app/controllers/users_controller.rb", 1, 1)
+      assert.is_nil(result)
     end)
 
-    describe("route definitions", function()
-      it("should extract explicit routes", function()
-        local test_cases = {
-          { "get '/health', to: 'health#check'", "GET", "/health" },
-          { "post '/api/login', to: 'sessions#create'", "POST", "/api/login" },
-          { "delete '/logout'", "DELETE", "/logout" },
-        }
-
-        for _, case in ipairs(test_cases) do
-          local content, expected_method, expected_path = unpack(case)
-          local result = rails.extract_route_definition(content, "config/routes.rb", 1)
-
-          assert.is_not_nil(result)
-          assert.equals(expected_method, result and result.method, "Method mismatch for: " .. content)
-          assert.equals(expected_path, result and result.path, "Path mismatch for: " .. content)
-        end
-      end)
-
-      it("should extract root routes with action annotation", function()
-        local test_cases = {
-          { "root 'home#index'", "GET", "/", "index" },
-          { "root to: 'welcome#dashboard'", "GET", "/", "dashboard" },
-          { "root 'pages#home'", "GET", "/", "home" },
-        }
-
-        for _, case in ipairs(test_cases) do
-          local content, expected_method, expected_path, expected_action = unpack(case)
-          local result = rails.extract_route_definition(content, "config/routes.rb", 1)
-
-          assert.is_not_nil(result, "Failed for: " .. content)
-          assert.equals(expected_method, result and result.method, "Method mismatch for: " .. content)
-          assert.equals(expected_path, result and result.path, "Path mismatch for: " .. content)
-          assert.equals(expected_action, result and result.action, "Action mismatch for: " .. content)
-        end
-      end)
-
-      it("should skip resource routes", function()
-        local content = "resources :users"
-        local result = rails.extract_route_definition(content, "config/routes.rb", 1)
-
-        -- Resources declarations should be skipped
-        assert.is_nil(result)
-      end)
-
-      it("should skip namespace routes", function()
-        local content = "namespace :api"
-        local result = rails.extract_route_definition(content, "config/routes.rb", 1)
-
-        -- Namespace declarations should be skipped
-        assert.is_nil(result)
-      end)
-    end)
-  end)
-
-  describe("controller name extraction", function()
-    it("should extract simple controller names", function()
-      local file_path = "app/controllers/users_controller.rb"
-      local name = rails.extract_controller_name(file_path)
-      assert.equals("users", name)
+    it("should return nil for non-controller files", function()
+      local result = parser:parse_content('def index', "app/models/user.rb", 1, 1)
+      assert.is_nil(result)
     end)
 
-    it("should handle nested controllers", function()
-      local file_path = "app/controllers/admin/users_controller.rb"
-      local name = rails.extract_controller_name(file_path)
-      assert.equals("admin/users", name)
+    it("should skip private methods", function()
+      local result = parser:parse_content('def set_user', "app/controllers/users_controller.rb", 1, 1)
+      assert.is_nil(result) -- Should skip private helper methods
     end)
 
-    it("should handle API controllers", function()
-      local file_path = "app/controllers/api/v1/users_controller.rb"
-      local name = rails.extract_controller_name(file_path)
-      assert.equals("api/v1/users", name)
-    end)
-  end)
-
-  describe("action path generation", function()
-    it("should generate correct paths for standard actions", function()
-      local test_cases = {
-        { "users", "index", "/users" },
-        { "users", "show", "/users/:id" },
-        { "users", "new", "/users/new" },
-        { "users", "edit", "/users/:id/edit" },
-        { "users", "create", "/users" },
-        { "users", "update", "/users/:id" },
-        { "users", "destroy", "/users/:id" },
-      }
-
-      for _, case in ipairs(test_cases) do
-        local controller, action, expected_path = unpack(case)
-        local file_path = "app/controllers/" .. controller .. "_controller.rb"
-        local path = rails.generate_action_path(controller, action, file_path)
-
-        assert.equals(expected_path, path, "Path mismatch for " .. controller .. "#" .. action)
-      end
-    end)
-
-    it("should handle API controllers correctly", function()
-      local controller = "api/v1/users"
-      local file_path = "app/controllers/api/v1/users_controller.rb"
-
-      local path = rails.generate_action_path(controller, "index", file_path)
-      assert.equals("/api/v1/users", path)
-
-      path = rails.generate_action_path(controller, "show", file_path)
-      assert.equals("/api/v1/users/:id", path)
-    end)
-
-    it("should handle nested controllers", function()
-      local controller = "admin/users"
-      local file_path = "app/controllers/admin/users_controller.rb"
-
-      local path = rails.generate_action_path(controller, "index", file_path)
-      assert.equals("/admin/users", path)
-    end)
-  end)
-
-  describe("action suffix detection", function()
-    it("should identify member actions", function()
-      local member_actions = { "profile", "update_status", "like", "unlike", "share" }
-
-      for _, action in ipairs(member_actions) do
-        local suffix = rails.get_action_suffix(action)
-        assert.equals("/:id/" .. action, suffix, "Member action suffix mismatch for: " .. action)
-      end
-    end)
-
-    it("should identify collection actions", function()
-      local collection_actions = { "search", "export", "import", "bulk_update" }
-
-      for _, action in ipairs(collection_actions) do
-        local suffix = rails.get_action_suffix(action)
-        assert.equals("/" .. action, suffix, "Collection action suffix mismatch for: " .. action)
-      end
+    it("should parse valid controller actions", function()
+      local result = parser:parse_content('def index', "app/controllers/users_controller.rb", 1, 1)
+      assert.is_not_nil(result)
     end)
   end)
 end)

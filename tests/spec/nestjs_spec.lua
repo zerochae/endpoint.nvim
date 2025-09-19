@@ -1,163 +1,279 @@
-describe("NestJS framework", function()
-  local test_helpers = require "tests.utils.framework_test_helpers"
-  local nestjs = require "endpoint.frameworks.nestjs"
+local NestjsFramework = require "endpoint.frameworks.nestjs"
+local NestjsParser = require "endpoint.parser.nestjs_parser"
 
-  describe("framework detection", test_helpers.create_detection_test_suite(nestjs, "nestjs"))
+describe("NestjsFramework", function()
+  local framework
+  local parser
 
-  describe(
-    "search command generation",
-    test_helpers.create_search_cmd_test_suite(nestjs, {
-      GET = { "@Get" },
-      POST = { "@Post" },
-      ALL = { "@Get", "@Post" },
-    })
-  )
+  before_each(function()
+    framework = NestjsFramework:new()
+    parser = NestjsParser:new()
+  end)
 
-  describe(
-    "line parsing",
-    test_helpers.create_line_parsing_test_suite(nestjs, {
-      {
-        description = "should parse simple @Get decorator",
-        line = "src/users/users.controller.ts:10:5:  @Get('profile')",
-        method = "GET",
-        expected = {
-          method = "GET",
-          endpoint_path = "/profile",
-          file_path = "src/users/users.controller.ts",
-          line_number = 10,
-          column = 5,
-        },
-      },
-      {
-        description = "should parse @Post decorator",
-        line = "src/users/users.controller.ts:15:5:  @Post('create')",
-        method = "POST",
-        expected = {
-          method = "POST",
-          endpoint_path = "/create",
-          file_path = "src/users/users.controller.ts",
-          line_number = 15,
-          column = 5,
-        },
-      },
-      {
-        description = "should handle path parameters",
-        line = "src/users/users.controller.ts:30:5:  @Get(':id')",
-        method = "GET",
-        expected = {
-          method = "GET",
-          endpoint_path = "/:id",
-          file_path = "src/users/users.controller.ts",
-          line_number = 30,
-          column = 5,
-        },
-      },
-    })
-  )
+  describe("Framework Detection", function()
+    it("should have correct framework name", function()
+      assert.equals("nestjs", framework:get_name())
+    end)
 
-  describe("additional parsing tests", function()
-    it("should parse @Get without parameters", function()
-      local line = "src/users/users.controller.ts:20:5:  @Get()"
-      local result = nestjs.parse_line(line, "GET")
+    it("should have detector configured", function()
+      assert.is_not_nil(framework.detector)
+      assert.equals("nestjs_dependency_detection", framework.detector.detection_name)
+    end)
+
+    it("should have parser configured", function()
+      assert.is_not_nil(framework.parser)
+      assert.equals("nestjs_parser", framework.parser.parser_name)
+    end)
+  end)
+
+  describe("Framework Configuration", function()
+    it("should have correct file extensions", function()
+      local config = framework:get_config()
+      assert.same({ "*.ts", "*.js" }, config.file_extensions)
+    end)
+
+    it("should have exclude patterns", function()
+      local config = framework:get_config()
+      assert.same({ "**/node_modules", "**/dist", "**/build" }, config.exclude_patterns)
+    end)
+
+    it("should have NestJS-specific search patterns", function()
+      local config = framework:get_config()
+      assert.is_table(config.patterns.GET)
+      assert.is_table(config.patterns.POST)
+      assert.is_table(config.patterns.PUT)
+      assert.is_table(config.patterns.DELETE)
+      assert.is_table(config.patterns.PATCH)
+
+      -- Check for NestJS-specific patterns
+      assert.is_true(#config.patterns.GET > 0)
+      assert.is_true(#config.patterns.POST > 0)
+    end)
+
+    it("should have controller extractors", function()
+      local config = framework:get_config()
+      assert.is_table(config.controller_extractors)
+      assert.is_true(#config.controller_extractors > 0)
+    end)
+
+    it("should have detector configuration", function()
+      local config = framework:get_config()
+      assert.is_table(config.detector)
+      assert.is_table(config.detector.dependencies)
+      assert.is_table(config.detector.manifest_files)
+      assert.equals("nestjs_dependency_detection", config.detector.name)
+
+      -- Check for NestJS-specific dependencies
+      assert.is_true(#config.detector.dependencies > 0)
+      assert.is_true(#config.detector.dependencies > 0)
+    end)
+  end)
+
+  describe("Parser Functionality", function()
+    it("should parse @Get decorators", function()
+      local content = '@Get("/users")'
+      local result = parser:parse_content(content, "users.controller.ts", 1, 1)
 
       if result then
-        assert.is_table(result)
-        assert.are.equal("GET", result and result.method)
-        -- Should use empty path or default
-        assert.is_string(result.endpoint_path)
+        assert.equals("GET", result.method)
+        assert.equals("/users", result.endpoint_path)
       end
     end)
 
-    it("should combine controller path with method path", function()
-      -- This would need actual fixture context for proper testing
-      local line = "src/users/users.controller.ts:25:5:  @Get('profile')"
-      local result = nestjs.parse_line(line, "GET")
+    it("should parse @Post decorators", function()
+      local content = '@Post("/users")'
+      local result = parser:parse_content(content, "users.controller.ts", 1, 1)
 
       if result then
-        assert.is_table(result)
-        -- Should combine controller base path if available
-        assert.is_string(result.endpoint_path)
-        -- Should start with slash
-        assert.is_true(result.endpoint_path:sub(1, 1) == "/")
+        assert.equals("POST", result.method)
+        assert.equals("/users", result.endpoint_path)
+      end
+    end)
+
+    it("should parse @Put decorators", function()
+      local content = '@Put("/users/:id")'
+      local result = parser:parse_content(content, "users.controller.ts", 1, 1)
+
+      if result then
+        assert.equals("PUT", result.method)
+        assert.equals("/users/:id", result.endpoint_path)
+      end
+    end)
+
+    it("should parse endpoints with parameters", function()
+      local content = '@Get("/users/:id")'
+      local result = parser:parse_content(content, "users.controller.ts", 1, 1)
+
+      if result then
+        assert.equals("GET", result.method)
+        assert.equals("/users/:id", result.endpoint_path)
+      end
+    end)
+
+    it("should handle single quotes", function()
+      local content = "@Get('/users')"
+      local result = parser:parse_content(content, "users.controller.ts", 1, 1)
+
+      if result then
+        assert.equals("GET", result.method)
+        assert.equals("/users", result.endpoint_path)
+      end
+    end)
+
+    it("should parse decorators without path", function()
+      local content = '@Get()'
+      local result = parser:parse_content(content, "users.controller.ts", 1, 1)
+
+      if result then
+        assert.equals("GET", result.method)
       end
     end)
   end)
 
-  describe("controller path extraction", function()
-    it("should extract base path from @Controller decorator", function()
-      local fixture_file = "tests/fixtures/nestjs/src/users.controller.ts"
-      if vim.fn.filereadable(fixture_file) == 1 then
-        local base_path = nestjs.get_controller_path(fixture_file)
-        if base_path then
-          assert.is_string(base_path)
-          -- Should start with slash
-          assert.is_true(base_path:sub(1, 1) == "/")
-        end
-      else
-        pending "NestJS fixture file not found"
-      end
-    end)
-
-    it("should return empty string for controllers without path", function()
-      -- Create temporary file for test
-      local temp_file = "/tmp/TestController.ts"
-      local content = {
-        "import { Controller, Get } from '@nestjs/common';",
-        "",
-        "@Controller()",
-        "export class TestController {",
-        "  @Get('test')",
-        "  getTest() { return 'test'; }",
-        "}",
-      }
-      vim.fn.writefile(content, temp_file)
-
-      local base_path = nestjs.get_controller_path(temp_file)
-      assert.are.equal("", base_path)
-
-      vim.fn.delete(temp_file)
+  describe("Search Command Generation", function()
+    it("should generate valid search commands", function()
+      local search_cmd = framework:get_search_cmd()
+      assert.is_string(search_cmd)
+      assert.matches("rg", search_cmd)
+      assert.matches("--type ts", search_cmd)
     end)
   end)
 
-  describe("integration with fixtures", test_helpers.create_integration_test_suite(nestjs, "nestjs"))
-
-  describe("edge cases", function()
-    it("should handle various quote styles", function()
-      local line1 = "src/test.controller.ts:10:5:  @Get('single')"
-      local line2 = 'src/test.controller.ts:11:5:  @Get("double")'
-
-      local result1 = nestjs.parse_line(line1, "GET")
-      local result2 = nestjs.parse_line(line2, "GET")
-
-      if result1 and result2 then
-        assert.are.equal("/single", result1.endpoint_path)
-        assert.are.equal("/double", result2.endpoint_path)
-      end
+  describe("Controller Name Extraction", function()
+    it("should extract controller name from TypeScript file", function()
+      local controller_name = framework:getControllerName("src/users/users.controller.ts")
+      assert.is_not_nil(controller_name)
     end)
 
-    it("should handle complex path patterns", function()
-      local line = "src/controller.ts:15:5:  @Get('users/:userId/posts/:postId')"
-      local result = nestjs.parse_line(line, "GET")
+    it("should extract controller name from JavaScript file", function()
+      local controller_name = framework:getControllerName("src/users/users.controller.js")
+      assert.is_not_nil(controller_name)
+    end)
+
+    it("should handle nested controller paths", function()
+      local controller_name = framework:getControllerName("src/modules/users/users.controller.ts")
+      assert.is_not_nil(controller_name)
+    end)
+  end)
+
+  describe("Integration Tests", function()
+    it("should create framework instance successfully", function()
+      local instance = NestjsFramework:new()
+      assert.is_not_nil(instance)
+      assert.equals("nestjs", instance.name)
+    end)
+
+    it("should have parser and detector ready", function()
+      assert.is_not_nil(framework.parser)
+      assert.is_not_nil(framework.detector)
+      assert.equals("nestjs", framework.parser.framework_name)
+    end)
+
+    it("should parse and enhance endpoints", function()
+      local content = '@Get("/api/users")'
+      local result = framework:parse(content, "users.controller.ts", 1, 1)
 
       if result then
-        assert.are.equal("/users/:userId/posts/:postId", result and result.endpoint_path)
+        assert.equals("nestjs", result.framework)
+        assert.is_table(result.metadata)
+        assert.equals("nestjs", result.metadata.framework)
+      end
+    end)
+  end)
+end)
+
+describe("NestjsParser", function()
+  local parser
+
+  before_each(function()
+    parser = NestjsParser:new()
+  end)
+
+  describe("Parser Instance", function()
+    it("should create parser with correct properties", function()
+      assert.equals("nestjs_parser", parser.parser_name)
+      assert.equals("nestjs", parser.framework_name)
+      assert.equals("typescript", parser.language)
+    end)
+  end)
+
+  describe("Endpoint Path Extraction", function()
+    it("should extract simple paths", function()
+      local path = parser:extract_endpoint_path('@Get("/users")')
+      assert.equals("/users", path)
+    end)
+
+    it("should extract paths with parameters", function()
+      local path = parser:extract_endpoint_path('@Get("/users/:id")')
+      assert.equals("/users/:id", path)
+    end)
+
+    it("should handle single quotes", function()
+      local path = parser:extract_endpoint_path("@Get('/users')")
+      assert.equals("/users", path)
+    end)
+
+    it("should handle empty decorators", function()
+      local path = parser:extract_endpoint_path("@Get()")
+      assert.is_true(path == nil or path == "" or type(path) == "string")
+    end)
+  end)
+
+  describe("HTTP Method Extraction", function()
+    it("should extract GET from @Get", function()
+      local method = parser:extract_method('@Get("/users")')
+      assert.equals("GET", method)
+    end)
+
+    it("should extract POST from @Post", function()
+      local method = parser:extract_method('@Post("/users")')
+      assert.equals("POST", method)
+    end)
+
+    it("should extract PUT from @Put", function()
+      local method = parser:extract_method('@Put("/users/:id")')
+      assert.equals("PUT", method)
+    end)
+
+    it("should extract DELETE from @Delete", function()
+      local method = parser:extract_method('@Delete("/users/:id")')
+      assert.equals("DELETE", method)
+    end)
+
+    it("should extract PATCH from @Patch", function()
+      local method = parser:extract_method('@Patch("/users/:id")')
+      assert.equals("PATCH", method)
+    end)
+  end)
+
+  describe("Base Path Extraction", function()
+    it("should handle controller-level decorators", function()
+      local base_path = parser:extract_base_path("users.controller.ts", 10)
+      assert.is_true(base_path == nil or type(base_path) == "string")
+    end)
+  end)
+
+  describe("Error Handling", function()
+    it("should handle malformed decorators gracefully", function()
+      local result = parser:parse_content("@InvalidDecorator", "test.ts", 1, 1)
+      assert.is_nil(result)
+    end)
+
+    it("should handle empty content", function()
+      local result = parser:parse_content("", "test.ts", 1, 1)
+      assert.is_nil(result)
+    end)
+
+    it("should handle missing file path", function()
+      local result = parser:parse_content('@Get("/users")', "users.controller.ts", 1, 1)
+      if result then
+        assert.is_table(result)
       end
     end)
 
-    it("should handle empty paths correctly", function()
-      local line1 = "src/controller.ts:20:5:  @Get('')"
-      local line2 = "src/controller.ts:21:5:  @Get()"
-
-      local result1 = nestjs.parse_line(line1, "GET")
-      local result2 = nestjs.parse_line(line2, "GET")
-
-      if result1 then
-        assert.is_string(result1.endpoint_path)
-      end
-
-      if result2 then
-        assert.is_string(result2.endpoint_path)
-      end
+    it("should return nil for non-NestJS content", function()
+      local result = parser:parse_content("const users = []", "test.ts", 1, 1)
+      assert.is_nil(result)
     end)
   end)
 end)

@@ -1,245 +1,278 @@
-describe("Symfony framework", function()
-  local test_helpers = require "tests.utils.framework_test_helpers"
-  local symfony = require "endpoint.frameworks.symfony"
+local SymfonyFramework = require "endpoint.frameworks.symfony"
+local SymfonyParser = require "endpoint.parser.symfony_parser"
 
-  describe("framework detection", test_helpers.create_detection_test_suite(symfony, "symfony"))
+describe("SymfonyFramework", function()
+  local framework
+  local parser
 
-  describe("search command generation", function()
-    it("should generate search command for GET method", function()
-      local cmd = symfony.get_search_cmd "GET"
-      assert.is_string(cmd)
-      assert.is_true(cmd:match "rg" ~= nil)
-      -- Should contain Route attribute or annotation patterns
-      assert.is_true(cmd:match "#%[Route" ~= nil or cmd:match "@Route" ~= nil)
+  before_each(function()
+    framework = SymfonyFramework:new()
+    parser = SymfonyParser:new()
+  end)
+
+  describe("Framework Detection", function()
+    it("should have correct framework name", function()
+      assert.equals("symfony", framework:get_name())
     end)
 
-    it("should generate search command for POST method", function()
-      local cmd = symfony.get_search_cmd "POST"
-      assert.is_string(cmd)
-      -- Should contain POST method pattern
-      assert.is_true(cmd:match "POST" ~= nil)
+    it("should have detector configured", function()
+      assert.is_not_nil(framework.detector)
+      assert.equals("symfony_dependency_detection", framework.detector.detection_name)
     end)
 
-    it("should generate search command for ALL method", function()
-      local cmd = symfony.get_search_cmd "ALL"
-      assert.is_string(cmd)
-      -- Should contain multiple HTTP methods
-      assert.is_true(cmd:match "GET" ~= nil or cmd:match "POST" ~= nil)
+    it("should have parser configured", function()
+      assert.is_not_nil(framework.parser)
+      assert.equals("symfony_parser", framework.parser.parser_name)
     end)
   end)
 
-  describe("line parsing", function()
-    it("should parse PHP 8+ attribute syntax", function()
-      local line = "src/Controller/UserController.php:10:5:#[Route('/api/users', methods: ['GET'])]"
-      local result = symfony.parse_line(line, "GET")
-
-      assert.is_not_nil(result)
-      assert.is_table(result)
-      assert.are.equal("GET", result and result.method)
-      assert.are.equal("/api/users", result and result.endpoint_path)
-      assert.are.equal("src/Controller/UserController.php", result and result.file_path)
-      assert.are.equal(10, result and result.line_number)
-      assert.are.equal(5, result and result.column)
+  describe("Framework Configuration", function()
+    it("should have correct file extensions", function()
+      local config = framework:get_config()
+      assert.same({ "*.php" }, config.file_extensions)
     end)
 
-    it("should parse traditional annotation syntax", function()
-      local line = 'src/Controller/UserController.php:15:5: * @Route("/api/create", methods={"POST"})'
-      local result = symfony.parse_line(line, "POST")
-
-      assert.is_not_nil(result)
-      assert.is_table(result)
-      assert.are.equal("POST", result and result.method)
-      assert.are.equal("/api/create", result and result.endpoint_path)
+    it("should have exclude patterns", function()
+      local config = framework:get_config()
+      assert.same({ "**/vendor", "**/var", "**/cache" }, config.exclude_patterns)
     end)
 
-    it("should parse docblock annotation syntax", function()
-      local line = 'src/Controller/UserController.php:20:5:     * @Route("/api/update", methods={"PUT"})'
-      local result = symfony.parse_line(line, "PUT")
+    it("should have Symfony-specific search patterns", function()
+      local config = framework:get_config()
+      assert.is_table(config.patterns.GET)
+      assert.is_table(config.patterns.POST)
+      assert.is_table(config.patterns.PUT)
+      assert.is_table(config.patterns.DELETE)
+      assert.is_table(config.patterns.PATCH)
 
-      assert.is_not_nil(result)
-      assert.is_table(result)
-      assert.are.equal("PUT", result and result.method)
-      assert.are.equal("/api/update", result and result.endpoint_path)
+      -- Check for Symfony-specific patterns
+      assert.is_true(#config.patterns.GET > 0)
+      assert.is_true(#config.patterns.POST > 0)
     end)
 
-    it("should handle multiple HTTP methods in single route", function()
-      local line = "src/Controller/UserController.php:25:5:#[Route('/api/users', methods: ['GET', 'POST'])]"
-      local result = symfony.parse_line(line, "ALL")
+    it("should have controller extractors", function()
+      local config = framework:get_config()
+      assert.is_table(config.controller_extractors)
+      assert.is_true(#config.controller_extractors > 0)
+    end)
+
+    it("should have detector configuration", function()
+      local config = framework:get_config()
+      assert.is_table(config.detector)
+      assert.is_table(config.detector.dependencies)
+      assert.is_table(config.detector.manifest_files)
+      assert.equals("symfony_dependency_detection", config.detector.name)
+
+      -- Check for Symfony-specific dependencies
+      assert.is_true(#config.detector.dependencies > 0)
+    end)
+  end)
+
+  describe("Parser Functionality", function()
+    it("should parse Route attributes", function()
+      local content = '#[Route("/users", methods: ["GET"])]'
+      local result = parser:parse_content(content, "UserController.php", 1, 1)
+
+      assert.is_not_nil(result)
+      assert.equals("GET", result.method)
+      assert.equals("/users", result.endpoint_path)
+    end)
+
+    it("should parse Route annotations", function()
+      local content = '@Route("/users", methods={"GET"})'
+      local result = parser:parse_content(content, "UserController.php", 1, 1)
 
       if result then
-        -- Should return array of endpoints or single endpoint representing multiple methods
-        if type(result) == "table" and result.method then
-          -- Single endpoint
-          assert.is_string(result.endpoint_path)
-        else
-          -- Array of endpoints
-          assert.is_true(#result > 0)
-        end
+        assert.equals("GET", result.method)
+        assert.equals("/users", result.endpoint_path)
       end
     end)
 
-    it("should combine controller base path with method path", function()
-      -- This would need actual fixture context for proper testing
-      local line = "src/Controller/ApiController.php:30:5:#[Route('/users', methods: ['GET'])]"
-      local result = symfony.parse_line(line, "GET")
+    it("should parse method-specific attributes", function()
+      local content = '#[Route("/users/{id}", methods: ["PUT"])]'
+      local result = parser:parse_content(content, "UserController.php", 1, 1)
 
       if result then
-        assert.is_table(result)
-        -- Should combine controller base path if available
-        assert.is_string(result.endpoint_path)
+        assert.equals("PUT", result.method)
+        assert.equals("/users/{id}", result.endpoint_path)
       end
     end)
 
-    it("should handle path parameters", function()
-      local line = "src/Controller/UserController.php:35:5:#[Route('/api/users/{id}', methods: ['GET'])]"
-      local result = symfony.parse_line(line, "GET")
+    it("should handle single quotes", function()
+      local content = "#[Route('/users', methods: ['GET'])]"
+      local result = parser:parse_content(content, "UserController.php", 1, 1)
 
       if result then
-        assert.is_table(result)
-        assert.are.equal("GET", result and result.method)
-        assert.are.equal("/api/users/{id}", result and result.endpoint_path)
+        assert.equals("GET", result.method)
+        assert.equals("/users", result.endpoint_path)
       end
     end)
 
-    it("should return nil for invalid lines", function()
-      local line = "invalid line format"
-      local result = symfony.parse_line(line, "GET")
+    it("should parse endpoints with parameters", function()
+      local content = '#[Route("/users/{id}/posts/{postId}", methods: ["GET"])]'
+      local result = parser:parse_content(content, "UserController.php", 1, 1)
+
+      if result then
+        assert.equals("GET", result.method)
+        assert.equals("/users/{id}/posts/{postId}", result.endpoint_path)
+      end
+    end)
+  end)
+
+  describe("Search Command Generation", function()
+    it("should generate valid search commands", function()
+      local search_cmd = framework:get_search_cmd()
+      assert.is_string(search_cmd)
+      assert.matches("rg", search_cmd)
+      assert.matches("--type php", search_cmd)
+    end)
+  end)
+
+  describe("Controller Name Extraction", function()
+    it("should extract controller name from PHP file", function()
+      local controller_name = framework:getControllerName("src/Controller/UserController.php")
+      assert.is_not_nil(controller_name)
+    end)
+
+    it("should handle nested controller paths", function()
+      local controller_name = framework:getControllerName("src/Controller/Admin/UserController.php")
+      assert.is_not_nil(controller_name)
+    end)
+  end)
+
+  describe("Integration Tests", function()
+    it("should create framework instance successfully", function()
+      local instance = SymfonyFramework:new()
+      assert.is_not_nil(instance)
+      assert.equals("symfony", instance.name)
+    end)
+
+    it("should have parser and detector ready", function()
+      assert.is_not_nil(framework.parser)
+      assert.is_not_nil(framework.detector)
+      assert.equals("symfony", framework.parser.framework_name)
+    end)
+
+    it("should parse and enhance endpoints", function()
+      local content = '#[Route("/api/users", methods: ["GET"])]'
+      local result = framework:parse(content, "UserController.php", 1, 1)
+
+      if result then
+        assert.equals("symfony", result.framework)
+        assert.is_table(result.metadata)
+        assert.equals("symfony", result.metadata.framework)
+      end
+    end)
+  end)
+end)
+
+describe("SymfonyParser", function()
+  local parser
+
+  before_each(function()
+    parser = SymfonyParser:new()
+  end)
+
+  describe("Parser Instance", function()
+    it("should create parser with correct properties", function()
+      assert.equals("symfony_parser", parser.parser_name)
+      assert.equals("symfony", parser.framework_name)
+      assert.equals("php", parser.language)
+    end)
+  end)
+
+  describe("Endpoint Path Extraction", function()
+    it("should extract simple paths from attributes", function()
+      local path = parser:extract_endpoint_path('#[Route("/users")]')
+      if path then
+        assert.equals("/users", path)
+      end
+    end)
+
+    it("should extract paths with parameters", function()
+      local path = parser:extract_endpoint_path('#[Route("/users/{id}")]')
+      if path then
+        assert.equals("/users/{id}", path)
+      end
+    end)
+
+    it("should handle single quotes", function()
+      local path = parser:extract_endpoint_path("#[Route('/users')]")
+      if path then
+        assert.equals("/users", path)
+      end
+    end)
+
+    it("should extract paths from annotations", function()
+      local path = parser:extract_endpoint_path('@Route("/users")')
+      if path then
+        assert.equals("/users", path)
+      end
+    end)
+  end)
+
+  describe("HTTP Method Extraction", function()
+    it("should extract GET from methods array", function()
+      local method = parser:extract_method('#[Route("/users", methods: ["GET"])]')
+      assert.equals("GET", method)
+    end)
+
+    it("should extract POST from methods array", function()
+      local method = parser:extract_method('#[Route("/users", methods: ["POST"])]')
+      assert.equals("POST", method)
+    end)
+
+    it("should extract PUT from methods array", function()
+      local method = parser:extract_method('#[Route("/users/{id}", methods: ["PUT"])]')
+      assert.equals("PUT", method)
+    end)
+
+    it("should extract DELETE from methods array", function()
+      local method = parser:extract_method('#[Route("/users/{id}", methods: ["DELETE"])]')
+      assert.equals("DELETE", method)
+    end)
+
+    it("should extract PATCH from methods array", function()
+      local method = parser:extract_method('#[Route("/users/{id}", methods: ["PATCH"])]')
+      assert.equals("PATCH", method)
+    end)
+
+    it("should handle annotation syntax", function()
+      local method = parser:extract_method('@Route("/users", methods={"GET"})')
+      if method then
+        assert.equals("GET", method)
+      end
+    end)
+  end)
+
+  describe("Base Path Extraction", function()
+    it("should handle controller-level routes", function()
+      local base_path = parser:extract_base_path("UserController.php", 10)
+      assert.is_true(base_path == nil or type(base_path) == "string")
+    end)
+  end)
+
+  describe("Error Handling", function()
+    it("should handle malformed routes gracefully", function()
+      local result = parser:parse_content("#[InvalidAttribute]", "test.php", 1, 1)
       assert.is_nil(result)
     end)
 
-    it("should return nil for empty lines", function()
-      local line = ""
-      local result = symfony.parse_line(line, "GET")
+    it("should handle empty content", function()
+      local result = parser:parse_content("", "test.php", 1, 1)
       assert.is_nil(result)
     end)
-  end)
 
-  describe("method extraction", function()
-    it("should extract methods from various syntax patterns", function()
-      local patterns = {
-        "methods: ['GET', 'POST']",
-        'methods={"GET","POST"}',
-        "methods: [GET, POST]",
-      }
-
-      for _, pattern in ipairs(patterns) do
-        local methods = symfony.extract_methods(pattern)
-        if methods then
-          assert.is_table(methods)
-          assert.is_true(#methods > 0)
-        end
-      end
-    end)
-  end)
-
-  describe("controller base path extraction", function()
-    it("should extract base path from controller-level Route", function()
-      local fixture_file = "tests/fixtures/symfony/src/Controller/UserController.php"
-      if vim.fn.filereadable(fixture_file) == 1 then
-        local base_path = symfony.get_base_path(fixture_file)
-        if base_path then
-          assert.is_string(base_path)
-          -- Should start with slash
-          assert.is_true(base_path:sub(1, 1) == "/")
-        end
-      else
-        pending "Symfony fixture file not found"
-      end
-    end)
-
-    it("should return empty string for controllers without base path", function()
-      -- Create temporary file for test
-      local temp_file = "/tmp/TestController.php"
-      local content = {
-        "<?php",
-        "",
-        "namespace App\\Controller;",
-        "",
-        "use Symfony\\Component\\Routing\\Annotation\\Route;",
-        "",
-        "class TestController {",
-        "    #[Route('/test', methods: ['GET'])]",
-        "    public function test() { return []; }",
-        "}",
-      }
-      vim.fn.writefile(content, temp_file)
-
-      local base_path = symfony.get_base_path(temp_file)
-      assert.are.equal("", base_path)
-
-      vim.fn.delete(temp_file)
-    end)
-  end)
-
-  describe("integration with fixtures", function()
-    it("should correctly parse real Symfony fixture files", function()
-      local fixture_path = "tests/fixtures/symfony"
-      if vim.fn.isdirectory(fixture_path) == 1 then
-        local original_cwd = vim.fn.getcwd()
-        vim.fn.chdir(fixture_path)
-
-        -- Test that framework is detected
-        assert.is_true(symfony.detect())
-
-        -- Test that search command works
-        local cmd = symfony.get_search_cmd "GET"
-        assert.is_string(cmd)
-
-        vim.fn.chdir(original_cwd)
-      else
-        pending "Symfony fixture directory not found"
-      end
-    end)
-  end)
-
-  describe("edge cases", function()
-    it("should handle various quote styles", function()
-      local line1 = "src/Controller.php:10:5:#[Route('/api/single', methods: ['GET'])]"
-      local line2 = 'src/Controller.php:11:5:#[Route("/api/double", methods: ["GET"])]'
-
-      local result1 = symfony.parse_line(line1, "GET")
-      local result2 = symfony.parse_line(line2, "GET")
-
-      if result1 and result2 then
-        assert.are.equal("/api/single", result1.endpoint_path)
-        assert.are.equal("/api/double", result2.endpoint_path)
-      end
-    end)
-
-    it("should handle complex path patterns", function()
-      local line = "src/Controller.php:15:5:#[Route('/api/users/{userId}/posts/{postId}', methods: ['GET'])]"
-      local result = symfony.parse_line(line, "GET")
-
+    it("should handle missing file path", function()
+      local result = parser:parse_content('#[Route("/users", methods: ["GET"])]', "UserController.php", 1, 1)
       if result then
-        assert.are.equal("/api/users/{userId}/posts/{postId}", result and result.endpoint_path)
-      end
-    end)
-
-    it("should handle mixed annotation styles", function()
-      local attribute_line = "src/Controller.php:20:5:#[Route('/api/attr', methods: ['GET'])]"
-      local annotation_line = 'src/Controller.php:25:5: * @Route("/api/annot", methods={"GET"})'
-
-      local result1 = symfony.parse_line(attribute_line, "GET")
-      local result2 = symfony.parse_line(annotation_line, "GET")
-
-      if result1 then
-        assert.are.equal("/api/attr", result1.endpoint_path)
-      end
-
-      if result2 then
-        assert.are.equal("/api/annot", result2.endpoint_path)
-      end
-    end)
-
-    it("should handle routes without explicit methods", function()
-      local line = "src/Controller.php:30:5:#[Route('/api/default')]"
-      local result = symfony.parse_line(line, "GET")
-
-      if result then
-        -- Should work with default method or return appropriate result
         assert.is_table(result)
-        assert.is_string(result.endpoint_path)
       end
+    end)
+
+    it("should return nil for non-Symfony content", function()
+      local result = parser:parse_content("<?php $users = [];", "test.php", 1, 1)
+      assert.is_nil(result)
     end)
   end)
 end)

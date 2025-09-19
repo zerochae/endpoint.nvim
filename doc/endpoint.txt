@@ -3,11 +3,11 @@
 
     ███████╗███╗   ██╗██████╗ ██████╗  ██████╗ ██╗███╗   ██╗████████╗
     ██╔════╝████╗  ██║██╔══██╗██╔══██╗██╔═══██╗██║████╗  ██║╚══██╔══╝
-    █████╗  ██╔██╗ ██║██║  ██║██████╔╝██║   ██║██║██╔██╗ ██║   ██║   
-    ██╔══╝  ██║╚██╗██║██║  ██║██╔═══╝ ██║   ██║██║██║╚██╗██║   ██║   
-    ███████╗██║ ╚████║██████╔╝██║     ╚██████╔╝██║██║ ╚████║   ██║   
-    ╚══════╝╚═╝  ╚═══╝╚═════╝ ╚═╝      ╚═════╝ ╚═╝╚═╝  ╚═══╝   ╚═╝   
-                                                                     
+    █████╗  ██╔██╗ ██║██║  ██║██████╔╝██║   ██║██║██╔██╗ ██║   ██║
+    ██╔══╝  ██║╚██╗██║██║  ██║██╔═══╝ ██║   ██║██║██║╚██╗██║   ██║
+    ███████╗██║ ╚████║██████╔╝██║     ╚██████╔╝██║██║ ╚████║   ██║
+    ╚══════╝╚═╝  ╚═══╝╚═════╝ ╚═╝      ╚═════╝ ╚═╝╚═╝  ╚═══╝   ╚═╝
+
 Author:   zerochae <https://github.com/zerochae>
 Repo:     https://github.com/zerochae/endpoint.nvim
 License:  MIT
@@ -23,36 +23,36 @@ CONTENTS                                                  *endpoint-toc*
     6. Commands .................................... |endpoint-commands|
     7. Configuration ............................... |endpoint-config|
     8. Picker Options .............................. |endpoint-pickers|
-    9. Caching ..................................... |endpoint-caching|
-    10. Framework Support .......................... |endpoint-frameworks|
-    11. Troubleshooting ............................ |endpoint-troubleshooting|
+    9. Framework Support ........................... |endpoint-frameworks|
+    10. Troubleshooting ............................ |endpoint-troubleshooting|
 
 ==============================================================================
 1. INTRODUCTION                                       *endpoint-intro*
 
 endpoint.nvim is a powerful Neovim plugin for quickly finding and navigating
-API endpoints across multiple web frameworks. It provides fast endpoint 
+API endpoints across multiple web frameworks. It provides fast endpoint
 discovery with multiple picker interfaces and smart caching capabilities.
 
 Supported Frameworks:~
   • Spring Boot (Java) - @GetMapping, @PostMapping, @RequestMapping, etc.
-  • NestJS (TypeScript/JavaScript) - @Get(), @Post(), @Controller(), etc.
-  • Symfony (PHP) - @Route annotations and attributes
-  • FastAPI (Python) - @app.get(), @app.post(), @router.*, etc.
   • Rails (Ruby) - Full controller actions and routes.rb parsing
+  • Symfony (PHP) - @Route annotations and attributes
   • Express (Node.js) - app.method(), router.method(), and destructured patterns
-  • Ktor (Kotlin) - get(), post(), route() blocks with nested routing support
+  • NestJS (TypeScript/JavaScript) - @Get(), @Post(), @Controller(), etc.
+  • FastAPI (Python) - @app.get(), @app.post(), @router.*, etc.
   • .NET Core (C#) - [HttpGet], [HttpPost], Minimal API (app.MapGet), endpoint routing
+  • Ktor (Kotlin) - get(), post(), route() blocks with nested routing support
+  • Java Servlet (Java) - doGet, doPost, @WebServlet annotations
   • React Router (Client-side) - <Route> components with smart component resolution
 
 Features:~
-  • 🔍 Multi-framework endpoint discovery
+  • 🔍 Multi-framework endpoint discovery (10 frameworks)
   • 🎯 Multiple picker interfaces (Telescope, vim.ui.select, Snacks)
   • ⚡ Smart caching with three modes (none, session, persistent)
   • 📍 Precise navigation to exact line where endpoints are defined
   • 🤖 Automatic framework detection
   • 🎨 Customizable icons, colors, and display options
-  • 💎 Rails support with customizable display formats
+  • 🏗️ Modern OOP architecture with unified framework handling
   • 🔧 Simple setup with minimal configuration
 
 ==============================================================================
@@ -61,6 +61,7 @@ Features:~
   • Neovim >= 0.8.0
   • ripgrep (https://github.com/BurntSushi/ripgrep) for fast searching
   • telescope.nvim (optional, only needed if using telescope picker)
+  • snacks.nvim (optional, only needed if using snacks picker)
 
 ==============================================================================
 3. INSTALLATION                                 *endpoint-installation*
@@ -70,7 +71,10 @@ lazy.nvim:~
     {
       "zerochae/endpoint.nvim",
       dependencies = {
-        "nvim-telescope/telescope.nvim", -- Optional: only if using telescope picker
+        -- Choose one or more pickers (all optional):
+        "nvim-telescope/telescope.nvim", -- For telescope picker
+        "folke/snacks.nvim",            -- For snacks picker
+        -- vim.ui.select picker works without dependencies
       },
       cmd = { "Endpoint" },
       config = function()
@@ -82,8 +86,11 @@ lazy.nvim:~
 packer.nvim:~
 >lua
     use {
-      "zerochae/endpoint.nvim", 
-      requires = { "nvim-telescope/telescope.nvim" }, -- Optional
+      "zerochae/endpoint.nvim",
+      requires = {
+        "nvim-telescope/telescope.nvim", -- Optional
+        "folke/snacks.nvim"              -- Optional
+      },
       config = function()
         require("endpoint").setup()
       end,
@@ -103,8 +110,12 @@ endpoint.setup({config})
     Usage: ~
 >lua
         require("endpoint").setup({
-          cache_mode = "none",
-          picker = "telescope",
+          picker = {
+            type = "telescope",
+            options = {
+              telescope = {},
+            },
+          },
           ui = {
             show_icons = true,
             show_method = true,
@@ -120,7 +131,7 @@ The plugin provides commands to find API endpoints by HTTP method:
 Primary Commands:~
     :Endpoint              " Find all endpoints (same as :Endpoint All)
     :Endpoint Get          " Find all GET endpoints
-    :Endpoint Post         " Find all POST endpoints  
+    :Endpoint Post         " Find all POST endpoints
     :Endpoint Put          " Find all PUT endpoints
     :Endpoint Delete       " Find all DELETE endpoints
     :Endpoint Patch        " Find all PATCH endpoints
@@ -136,7 +147,7 @@ Telescope Extension (when using telescope picker):~
     :Telescope endpoint get    " GET endpoints in Telescope
     :Telescope endpoint post   " POST endpoints in Telescope
     :Telescope endpoint put    " PUT endpoints in Telescope
-    :Telescope endpoint delete " DELETE endpoints in Telescope  
+    :Telescope endpoint delete " DELETE endpoints in Telescope
     :Telescope endpoint patch  " PATCH endpoints in Telescope
 
 ==============================================================================
@@ -145,15 +156,16 @@ Telescope Extension (when using telescope picker):~
                                                                       *:Endpoint*
 :Endpoint [{method}]
     Main command for endpoint discovery.
-    
+
     Parameters:~
-        {method}  HTTP method: Get, Post, Put, Delete, Patch, All, 
+        {method}  HTTP method: Get, Post, Put, Delete, Patch, Route, All,
                   ClearCache, or CacheStatus. Defaults to All if not specified.
-    
+
     Examples:~
         :Endpoint              " Find all endpoints (default)
         :Endpoint Get          " Find GET endpoints only
         :Endpoint Post         " Find POST endpoints only
+        :Endpoint Route        " Find React Router routes
         :Endpoint ClearCache   " Clear endpoint cache
         :Endpoint CacheStatus  " Show cache statistics
 
@@ -163,65 +175,65 @@ Telescope Extension (when using telescope picker):~
 Default Configuration:~
 >lua
     require("endpoint").setup({
-      cache_mode = "none",                      -- "none", "session", "persistent"
-      picker = "telescope",                     -- "telescope", "vim_ui_select", "snacks"
-      picker_opts = {},                         -- Additional picker options (Telescope only)
-      
-      ui = {
-        show_icons = true,                      -- Show method icons
-        show_method = true,                     -- Show method text
-        
-        method_icons = {
-          GET = "📥", POST = "📤", PUT = "✏️", 
-          DELETE = "🗑️", PATCH = "🔧",
-        },
-        
-        method_colors = {
-          GET = "TelescopeResultsNumber",
-          POST = "TelescopeResultsConstant", 
-          PUT = "TelescopeResultsKeyword",
-          DELETE = "TelescopeResultsSpecialChar",
-          PATCH = "TelescopeResultsFunction",
+      -- Picker configuration
+      picker = {
+        type = "telescope",               -- "telescope", "vim_ui_select", "snacks"
+        options = {
+          telescope = {},                 -- Telescope-specific options
+          snacks = {},                    -- Snacks-specific options
+          vim_ui_select = {},             -- vim.ui.select-specific options
         },
       },
-      
-      -- Framework-specific configuration
-      frameworks = {
-        rails = {
-          display_format = "smart", -- "action_only", "controller_action", "smart"
-          show_action_annotation = true, -- Show [controller#action] annotations
+
+      -- UI configuration
+      ui = {
+        show_icons = true,                -- Show method icons
+        show_method = true,               -- Show method text
+        methods = {
+          GET = { icon = "📥", color = "TelescopeResultsNumber" },
+          POST = { icon = "📤", color = "TelescopeResultsConstant" },
+          PUT = { icon = "✏️", color = "TelescopeResultsKeyword" },
+          DELETE = { icon = "🗑️", color = "TelescopeResultsSpecialChar" },
+          PATCH = { icon = "🔧", color = "TelescopeResultsFunction" },
+          ROUTE = { icon = "🔗", color = "TelescopeResultsIdentifier" },
         },
+      },
+    })
+<
+
+Legacy Configuration (still supported):~
+>lua
+    require("endpoint").setup({
+      picker = "telescope",             -- @deprecated: use picker.type
+      picker_opts = {                   -- @deprecated: use picker.options
+        telescope = { theme = "dropdown" },
       },
     })
 <
 
 Configuration Options:~
 
-    cache_mode (string): Cache behavior mode. Options:
-        "none"      - Real-time search with no caching (default)
-        "session"   - Cache valid until nvim closes
-        "persistent" - Cache saved to disk, persists across sessions
-    
-    picker (string): UI picker interface. Options:
+    picker.type (string): UI picker interface. Options:
         "telescope"     - Use Telescope interface (default)
         "vim_ui_select" - Use native vim.ui.select
         "snacks"        - Use Snacks.nvim picker
-    
-    picker_opts (table): Picker-specific configuration options.
+
+    picker.options (table): Picker-specific configuration options.
         telescope (table): Options passed to Telescope picker (themes, previewer, etc.)
         snacks (table): Options passed to Snacks.nvim picker (prompt, matcher, etc.)
         vim_ui_select (table): Options for vim.ui.select interface
         Default: { telescope = {}, snacks = {}, vim_ui_select = {} }
-    
-    frameworks.rails.display_format (string): Rails route display format. Options:
-        "action_only"      - Show only action name (GET[#index] /users)
-        "controller_action" - Show controller#action (GET[users#index] /users) 
-        "smart"            - Smart formatting (GET[home#index] /, GET[users#index] /users)
-        Default: "smart"
-        
-    frameworks.rails.show_action_annotation (boolean): Show controller#action annotations.
-        true  - Show annotations like GET[users#index] /users (default)
-        false - Hide annotations, show clean format like GET /users
+
+    ui.show_icons (boolean): Display method icons in the picker
+        Default: true
+
+    ui.show_method (boolean): Display method names in the picker
+        Default: true
+
+    ui.methods (table): Method-specific icon and color configuration
+        Each method can have:
+        - icon (string): Display icon for the method
+        - color (string): Highlight group for coloring
 
 ==============================================================================
 8. PICKER OPTIONS                               *endpoint-pickers*
@@ -231,7 +243,12 @@ The plugin supports multiple UI interfaces for endpoint selection:
 Telescope Picker (Default):~
 >lua
     require("endpoint").setup({
-      picker = "telescope",
+      picker = {
+        type = "telescope",
+        options = {
+          telescope = { theme = "dropdown" },
+        },
+      },
     })
 <
   • Rich fuzzy search interface
@@ -242,7 +259,9 @@ Telescope Picker (Default):~
 Vim UI Select:~
 >lua
     require("endpoint").setup({
-      picker = "vim_ui_select",
+      picker = {
+        type = "vim_ui_select",
+      },
     })
 <
   • Native Neovim interface
@@ -253,7 +272,12 @@ Vim UI Select:~
 Snacks Picker:~
 >lua
     require("endpoint").setup({
-      picker = "snacks",
+      picker = {
+        type = "snacks",
+        options = {
+          snacks = { preview = "file" },
+        },
+      },
     })
 <
   • Modern picker interface using Snacks.nvim
@@ -262,88 +286,90 @@ Snacks Picker:~
   • Clean, fast interface
 
 ==============================================================================
-9. CACHING                                        *endpoint-caching*
+9. FRAMEWORK SUPPORT                            *endpoint-frameworks*
 
-The plugin includes an intelligent caching system with three modes:
+Architecture:~
 
-Cache Modes:~
->lua
-    {
-      cache_mode = "none", -- Cache mode: "none", "session", or "persistent"
-    }
-<
-
-    "none" (default):
-        Real-time search with no caching - always returns the most up-to-date
-        results. Use if you frequently add/modify endpoints during development.
-        
-    "session": 
-        Cache remains valid until nvim is closed. Good balance of performance
-        and freshness for moderate-sized projects.
-        
-    "persistent":
-        Cache is saved to disk and persists across nvim sessions. Best 
-        performance for large, stable projects where endpoint changes are infrequent.
-
-Cache Management:~
-    :Endpoint ClearCache   " Clear all cached data
-    :Endpoint CacheStatus  " Show current cache statistics
-
-The `:Endpoint CacheStatus` command shows current cache information including:
-  • Cache mode (none, session, or persistent)
-  • Number of cached endpoints by method
-  • Cache timestamps and statistics
-
-When to use each cache mode:
-  • None: ✅ Small projects, ✅ Frequently changing endpoints, ❌ Large projects
-  • Session: ✅ Medium projects, ✅ Balance of performance and freshness, ✅ Most use cases  
-  • Persistent: ✅ Large projects, ✅ Stable endpoints, ❌ Frequently changing code
-
-==============================================================================
-10. FRAMEWORK SUPPORT                            *endpoint-frameworks*
+endpoint.nvim uses a modern Object-Oriented architecture with:
+  • Framework: Base class for all framework implementations
+  • Parser: Handles endpoint parsing specific to each framework
+  • Detector: Unified detection system (integrated into Framework)
+  • EndpointManager: Manages all registered frameworks
 
 Framework Detection:~
 
-The plugin automatically detects your framework based on these files:
+The plugin automatically detects your framework based on:
 
-  • Spring Boot: `pom.xml`, `build.gradle`, `build.gradle.kts`, 
-    `application.properties`, `application.yml`
-  • NestJS: `package.json` (with @nestjs dependencies), `nest-cli.json`
-  • Symfony: `composer.json` (with symfony framework), `symfony.lock`
-  • FastAPI: `main.py`, `requirements.txt` (with FastAPI)
+  • Spring Boot: `pom.xml`, `build.gradle`, `build.gradle.kts`,
+    `application.properties`, `application.yml`, `application.yaml`
   • Rails: `Gemfile`, `config/routes.rb`, `config/application.rb`, `app/controllers`
-  • Express: `package.json` (with express dependency)
-  • Ktor: `build.gradle`, `build.gradle.kts` (with ktor dependencies), Kotlin files with routing
-  • .NET Core: `*.csproj`, `*.sln`, `Program.cs`, `appsettings.json`, Controllers directory
-  • React Router: `package.json` (with react-router or react-router-dom)
+  • Symfony: `composer.json`, `composer.lock`, `config/services.yaml`, `config/routes.yaml`
+  • Express: `package.json`, `server.js`, `app.js`, `index.js`
+  • NestJS: `package.json`, `tsconfig.json`, `nest-cli.json`
+  • FastAPI: `requirements.txt`, `pyproject.toml`, `setup.py`, `Pipfile`
+  • .NET Core: `*.csproj`, `*.sln`, `global.json`, `appsettings.json`, `Program.cs`, `Startup.cs`
+  • Ktor: `build.gradle`, `build.gradle.kts`, `pom.xml`
+  • Java Servlet: `web.xml`, `WEB-INF/web.xml`, `src/main/webapp/WEB-INF/web.xml`, `pom.xml`, `build.gradle`
+  • React Router: `package.json`, `tsconfig.json`, `src/`
+
+Supported Patterns:~
+
+  Spring Boot:~
+    @GetMapping, @PostMapping, @PutMapping, @DeleteMapping, @PatchMapping
+    @RequestMapping with method parameters
+
+  Rails:~
+    Controller actions: get, post, put, delete, patch
+    Route definitions: resources, resource, namespace, root
+    Method definitions: def index, def show, def create, etc.
+
+  Symfony:~
+    Route attributes: #[Route(...methods...GET)], #[Route(...methods...POST)]
+    Route annotations: @Route(...methods...GET), @Route(...methods...POST)
+    DocBlock annotations: * @Route(...methods...GET)
+
+  Express:~
+    Method calls: app.get(), app.post(), router.get(), router.post()
+    Destructured patterns: .get(), .post() (from destructured routers)
+
+  NestJS:~
+    Method decorators: @Get(), @Post(), @Put(), @Delete(), @Patch()
+    Controller decorators: @Controller() with HttpCode combinations
+
+  FastAPI:~
+    App methods: @app.get, @app.post, @app.put, @app.delete, @app.patch
+    Router methods: @router.get, @router.post, @router.put, @router.delete, @router.patch
+
+  .NET Core:~
+    HTTP attributes: [HttpGet], [HttpPost], [HttpPut], [HttpDelete], [HttpPatch]
+    Minimal API: app.MapGet, app.MapPost, endpoints.MapGet, endpoints.MapPost
+    Route attributes combined with HTTP attributes
+
+  Ktor:~
+    Route methods: get(), post(), put(), delete(), patch()
+    Generic route calls with method parameters
+
+  Java Servlet:~
+    Servlet methods: doGet, doPost, doPut, doDelete, doPatch
+    WebServlet annotations: @WebServlet
+
+  React Router:~
+    Route components: Route with path attributes
+    Path definitions in JSX/TSX files
 
 Adding New Frameworks:~
 
-The plugin uses a simple framework-based architecture. Each framework is
-implemented as a separate Lua module in `lua/endpoint/frameworks/`.
+The plugin uses a modern OOP architecture. Each framework consists of:
 
-Framework modules must implement:
->lua
-    -- Framework detection
-    function M.detect()
-      -- Return true if framework is detected in current directory
-    end
-    
-    -- Generate search command for method
-    function M.get_search_cmd(method)
-      -- Return ripgrep command to find endpoints
-    end
-    
-    -- Parse search results
-    function M.parse_line(line)
-      -- Parse ripgrep output line and return endpoint data
-    end
-<
+1. Framework Class (inherits from base Framework)
+2. Parser Class (inherits from base Parser)
 
-See the README for detailed examples of adding new framework support.
+Framework classes must be registered in EndpointManager.lua.
+
+See wiki/Adding-New-Frameworks.md for detailed implementation guide.
 
 ==============================================================================
-11. TROUBLESHOOTING                        *endpoint-troubleshooting*
+10. TROUBLESHOOTING                        *endpoint-troubleshooting*
 
 Common Issues:~
 
@@ -353,45 +379,42 @@ A: Make sure you called `require("endpoint").setup()` in your config function.
 
 Q: No endpoints found
 A: Check that:
-   • You're in a supported project (Spring Boot, NestJS, Symfony, FastAPI, Rails, Express, React Router)
-   • Source files contain the appropriate patterns:
-     - Spring Boot: @GetMapping, @PostMapping, @RequestMapping, etc.
-     - NestJS: @Get(), @Post(), @Controller(), etc.
-     - Rails: Controller files in app/controllers/ or routes in config/routes.rb
-     - React Router: <Route> components in .js/.jsx/.ts/.tsx files
-   • Try running `:Endpoint ClearCache` to refresh the cache
+   • You're in a supported project directory
+   • Source files contain the appropriate framework patterns
+   • Framework is properly detected (check file patterns above)
+   • Try running `:Endpoint ClearCache` to refresh
 
-Q: Cache not working as expected  
-A: Verify your `cache_mode` setting:
-   • "none": no caching, always searches in real-time
-   • "session": cache until nvim closes  
-   • "persistent": cache saved to disk
-   Use `:Endpoint CacheStatus` to check current cache state.
+Q: Framework not detected
+A: Verify detection files exist:
+   • Spring: pom.xml, build.gradle, or application config files
+   • Rails: Gemfile, config/routes.rb, or app/controllers/
+   • Express: package.json with express dependency
+   • Check EndpointManager registration for your framework
 
 Q: Icons not displaying
 A: Ensure:
-   • `show_icons = true` in ui configuration
+   • `ui.show_icons = true` in configuration
    • Your terminal/font supports emoji icons
-   • Try setting custom icons in `method_icons` if needed
+   • Try customizing icons in `ui.methods` if needed
 
 Q: Wrong picker interface
-A: Check your `picker` setting:
+A: Check your `picker.type` setting:
    • "telescope": requires telescope.nvim dependency
    • "vim_ui_select": works without external dependencies
    • "snacks": requires snacks.nvim dependency
-   • Plugin will fall back to vim.ui.select if selected picker is not available
+   • Plugin will fall back to vim.ui.select if selected picker unavailable
 
-Q: Rails endpoints not displaying correctly
-A: Configure Rails display format in your setup:
-   • Use `display_format = "smart"` for smart root route formatting
-   • Use `display_format = "controller_action"` to always show controller#action  
-   • Set `show_action_annotation = false` for clean display without annotations
-   • Example: `frameworks = { rails = { display_format = "smart" } }`
+Q: Performance issues with large projects
+A: Consider:
+   • Using more specific search patterns
+   • Excluding unnecessary directories (node_modules, build, dist)
+   • Optimizing ripgrep flags in framework search options
 
 Debug Information:~
     View current config: `lua print(vim.inspect(require("endpoint").get_config()))`
-    Check cache status: `:Endpoint CacheStatus`
+    Check framework detection: `lua print(vim.inspect(require("endpoint.manager.EndpointManager"):new():get_detected_frameworks()))`
     Clear cache and retry: `:Endpoint ClearCache`
+    Enable framework debugging: `lua vim.g.endpoint_debug = true`
 
 ==============================================================================
 vim:tw=78:ts=8:ft=help:norl:

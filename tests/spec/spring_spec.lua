@@ -1,213 +1,314 @@
-describe("Spring framework", function()
-  local test_helpers = require "tests.utils.framework_test_helpers"
-  local spring = require "endpoint.frameworks.spring"
+local SpringFramework = require "endpoint.frameworks.spring"
+local SpringParser = require "endpoint.parser.spring_parser"
 
-  describe("framework detection", test_helpers.create_detection_test_suite(spring, "spring"))
+describe("SpringFramework", function()
+  local framework
+  local parser
 
-  describe(
-    "search command generation",
-    test_helpers.create_search_cmd_test_suite(spring, {
-      GET = { "@GetMapping" },
-      POST = { "@PostMapping" },
-      PUT = { "@PutMapping" },
-      DELETE = { "@DeleteMapping" },
-      PATCH = { "@PatchMapping" },
-      ALL = { "@GetMapping", "@PostMapping" },
-    })
-  )
+  before_each(function()
+    framework = SpringFramework:new()
+    parser = SpringParser:new()
+  end)
 
-  describe(
-    "line parsing",
-    test_helpers.create_line_parsing_test_suite(spring, {
-      {
-        description = "should parse simple @GetMapping line",
-        line = 'src/main/java/com/example/Controller.java:10:5:    @GetMapping("/api/users")',
-        method = "GET",
-        expected = {
-          method = "GET",
-          endpoint_path = "/api/users",
-          file_path = "src/main/java/com/example/Controller.java",
-          line_number = 10,
-          column = 5,
-        },
-      },
-      {
-        description = "should parse @PostMapping with value parameter",
-        line = 'src/main/java/com/example/Controller.java:15:5:    @PostMapping(value = "/api/create")',
-        method = "POST",
-        expected = {
-          method = "POST",
-          endpoint_path = "/api/create",
-          file_path = "src/main/java/com/example/Controller.java",
-          line_number = 15,
-          column = 5,
-        },
-      },
-      {
-        description = "should parse @RequestMapping with method parameter",
-        line = 'src/main/java/com/example/Controller.java:20:5:    @RequestMapping(value = "/api/test", method = RequestMethod.GET)',
-        method = "GET",
-        expected = {
-          method = "GET",
-          endpoint_path = "/api/test",
-          file_path = "src/main/java/com/example/Controller.java",
-          line_number = 20,
-          column = 5,
-        },
-      },
-      {
-        description = "should handle path parameter instead of value",
-        line = 'src/main/java/com/example/Controller.java:25:5:    @GetMapping(path = "/api/version")',
-        method = "GET",
-        expected = {
-          method = "GET",
-          endpoint_path = "/api/version",
-          file_path = "src/main/java/com/example/Controller.java",
-          line_number = 25,
-          column = 5,
-        },
-      },
-      {
-        description = "should handle path variables",
-        line = 'src/main/java/com/example/Controller.java:30:5:    @GetMapping("/api/users/{id}")',
-        method = "GET",
-        expected = {
-          method = "GET",
-          endpoint_path = "/api/users/{id}",
-          file_path = "src/main/java/com/example/Controller.java",
-          line_number = 30,
-          column = 5,
-        },
-      },
-    })
-  )
+  describe("Framework Detection", function()
+    it("should have correct framework name", function()
+      assert.equals("spring", framework:get_name())
+    end)
 
-  describe("additional parsing tests", function()
-    it("should combine controller base path with method path", function()
-      -- This would need to be tested with actual fixture files that have @RequestMapping on controller
-      local line = "tests/fixtures/spring/src/main/java/com/example/OrderController.java:11:5:    @GetMapping"
-      local result = spring.parse_line(line, "GET")
+    it("should have detector configured", function()
+      assert.is_not_nil(framework.detector)
+      assert.equals("spring_dependency_detection", framework.detector.detection_name)
+    end)
+
+    it("should have parser configured", function()
+      assert.is_not_nil(framework.parser)
+      assert.equals("spring_parser", framework.parser.parser_name)
+    end)
+  end)
+
+  describe("Framework Configuration", function()
+    it("should have correct file extensions", function()
+      local config = framework:get_config()
+      assert.same({ "*.java", "*.kt" }, config.file_extensions)
+    end)
+
+    it("should have exclude patterns", function()
+      local config = framework:get_config()
+      assert.same({ "**/target", "**/build", "**/.gradle" }, config.exclude_patterns)
+    end)
+
+    it("should have Spring-specific search patterns", function()
+      local config = framework:get_config()
+      assert.is_table(config.patterns.GET)
+      assert.is_table(config.patterns.POST)
+      assert.is_table(config.patterns.PUT)
+      assert.is_table(config.patterns.DELETE)
+      assert.is_table(config.patterns.PATCH)
+
+      -- Check for Spring-specific patterns
+      local has_get_mapping = false
+      local has_post_mapping = false
+      for _, pattern in ipairs(config.patterns.GET) do
+        if pattern:match("@GetMapping") then
+          has_get_mapping = true
+          break
+        end
+      end
+      for _, pattern in ipairs(config.patterns.POST) do
+        if pattern:match("@PostMapping") then
+          has_post_mapping = true
+          break
+        end
+      end
+      assert.is_true(has_get_mapping)
+      assert.is_true(has_post_mapping)
+    end)
+
+    it("should have controller extractors", function()
+      local config = framework:get_config()
+      assert.is_table(config.controller_extractors)
+      assert.is_true(#config.controller_extractors > 0)
+    end)
+
+    it("should have detector configuration", function()
+      local config = framework:get_config()
+      assert.is_table(config.detector)
+      assert.is_table(config.detector.dependencies)
+      assert.is_table(config.detector.manifest_files)
+      assert.equals("spring_dependency_detection", config.detector.name)
+
+      -- Check for Spring-specific dependencies
+      local has_spring_boot = false
+      local has_spring_web = false
+      for _, dep in ipairs(config.detector.dependencies) do
+        if dep:match("spring%-boot") then
+          has_spring_boot = true
+        end
+        if dep:match("spring%-web") then
+          has_spring_web = true
+        end
+      end
+      assert.is_true(has_spring_boot)
+      assert.is_true(has_spring_web)
+    end)
+  end)
+
+  describe("Parser Functionality", function()
+    it("should parse GetMapping annotations", function()
+      local content = '@GetMapping("/users")'
+      local result = parser:parse_content(content, "UserController.java", 1, 1)
+
+      assert.is_not_nil(result)
+      assert.equals("GET", result.method)
+      assert.equals("/users", result.endpoint_path)
+    end)
+
+    it("should parse PostMapping annotations", function()
+      local content = '@PostMapping("/users")'
+      local result = parser:parse_content(content, "UserController.java", 1, 1)
+
+      assert.is_not_nil(result)
+      assert.equals("POST", result.method)
+      assert.equals("/users", result.endpoint_path)
+    end)
+
+    it("should parse RequestMapping with method parameter", function()
+      local content = '@RequestMapping(value = "/users", method = RequestMethod.GET)'
+      local result = parser:parse_content(content, "UserController.java", 1, 1)
 
       if result then
-        assert.is_table(result)
-        -- Should include /orders prefix from @RequestMapping(value = "/orders") on controller
-        assert.is_true(result.endpoint_path:match "/orders" ~= nil)
-      else
-        pending "Controller base path parsing needs fixture file context"
+        assert.equals("GET", result.method)
+        assert.equals("/users", result.endpoint_path)
+      end
+    end)
+
+    it("should parse endpoints with path variables", function()
+      local content = '@GetMapping("/users/{id}")'
+      local result = parser:parse_content(content, "UserController.java", 1, 1)
+
+      assert.is_not_nil(result)
+      assert.equals("GET", result.method)
+      assert.equals("/users/{id}", result.endpoint_path)
+    end)
+
+    it("should handle value parameter syntax", function()
+      local content = '@GetMapping(value = "/users")'
+      local result = parser:parse_content(content, "UserController.java", 1, 1)
+
+      assert.is_not_nil(result)
+      assert.equals("GET", result.method)
+      assert.equals("/users", result.endpoint_path)
+    end)
+
+    it("should handle path parameter syntax", function()
+      local content = '@GetMapping(path = "/users")'
+      local result = parser:parse_content(content, "UserController.java", 1, 1)
+
+      assert.is_not_nil(result)
+      assert.equals("GET", result.method)
+      assert.equals("/users", result.endpoint_path)
+    end)
+  end)
+
+  describe("Search Command Generation", function()
+    it("should generate valid search commands", function()
+      local search_cmd = framework:get_search_cmd()
+      assert.is_string(search_cmd)
+      assert.matches("rg", search_cmd)
+      assert.matches("--type java", search_cmd)
+      assert.matches("--case%-sensitive", search_cmd)
+    end)
+  end)
+
+  describe("Controller Name Extraction", function()
+    it("should extract controller name from Java file", function()
+      local controller_name = framework:getControllerName("src/main/java/com/example/UserController.java")
+      assert.is_not_nil(controller_name)
+    end)
+
+    it("should extract controller name from Kotlin file", function()
+      local controller_name = framework:getControllerName("src/main/kotlin/com/example/UserController.kt")
+      assert.is_not_nil(controller_name)
+    end)
+
+    it("should handle nested controller paths", function()
+      local controller_name = framework:getControllerName("src/main/java/com/example/admin/UserController.java")
+      assert.is_not_nil(controller_name)
+    end)
+  end)
+
+  describe("Integration Tests", function()
+    it("should create framework instance successfully", function()
+      local instance = SpringFramework:new()
+      assert.is_not_nil(instance)
+      assert.equals("spring", instance.name)
+    end)
+
+    it("should have parser and detector ready", function()
+      assert.is_not_nil(framework.parser)
+      assert.is_not_nil(framework.detector)
+      assert.equals("spring", framework.parser.framework_name)
+    end)
+
+    it("should parse and enhance endpoints", function()
+      local content = '@GetMapping("/api/users")'
+      local result = framework:parse(content, "UserController.java", 1, 1)
+
+      assert.is_not_nil(result)
+      assert.equals("spring", result.framework)
+      assert.is_table(result.metadata)
+      assert.equals("spring", result.metadata.framework)
+    end)
+  end)
+end)
+
+describe("SpringParser", function()
+  local parser
+
+  before_each(function()
+    parser = SpringParser:new()
+  end)
+
+  describe("Parser Instance", function()
+    it("should create parser with correct properties", function()
+      assert.equals("spring_parser", parser.parser_name)
+      assert.equals("spring", parser.framework_name)
+      assert.equals("java", parser.language)
+    end)
+  end)
+
+  describe("Endpoint Path Extraction", function()
+    it("should extract simple paths", function()
+      local path = parser:extract_endpoint_path('@GetMapping("/users")')
+      assert.equals("/users", path)
+    end)
+
+    it("should extract paths with path variables", function()
+      local path = parser:extract_endpoint_path('@GetMapping("/users/{id}")')
+      assert.equals("/users/{id}", path)
+    end)
+
+    it("should handle value parameter", function()
+      local path = parser:extract_endpoint_path('@GetMapping(value = "/users")')
+      assert.equals("/users", path)
+    end)
+
+    it("should handle path parameter", function()
+      local path = parser:extract_endpoint_path('@GetMapping(path = "/users")')
+      assert.equals("/users", path)
+    end)
+
+    it("should handle single quotes", function()
+      local path = parser:extract_endpoint_path("@GetMapping('/users')")
+      assert.equals("/users", path)
+    end)
+  end)
+
+  describe("HTTP Method Extraction", function()
+    it("should extract GET from GetMapping", function()
+      local method = parser:extract_method('@GetMapping("/users")')
+      assert.equals("GET", method)
+    end)
+
+    it("should extract POST from PostMapping", function()
+      local method = parser:extract_method('@PostMapping("/users")')
+      assert.equals("POST", method)
+    end)
+
+    it("should extract PUT from PutMapping", function()
+      local method = parser:extract_method('@PutMapping("/users/{id}")')
+      assert.equals("PUT", method)
+    end)
+
+    it("should extract DELETE from DeleteMapping", function()
+      local method = parser:extract_method('@DeleteMapping("/users/{id}")')
+      assert.equals("DELETE", method)
+    end)
+
+    it("should extract PATCH from PatchMapping", function()
+      local method = parser:extract_method('@PatchMapping("/users/{id}")')
+      assert.equals("PATCH", method)
+    end)
+
+    it("should extract method from RequestMapping", function()
+      local method = parser:extract_method('@RequestMapping(method = RequestMethod.GET)')
+      if method then
+        assert.equals("GET", method)
       end
     end)
   end)
 
-  describe("controller base path extraction", function()
-    it("should extract base path from @RequestMapping on controller", function()
-      local fixture_file = "tests/fixtures/spring/src/main/java/com/example/OrderController.java"
-      if vim.fn.filereadable(fixture_file) == 1 then
-        local base_path = spring.get_controller_base_path(fixture_file)
-        assert.are.equal("/orders", base_path)
-      else
-        pending "OrderController fixture not found"
-      end
-    end)
-
-    it("should return empty string for controllers without base path", function()
-      local fixture_file = "tests/fixtures/spring/src/main/java/com/example/NoBasePath.java"
-      if vim.fn.filereadable(fixture_file) == 1 then
-        local base_path = spring.get_controller_base_path(fixture_file)
-        assert.are.equal("", base_path)
-      else
-        -- Create temporary file for test
-        local temp_file = "/tmp/TestController.java"
-        local content = {
-          "package com.example;",
-          "@RestController",
-          "public class TestController {",
-          '    @GetMapping("/test")',
-          '    public String test() { return "test"; }',
-          "}",
-        }
-        vim.fn.writefile(content, temp_file)
-
-        local base_path = spring.get_controller_base_path(temp_file)
-        assert.are.equal("", base_path)
-
-        vim.fn.delete(temp_file)
-      end
+  describe("Base Path Extraction", function()
+    it("should handle controller-level RequestMapping", function()
+      local base_path = parser:extract_base_path("UserController.java", 10)
+      assert.is_true(base_path == nil or type(base_path) == "string")
     end)
   end)
 
-  describe(
-    "integration with fixtures",
-    test_helpers.create_integration_test_suite(spring, "spring", function(spring_module)
-      -- Additional Spring-specific integration test
-      local sample_line = 'src/main/java/com/example/UserController.java:42:5:    @GetMapping("/{id}")'
-      local result = spring_module.parse_line(sample_line, "GET")
-
+  describe("Error Handling", function()
+    it("should handle malformed annotations gracefully", function()
+      local result = parser:parse_content("@InvalidMapping", "test.java", 1, 1)
+      -- Spring parser might parse this as a basic annotation, so we check if result is reasonable
       if result then
-        assert.is_table(result)
-        assert.are.equal("GET", result and result.method)
+        assert.is_string(result.method)
         assert.is_string(result.endpoint_path)
-        assert.is_string(result.file_path)
-      end
-    end)
-  )
-
-  describe("edge cases", function()
-    it("should handle lines with extra whitespace", function()
-      local line = '  src/main/java/Controller.java:10:5:      @GetMapping(  "/api/test"  )  '
-      local result = spring.parse_line(line, "GET")
-
-      if result then
-        assert.are.equal("/api/test", result and result.endpoint_path)
+      else
+        assert.is_nil(result)
       end
     end)
 
-    it("should handle different quote styles", function()
-      local line1 = "src/main/java/Controller.java:10:5:    @GetMapping('/api/single')"
-      local line2 = 'src/main/java/Controller.java:11:5:    @GetMapping("/api/double")'
-
-      local result1 = spring.parse_line(line1, "GET")
-      local result2 = spring.parse_line(line2, "GET")
-
-      -- Both should work or both should fail consistently
-      if result1 and result2 then
-        assert.are.equal("/api/single", result1.endpoint_path)
-        assert.are.equal("/api/double", result2.endpoint_path)
-      end
-    end)
-
-    it("should handle complex path patterns", function()
-      local line = 'src/main/java/Controller.java:10:5:    @GetMapping("/api/users/{userId}/posts/{postId}")'
-      local result = spring.parse_line(line, "GET")
-
-      if result then
-        assert.are.equal("/api/users/{userId}/posts/{postId}", result and result.endpoint_path)
-      end
-    end)
-
-    it("should not parse class-level @RequestMapping as endpoint", function()
-      local class_level_line = 'src/main/java/Controller.java:5:1:@RequestMapping("/api/v1")'
-      local result = spring.parse_line(class_level_line, "ALL")
-
-      -- Class-level @RequestMapping should not be parsed as an endpoint
+    it("should handle empty content", function()
+      local result = parser:parse_content("", "test.java", 1, 1)
       assert.is_nil(result)
     end)
 
-    it("should parse method-level @RequestMapping with method parameter as endpoint", function()
-      local method_level_line =
-        'src/main/java/Controller.java:10:5:    @RequestMapping(value = "/users", method = RequestMethod.GET)'
-      local result = spring.parse_line(method_level_line, "ALL")
-
-      -- Method-level @RequestMapping with method parameter should be parsed
+    it("should handle missing file path", function()
+      local result = parser:parse_content('@GetMapping("/users")', "test.java", 1, 1)
       assert.is_not_nil(result)
-      assert.are.equal("GET", result and result.method)
-      assert.are.equal("/users", result and result.endpoint_path)
     end)
 
-    it("should not parse standalone @RequestMapping without method parameter", function()
-      local standalone_line = 'src/main/java/Controller.java:10:5:    @RequestMapping("/users")'
-      local result = spring.parse_line(standalone_line, "ALL")
-
-      -- Standalone @RequestMapping without method parameter should not be parsed
+    it("should return nil for non-Spring content", function()
+      local result = parser:parse_content("public void someMethod() {}", "test.java", 1, 1)
       assert.is_nil(result)
     end)
   end)

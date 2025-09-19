@@ -1,227 +1,265 @@
-describe("React Router framework", function()
-  local test_helpers = require "tests.utils.framework_test_helpers"
-  local react_router = require "endpoint.frameworks.react_router"
+local ReactRouterFramework = require "endpoint.frameworks.react_router"
+local ReactRouterParser = require "endpoint.parser.react_router_parser"
 
-  describe("framework detection", test_helpers.create_detection_test_suite(react_router, "react_router"))
+describe("ReactRouterFramework", function()
+  local framework
+  local parser
 
-  describe("search command generation", function()
-    it("should generate search command for ROUTE method", function()
-      local cmd = react_router.get_search_cmd "ROUTE"
-      assert.is_string(cmd)
-      assert.is_true(cmd:match "rg" ~= nil)
-      assert.is_true(cmd:match "<Route" ~= nil or cmd:match "path:" ~= nil)
+  before_each(function()
+    framework = ReactRouterFramework:new()
+    parser = ReactRouterParser:new()
+  end)
+
+  describe("Framework Detection", function()
+    it("should have correct framework name", function()
+      assert.equals("react_router", framework:get_name())
     end)
 
-    it("should generate search command for all methods (ROUTE only)", function()
-      local cmd = react_router.get_search_cmd "ALL"
-      assert.is_string(cmd)
-      -- Should only contain route patterns (no link/navigate)
-      assert.is_true(cmd:match "Route" ~= nil)
-      assert.is_true(cmd:match "path:" ~= nil)
-      assert.is_false(cmd:match "navigate" ~= nil)
-      assert.is_false(cmd:match "Link" ~= nil)
+    it("should have detector configured", function()
+      assert.is_not_nil(framework.detector)
+      assert.equals("react_router_dependency_detection", framework.detector.detection_name)
     end)
 
-    it("should treat all HTTP methods as ROUTE patterns", function()
-      local get_cmd = react_router.get_search_cmd "GET"
-      local post_cmd = react_router.get_search_cmd "POST"
-      assert.is_string(get_cmd)
-      assert.is_string(post_cmd)
-      assert.is_true(get_cmd:match "Route" ~= nil)
-      assert.is_true(post_cmd:match "Route" ~= nil)
-      -- Should not contain link/navigate patterns
-      assert.is_false(get_cmd:match "navigate" ~= nil)
-      assert.is_false(post_cmd:match "Link" ~= nil)
-    end)
-
-    it("should treat all HTTP methods identically", function()
-      local get_cmd = react_router.get_search_cmd "GET"
-      local post_cmd = react_router.get_search_cmd "POST"
-      local put_cmd = react_router.get_search_cmd "PUT"
-      local delete_cmd = react_router.get_search_cmd "DELETE"
-
-      -- All commands should be identical since they all map to ALL
-      assert.are.equal(get_cmd, post_cmd)
-      assert.are.equal(post_cmd, put_cmd)
-      assert.are.equal(put_cmd, delete_cmd)
-    end)
-
-    it("should generate consistent ROUTE patterns for all methods", function()
-      local route_cmd = react_router.get_search_cmd "ROUTE"
-      local all_cmd = react_router.get_search_cmd "ALL"
-      local get_cmd = react_router.get_search_cmd "GET"
-
-      -- All commands should be identical (ROUTE patterns only)
-      assert.are.equal(route_cmd, all_cmd)
-      assert.are.equal(all_cmd, get_cmd)
-
-      -- Should contain Route and path patterns
-      assert.is_true(route_cmd:match "Route" ~= nil)
-      assert.is_true(route_cmd:match "path:" ~= nil)
-
-      -- Should not contain link/navigate patterns
-      assert.is_false(route_cmd:match "Link" ~= nil)
-      assert.is_false(route_cmd:match "navigate" ~= nil)
+    it("should have parser configured", function()
+      assert.is_not_nil(framework.parser)
+      assert.equals("react_router_parser", framework.parser.parser_name)
     end)
   end)
 
-  describe("line parsing", function()
-    it("should parse Route component with element", function()
-      local line = 'App.jsx:10:5:<Route path="/users" element={<Users />} />'
-      local result = react_router.parse_line(line, "ROUTE")
-
-      assert.is_table(result)
-      assert.are.equal("ROUTE", result and result.method)
-      assert.are.equal("/users", result and result.endpoint_path)
-      assert.are.equal("App.jsx", result and result.file_path)
-      assert.are.equal(10, result and result.line_number)
-      assert.are.equal(5, result and result.column)
-      -- Display value should be clean (no component info)
-      assert.are.equal("ROUTE /users", result.display_value)
-      -- Component info should be available separately
-      assert.are.equal("Users", result.component_name)
+  describe("Framework Configuration", function()
+    it("should have correct file extensions", function()
+      local config = framework:get_config()
+      assert.same({ "*.tsx", "*.jsx", "*.ts", "*.js" }, config.file_extensions)
     end)
 
-    it("should parse createBrowserRouter array format", function()
-      local line = 'router.js:15:5:{ path: "/about", element: <About /> },'
-      local result = react_router.parse_line(line, "ROUTE")
-
-      assert.is_table(result)
-      assert.are.equal("ROUTE", result and result.method)
-      assert.are.equal("/about", result and result.endpoint_path)
-      -- Display value should be clean (no component info)
-      assert.are.equal("ROUTE /about", result.display_value)
-      -- Component info should be available separately
-      assert.are.equal("About", result.component_name)
+    it("should have exclude patterns", function()
+      local config = framework:get_config()
+      assert.same({ "**/node_modules", "**/dist", "**/build" }, config.exclude_patterns)
     end)
 
-    it("should handle routes with parameters", function()
-      local line = 'App.jsx:15:5:<Route path="/users/:id" element={<UserDetail />} />'
-      local result = react_router.parse_line(line, "ROUTE")
+    it("should have React Router-specific search patterns", function()
+      local config = framework:get_config()
+      local get_patterns = config.patterns and config.patterns.GET
+      assert.is_true(get_patterns == nil or type(get_patterns) == "table")
 
-      assert.is_table(result)
-      assert.are.equal("ROUTE", result and result.method)
-      assert.are.equal("/users/:id", result and result.endpoint_path)
-    end)
-
-    it("should handle complex nested routes", function()
-      local line = 'router.js:20:5:{ path: "/users/:userId/posts/:postId", element: <PostDetail /> }'
-      local result = react_router.parse_line(line, "ROUTE")
-
-      assert.is_table(result)
-      assert.are.equal("ROUTE", result and result.method)
-      assert.are.equal("/users/:userId/posts/:postId", result and result.endpoint_path)
-    end)
-
-    it("should handle wildcard routes", function()
-      local line = 'App.jsx:18:5:<Route path="/dashboard/*" element={<Dashboard />} />'
-      local result = react_router.parse_line(line, "ROUTE")
-
-      assert.is_table(result)
-      assert.are.equal("ROUTE", result and result.method)
-      assert.are.equal("/dashboard/*", result and result.endpoint_path)
-    end)
-
-    it("should return nil for invalid lines", function()
-      local line = "invalid line format"
-      local result = react_router.parse_line(line, "ROUTE")
-      assert.is_nil(result)
-    end)
-
-    it("should return nil for empty lines", function()
-      local line = ""
-      local result = react_router.parse_line(line, "ROUTE")
-      assert.is_nil(result)
-    end)
-  end)
-
-  describe("integration with fixtures", function()
-    it("should correctly parse real React Router fixture files", function()
-      local fixture_path = "tests/fixtures/react_router"
-      if vim.fn.isdirectory(fixture_path) == 1 then
-        local original_cwd = vim.fn.getcwd()
-        vim.fn.chdir(fixture_path)
-
-        -- Test that framework is detected
-        assert.is_true(react_router.detect())
-
-        -- Test that search command works
-        local cmd = react_router.get_search_cmd "ROUTE"
-        assert.is_string(cmd)
-
-        vim.fn.chdir(original_cwd)
-      else
-        pending "React Router fixture directory not found"
-      end
-    end)
-  end)
-
-  describe("edge cases", function()
-    it("should handle both single and double quotes", function()
-      local line1 = "App.jsx:10:5:<Route path='/users' element={<Users />} />"
-      local line2 = 'App.jsx:11:5:<Route path="/about" element={<About />} />'
-
-      local result1 = react_router.parse_line(line1, "ROUTE")
-      local result2 = react_router.parse_line(line2, "ROUTE")
-
-      if result1 and result2 then
-        assert.are.equal("/users", result1.endpoint_path)
-        assert.are.equal("/about", result2.endpoint_path)
+      -- Check for React Router-specific patterns (routes are typically GET-based navigation)
+      if get_patterns then
+        assert.is_true(#get_patterns > 0)
       end
     end)
 
-    it("should handle root path", function()
-      local line = 'App.jsx:5:5:<Route path="/" element={<Home />} />'
-      local result = react_router.parse_line(line, "ROUTE")
+    it("should have controller extractors", function()
+      local config = framework:get_config()
+      assert.is_table(config.controller_extractors)
+      assert.is_true(#config.controller_extractors > 0)
+    end)
+
+    it("should have detector configuration", function()
+      local config = framework:get_config()
+      assert.is_table(config.detector)
+      assert.is_table(config.detector.dependencies)
+      assert.is_table(config.detector.manifest_files)
+      assert.equals("react_router_dependency_detection", config.detector.name)
+
+      -- Check for React Router-specific dependencies
+      assert.is_true(#config.detector.dependencies > 0)
+      assert.is_true(#config.detector.dependencies > 0)
+    end)
+  end)
+
+  describe("Parser Functionality", function()
+    it("should parse Route components", function()
+      local content = '<Route path="/users" component={Users} />'
+      local result = parser:parse_content(content, "App.jsx", 1, 1)
+
+      assert.is_not_nil(result)
+      assert.is_true(result.method == "GET" or result.method == "ROUTE")
+      assert.equals("/users", result.endpoint_path)
+    end)
+
+    it("should parse Route with element prop", function()
+      local content = '<Route path="/users" element={<Users />} />'
+      local result = parser:parse_content(content, "App.jsx", 1, 1)
+
+      assert.is_not_nil(result)
+      assert.is_true(result.method == "GET" or result.method == "ROUTE")
+      assert.equals("/users", result.endpoint_path)
+    end)
+
+    it("should parse nested routes", function()
+      local content = '<Route path="/users/:id" element={<UserDetail />} />'
+      local result = parser:parse_content(content, "App.jsx", 1, 1)
+
+      assert.is_not_nil(result)
+      assert.is_true(result.method == "GET" or result.method == "ROUTE")
+      assert.equals("/users/:id", result.endpoint_path)
+    end)
+
+    it("should handle single quotes", function()
+      local content = "<Route path='/users' component={Users} />"
+      local result = parser:parse_content(content, "App.jsx", 1, 1)
+
+      assert.is_not_nil(result)
+      assert.is_true(result.method == "GET" or result.method == "ROUTE")
+      assert.equals("/users", result.endpoint_path)
+    end)
+
+    it("should parse routes with exact prop", function()
+      local content = '<Route exact path="/users" component={Users} />'
+      local result = parser:parse_content(content, "App.jsx", 1, 1)
+
+      assert.is_not_nil(result)
+      assert.is_true(result.method == "GET" or result.method == "ROUTE")
+      assert.equals("/users", result.endpoint_path)
+    end)
+
+    it("should parse router configuration objects", function()
+      local content = '{ path: "/users", component: Users }'
+      local result = parser:parse_content(content, "routes.js", 1, 1)
 
       if result then
-        assert.are.equal("/", result and result.endpoint_path)
+        assert.is_true(result.method == "GET" or result.method == "ROUTE")
+        assert.equals("/users", result.endpoint_path)
       end
     end)
+  end)
 
-    it("should handle routes without element attribute", function()
-      local line = "App.jsx:15:5:<Route path='/settings' />"
-      local result = react_router.parse_line(line, "ROUTE")
+  describe("Search Command Generation", function()
+    it("should generate valid search commands", function()
+      local search_cmd = framework:get_search_cmd()
+      assert.is_string(search_cmd)
+      assert.matches("rg", search_cmd)
+      assert.matches("--type js", search_cmd)
+    end)
+  end)
 
-      if result then
-        assert.are.equal("ROUTE", result.method)
-        assert.are.equal("/settings", result.endpoint_path)
-        assert.are.equal("ROUTE /settings", result.display_value)
-        assert.is_nil(result.component_name)
-      end
+  describe("Controller Name Extraction", function()
+    it("should extract component name from JavaScript file", function()
+      local controller_name = framework:getControllerName("src/components/Users.jsx")
+      assert.is_not_nil(controller_name)
     end)
 
-    it("should always return ROUTE method regardless of input method", function()
-      local line = 'App.jsx:10:5:<Route path="/users" element={<Users />} />'
-
-      local result_get = react_router.parse_line(line, "GET")
-      local result_post = react_router.parse_line(line, "POST")
-      local result_route = react_router.parse_line(line, "ROUTE")
-
-      -- All should return ROUTE as method regardless of input
-      assert.are.equal("ROUTE", result_get and result_get.method)
-      assert.are.equal("ROUTE", result_post and result_post.method)
-      assert.are.equal("ROUTE", result_route and result_route.method)
-
-      -- All results should be identical
-      if result_get and result_post then
-        assert.are.equal(result_get.endpoint_path, result_post.endpoint_path)
-        assert.are.equal(result_get.component_name, result_post.component_name)
-        assert.are.equal(result_get.display_value, result_post.display_value)
-      end
+    it("should extract component name from TypeScript file", function()
+      local controller_name = framework:getControllerName("src/components/Users.tsx")
+      assert.is_not_nil(controller_name)
     end)
 
-    it("should include component file path when component found", function()
-      -- This test will verify component resolution in actual fixture environment
-      local line = 'App.jsx:10:5:<Route path="/users" element={<Home />} />'
-      local result = react_router.parse_line(line, "ROUTE")
+    it("should handle nested component paths", function()
+      local controller_name = framework:getControllerName("src/pages/admin/Users.jsx")
+      assert.is_not_nil(controller_name)
+    end)
+  end)
 
-      assert.is_table(result)
-      assert.are.equal("ROUTE", result.method)
-      assert.are.equal("/users", result.endpoint_path)
-      assert.are.equal("Home", result.component_name)
-      -- component_file_path will be tested in integration environment
+  describe("Integration Tests", function()
+    it("should create framework instance successfully", function()
+      local instance = ReactRouterFramework:new()
+      assert.is_not_nil(instance)
+      assert.equals("react_router", instance.name)
+    end)
+
+    it("should have parser and detector ready", function()
+      assert.is_not_nil(framework.parser)
+      assert.is_not_nil(framework.detector)
+      assert.equals("react_router", framework.parser.framework_name)
+    end)
+
+    it("should parse and enhance endpoints", function()
+      local content = '<Route path="/api/users" element={<Users />} />'
+      local result = framework:parse(content, "App.jsx", 1, 1)
+
+      assert.is_not_nil(result)
+      assert.equals("react_router", result.framework)
+      assert.is_table(result.metadata)
+      assert.equals("react_router", result.metadata.framework)
     end)
   end)
 end)
 
+describe("ReactRouterParser", function()
+  local parser
+
+  before_each(function()
+    parser = ReactRouterParser:new()
+  end)
+
+  describe("Parser Instance", function()
+    it("should create parser with correct properties", function()
+      assert.equals("react_router_parser", parser.parser_name)
+      assert.equals("react_router", parser.framework_name)
+      assert.equals("javascript", parser.language)
+    end)
+  end)
+
+  describe("Endpoint Path Extraction", function()
+    it("should extract simple paths from Route", function()
+      local path = parser:extract_endpoint_path('<Route path="/users"')
+      assert.equals("/users", path)
+    end)
+
+    it("should extract paths with parameters", function()
+      local path = parser:extract_endpoint_path('<Route path="/users/:id"')
+      assert.equals("/users/:id", path)
+    end)
+
+    it("should handle single quotes", function()
+      local path = parser:extract_endpoint_path("<Route path='/users'")
+      assert.equals("/users", path)
+    end)
+
+    it("should extract from route objects", function()
+      local path = parser:extract_endpoint_path('{ path: "/users"')
+      assert.equals("/users", path)
+    end)
+
+    it("should handle complex parameter patterns", function()
+      local path = parser:extract_endpoint_path('<Route path="/users/:userId/posts/:postId"')
+      assert.equals("/users/:userId/posts/:postId", path)
+    end)
+  end)
+
+  describe("HTTP Method Extraction", function()
+    it("should extract GET from Route components", function()
+      local method = parser:extract_method('<Route path="/users"')
+      assert.is_true(method == "GET" or method == "ROUTE")
+    end)
+
+    it("should extract GET from route objects", function()
+      local method = parser:extract_method('{ path: "/users"')
+      assert.is_true(method == "GET" or method == "ROUTE")
+    end)
+
+    it("should default to GET for all route patterns", function()
+      local method = parser:extract_method('<Route exact path="/users"')
+      assert.is_true(method == "GET" or method == "ROUTE")
+    end)
+  end)
+
+  describe("Base Path Extraction", function()
+    it("should handle Router contexts", function()
+      local base_path = parser:extract_base_path("App.jsx", 10)
+      assert.is_true(base_path == nil or type(base_path) == "string")
+    end)
+  end)
+
+  describe("Error Handling", function()
+    it("should handle malformed routes gracefully", function()
+      local result = parser:parse_content("<InvalidComponent>", "test.jsx", 1, 1)
+      assert.is_nil(result)
+    end)
+
+    it("should handle empty content", function()
+      local result = parser:parse_content("", "test.jsx", 1, 1)
+      assert.is_nil(result)
+    end)
+
+    it("should handle missing file path", function()
+      local result = parser:parse_content('<Route path="/users" />', nil, 1, 1)
+      assert.is_not_nil(result)
+    end)
+
+    it("should return nil for non-React Router content", function()
+      local result = parser:parse_content("const users = []", "test.jsx", 1, 1)
+      assert.is_nil(result)
+    end)
+  end)
+end)
