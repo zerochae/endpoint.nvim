@@ -26,7 +26,7 @@ function ExpressParser:extract_base_path()
 end
 
 ---Extracts endpoint path from Express route content
-function ExpressParser:extract_endpoint_path(content)
+function ExpressParser:extract_endpoint_path(content, file_path, line_number)
   -- Try standard app.method() or router.method() pattern
   local path = content:match "%w+%.%w+%(['\"]([^'\"]+)['\"]"
   if path then
@@ -65,41 +65,21 @@ function ExpressParser:extract_method(content)
   return "GET" -- Default fallback
 end
 
----Parses Express line and returns array of endpoints
-function ExpressParser:parse_line_to_endpoints(content, file_path, line_number, column)
-  -- Only process if this looks like Express route
-  if not self:is_content_valid_for_parsing(content) then
-    return {}
-  end
+---Override parse_content to add Express-specific metadata
+function ExpressParser:parse_content(content, file_path, line_number, column)
+  -- Call parent implementation
+  local endpoint = Parser.parse_content(self, content, file_path, line_number, column)
 
-  -- Extract path and method
-  local endpoint_path = self:extract_endpoint_path(content)
-  if not endpoint_path then
-    return {}
-  end
-
-  local method = self:extract_method(content)
-  if not method then
-    return {}
-  end
-
-  -- Create single endpoint
-  local endpoint = {
-    method = method:upper(),
-    endpoint_path = endpoint_path,
-    file_path = file_path,
-    line_number = line_number,
-    column = column,
-    display_value = method:upper() .. " " .. endpoint_path,
-    confidence = self:get_parsing_confidence(content),
-    tags = { "javascript", "express", "route" },
-    metadata = self:create_metadata("route", {
+  if endpoint then
+    -- Add Express-specific tags and metadata
+    endpoint.tags = { "javascript", "express", "route" }
+    endpoint.metadata = self:create_metadata("route", {
       route_type = self:_detect_route_type(content),
       app_type = self:_extract_app_type(content),
-    }, content),
-  }
+    }, content)
+  end
 
-  return { endpoint }
+  return endpoint
 end
 
 ---Validates if content contains Express route definitions

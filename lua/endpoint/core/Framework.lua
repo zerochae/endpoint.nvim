@@ -195,15 +195,26 @@ function Framework:_parse_result_line(result_line)
   local line_num = tonumber(source_line_number) or 1
   local col_pos = tonumber(source_column_position) or 1
 
-  -- TODO: 너무 복잡해서 나중에 개선하겠다 
-  -- Use parser's parse method directly
   local endpoints = {}
   if self.parser then
     local endpoint_entry = self.parser:parse_content(line_content, source_file_path, line_num, col_pos)
     if endpoint_entry then
-      endpoint_entry.framework = self.name
-      self:_enhance_endpoint(endpoint_entry, source_file_path)
-      endpoints = { endpoint_entry }
+      -- Normalize to array for consistent handling
+      local endpoint_list = {}
+      if endpoint_entry.method then
+        -- Single endpoint object
+        table.insert(endpoint_list, endpoint_entry)
+      else
+        -- Array of endpoints
+        endpoint_list = endpoint_entry
+      end
+
+      -- Process each endpoint
+      for _, single_endpoint in ipairs(endpoint_list) do
+        single_endpoint.framework = self.name
+        self:_enhance_endpoint(single_endpoint, source_file_path)
+        table.insert(endpoints, single_endpoint)
+      end
     end
   else
     -- Fallback to framework's parse method

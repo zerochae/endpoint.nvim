@@ -32,8 +32,16 @@ function FastApiParser:extract_base_path(file_path, line_number)
 end
 
 ---Extracts endpoint path from FastAPI decorator content
-function FastApiParser:extract_endpoint_path(content)
-  -- Try single line extraction first
+function FastApiParser:extract_endpoint_path(content, file_path, line_number)
+  -- Use multiline extraction for better accuracy
+  if file_path and line_number then
+    local path = self:_extract_path_multiline(file_path, line_number, content)
+    if path then
+      return path
+    end
+  end
+
+  -- Fallback to single line extraction
   local path = self:_extract_path_single_line(content)
   if path then
     return path
@@ -53,45 +61,21 @@ function FastApiParser:extract_method(content)
   return "GET" -- Default fallback
 end
 
----Parses FastAPI line and returns array of endpoints
-function FastApiParser:parse_line_to_endpoints(content, file_path, line_number, column)
-  -- Only process if this looks like FastAPI decorator
-  if not self:is_content_valid_for_parsing(content) then
-    return {}
-  end
+---Override parse_content to add FastAPI-specific metadata
+function FastApiParser:parse_content(content, file_path, line_number, column)
+  -- Call parent implementation
+  local endpoint = Parser.parse_content(self, content, file_path, line_number, column)
 
-  -- Extract path (handle multiline decorators if needed)
-  local endpoint_path = self:_extract_path_multiline(file_path, line_number, content)
-  if not endpoint_path then
-    return {}
-  end
-
-  local method = self:extract_method(content)
-  if not method then
-    return {}
-  end
-
-  -- Get base path and combine
-  local base_path = self:extract_base_path(file_path, line_number)
-  local full_path = self:_combine_paths(base_path, endpoint_path)
-
-  -- Create single endpoint
-  local endpoint = {
-    method = method:upper(),
-    endpoint_path = full_path,
-    file_path = file_path,
-    line_number = line_number,
-    column = column,
-    display_value = method:upper() .. " " .. full_path,
-    confidence = self:get_parsing_confidence(content),
-    tags = { "python", "fastapi", "decorator" },
-    metadata = self:create_metadata("decorator", {
+  if endpoint then
+    -- Add FastAPI-specific tags and metadata
+    endpoint.tags = { "python", "fastapi", "decorator" }
+    endpoint.metadata = self:create_metadata("decorator", {
       decorator_type = self:_extract_decorator_type(content),
       has_multiline = self:_is_multiline_decorator(content),
-    }, content),
-  }
+    }, content)
+  end
 
-  return { endpoint }
+  return endpoint
 end
 
 ---Validates if content contains FastAPI decorators

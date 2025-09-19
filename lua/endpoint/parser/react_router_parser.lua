@@ -25,7 +25,7 @@ function ReactRouterParser:extract_base_path()
 end
 
 ---Extracts endpoint path from React Router content
-function ReactRouterParser:extract_endpoint_path(content)
+function ReactRouterParser:extract_endpoint_path(content, file_path, line_number)
   local path = self:_extract_route_path(content)
   if path then
     return path
@@ -35,49 +35,35 @@ function ReactRouterParser:extract_endpoint_path(content)
 end
 
 ---Extracts HTTP method from React Router content (always returns ROUTE)
-function ReactRouterParser:extract_method()
+function ReactRouterParser:extract_method(content)
   return "ROUTE" -- React Router doesn't use HTTP methods, it's client-side routing
 end
 
----Parses React Router line and returns array of endpoints
-function ReactRouterParser:parse_line_to_endpoints(content, file_path, line_number, column)
-  -- Only process if this looks like React Router content
-  if not self:is_content_valid_for_parsing(content) then
-    return {}
-  end
+---Override parse_content to add React Router-specific metadata
+function ReactRouterParser:parse_content(content, file_path, line_number, column)
+  -- Call parent implementation
+  local endpoint = Parser.parse_content(self, content, file_path, line_number, column)
 
-  local route_path = self:extract_endpoint_path(content)
-  if not route_path then
-    return {}
-  end
+  if endpoint then
+    -- Extract component information
+    local component_name = self:_extract_component_name(content)
+    local component_file_path = nil
+    if component_name then
+      component_file_path = self:_find_component_file(component_name)
+    end
 
-  -- Extract component name
-  local component_name = self:_extract_component_name(content)
-  local component_file_path = nil
-  if component_name then
-    component_file_path = self:_find_component_file(component_name)
-  end
-
-  -- Create single endpoint
-  local endpoint = {
-    method = "ROUTE",
-    endpoint_path = route_path,
-    file_path = file_path,
-    line_number = line_number,
-    column = column,
-    display_value = "ROUTE " .. route_path,
-    confidence = self:get_parsing_confidence(content),
-    tags = { "javascript", "react", "frontend", "routing" },
-    metadata = self:create_metadata("route", {
+    -- Add React Router-specific tags and metadata
+    endpoint.tags = { "javascript", "react", "frontend", "routing" }
+    endpoint.metadata = self:create_metadata("route", {
       component_name = component_name,
       component_file_path = component_file_path,
       route_type = self:_detect_route_type(content),
-    }, content),
-    component_name = component_name,
-    component_file_path = component_file_path,
-  }
+    }, content)
+    endpoint.component_name = component_name
+    endpoint.component_file_path = component_file_path
+  end
 
-  return { endpoint }
+  return endpoint
 end
 
 ---Validates if content contains React Router patterns

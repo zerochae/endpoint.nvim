@@ -138,11 +138,10 @@
 ---@field protected language? string
 ---@field new fun(self: endpoint.Parser, fields?: table): endpoint.Parser
 ---@field extract_base_path fun(self: endpoint.Parser, file_path: string, line_number: number): string
----@field extract_endpoint_path fun(self: endpoint.Parser, content: string): string|nil
+---@field extract_endpoint_path fun(self: endpoint.Parser, content: string, file_path?: string, line_number?: number): string|nil
 ---@field extract_method fun(self: endpoint.Parser, content: string): string|nil
 ---@field combine_paths fun(self: endpoint.Parser, base_path?: string, endpoint_path?: string): string
 ---@field parse_content fun(self: endpoint.Parser, content?: string, file_path?: string, line_number?: number, column?: number): endpoint.entry|nil
----@field parse_line_to_endpoints fun(self: endpoint.Parser, content?: string, file_path?: string, line_number?: number, column?: number): endpoint.entry[]
 ---@field get_name fun(self: endpoint.Parser): string
 ---@field is_content_valid_for_parsing fun(self: endpoint.Parser, content_to_validate?: string): boolean
 ---@field get_parsing_confidence fun(self: endpoint.Parser, content_to_analyze?: string): number

@@ -25,7 +25,14 @@ function DotNetParser:extract_base_path(file_path, line_number)
 end
 
 ---Extracts endpoint path from .NET attribute content
-function DotNetParser:extract_endpoint_path(content)
+function DotNetParser:extract_endpoint_path(content, file_path, line_number)
+  -- Use _extract_route_info for better accuracy
+  local http_method, endpoint_path = self:_extract_route_info(content)
+  if endpoint_path then
+    return endpoint_path
+  end
+
+  -- Fallback to attribute extraction
   local path = self:_extract_path_from_attributes(content)
   if path then
     return path
@@ -44,40 +51,21 @@ function DotNetParser:extract_method(content)
   return "GET" -- Default fallback
 end
 
----Parses .NET line and returns array of endpoints
-function DotNetParser:parse_line_to_endpoints(content, file_path, line_number, column)
-  -- Only process if this looks like .NET attribute
-  if not self:is_content_valid_for_parsing(content) then
-    return {}
-  end
+---Override parse_content to add .NET-specific metadata
+function DotNetParser:parse_content(content, file_path, line_number, column)
+  -- Call parent implementation
+  local endpoint = Parser.parse_content(self, content, file_path, line_number, column)
 
-  -- Extract method and path
-  local http_method, endpoint_path = self:_extract_route_info(content)
-  if not http_method then
-    return {}
-  end
-
-  -- Get base path and combine
-  local base_path = self:extract_base_path(file_path, line_number)
-  local full_path = self:_combine_paths(base_path, endpoint_path or "")
-
-  -- Create single endpoint
-  local endpoint = {
-    method = http_method:upper(),
-    endpoint_path = full_path,
-    file_path = file_path,
-    line_number = line_number,
-    column = column,
-    display_value = http_method:upper() .. " " .. full_path,
-    confidence = self:get_parsing_confidence(content),
-    tags = { "csharp", "dotnet", "attribute" },
-    metadata = self:create_metadata("attribute", {
+  if endpoint then
+    -- Add .NET-specific tags and metadata
+    endpoint.tags = { "csharp", "dotnet", "attribute" }
+    endpoint.metadata = self:create_metadata("attribute", {
       attribute_type = self:_detect_attribute_type(content),
       has_route_template = self:_has_route_template(content),
-    }, content),
-  }
+    }, content)
+  end
 
-  return { endpoint }
+  return endpoint
 end
 
 ---Validates if content contains .NET attributes
@@ -131,6 +119,9 @@ function DotNetParser:_is_dotnet_attribute_content(content)
     or content:match "app%.Map%w+%("
     or content:match "endpoints%.Map%w+%("
     or content:match "%.%w+%([\"']"
+    -- Also match controller method patterns without attributes
+    or content:match "public%s+.*%s+%w+%s*%("
+    or content:match "public%s+async%s+.*%s+%w+%s*%("
 end
 
 ---Extracts route information from .NET patterns
@@ -165,12 +156,34 @@ function DotNetParser:_extract_route_info(content)
     return method, path
   end
 
-  -- Pattern 6: [Route] attribute with [HttpGet] on same line
-  if content:match "%[Route%([\"']([^\"']+)[\"']" then
-    local route_path = content:match "%[Route%([\"']([^\"']+)[\"']"
+  -- Pattern 6: [Route] attribute alone (default to GET)
+  local route_path = content:match "%[Route%([\"']([^\"']+)[\"']"
+  if route_path then
+    -- Check if there's an HTTP method attribute on the same line
     local http_method_match = content:match "%[Http(%w+)%]"
-    if route_path and http_method_match then
+    if http_method_match then
       return http_method_match, route_path
+    else
+      -- Default to GET if only [Route] is present
+      return "GET", route_path:match("^/") and route_path or ("/" .. route_path)
+    end
+  end
+
+  -- Pattern 7: Controller method without attributes (convention-based routing)
+  local method_name = content:match "public%s+.*%s+(%w+)%s*%("
+  if method_name then
+    -- Map common controller method names to HTTP methods
+    if method_name:match "^Get" or method_name:match "^Index" or method_name:match "^Details" then
+      return "GET", ""
+    elseif method_name:match "^Post" or method_name:match "^Create" then
+      return "POST", ""
+    elseif method_name:match "^Put" or method_name:match "^Update" or method_name:match "^Edit" then
+      return "PUT", ""
+    elseif method_name:match "^Delete" or method_name:match "^Remove" then
+      return "DELETE", ""
+    else
+      -- Default to GET for other methods
+      return "GET", ""
     end
   end
 

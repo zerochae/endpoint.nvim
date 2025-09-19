@@ -27,11 +27,16 @@ function RailsParser:extract_base_path(file_path, line_number)
 end
 
 ---Extracts endpoint path from Rails content
-function RailsParser:extract_endpoint_path(content)
+function RailsParser:extract_endpoint_path(content, file_path, line_number)
   -- Extract path from explicit routes: get '/path', post '/path', etc.
   local path = content:match "['\"]([^'\"]+)['\"]"
   if path then
     return path
+  end
+
+  -- Only process action patterns if NOT in member/collection context
+  if file_path and line_number and self:_is_in_member_collection_context(file_path, line_number) then
+    return nil -- Skip member/collection routes - they should be handled by resources processing
   end
 
   -- Pattern for member/collection routes: get :action_name
@@ -48,31 +53,10 @@ function RailsParser:extract_method(content)
   return self:_extract_http_method(content)
 end
 
----Main parsing method that tries different Rails parsing approaches
 function RailsParser:parse_content(content, file_path, line_number, column)
   -- Only process if this looks like Rails routes or controller code
   if not self:is_content_valid_for_parsing(content) then
     return nil
-  end
-
-  -- Skip routes.rb processing, focus on controller actions only
-  if file_path:match "routes%.rb$" then
-    return nil
-  end
-
-  local result = self:_process_controller_action(content, file_path, line_number, column)
-  if result then
-    return result
-  end
-
-  return nil
-end
-
----Parses Rails line and returns array of endpoints (1:N mapping for resources)
-function RailsParser:parse_line_to_endpoints(content, file_path, line_number, column)
-  -- Only process if this looks like Rails routes or controller code
-  if not self:is_content_valid_for_parsing(content) then
-    return {}
   end
 
   -- Check for resources routes first (they generate multiple endpoints)
@@ -87,9 +71,8 @@ function RailsParser:parse_line_to_endpoints(content, file_path, line_number, co
     return nested_results
   end
 
-  -- Fall back to single endpoint parsing
-  local single_result = self:parse_content(content, file_path, line_number, column)
-  return single_result and {single_result} or {}
+  -- Fall back to parent implementation for single endpoint parsing
+  return Parser.parse_content(self, content, file_path, line_number, column)
 end
 
 ---Validates if content contains Rails annotations
@@ -751,6 +734,48 @@ function RailsParser:_is_private_method(file_path, line_number)
   end
 
   return in_private
+end
+
+---Checks if the current line is within a member or collection block
+function RailsParser:_is_in_member_collection_context(file_path, line_number)
+  if not file_path or not line_number or vim.fn.filereadable(file_path) == 0 then
+    return false
+  end
+
+  local content = vim.fn.readfile(file_path) or {}
+  if #content == 0 or line_number > #content then
+    return false
+  end
+
+  -- Search backwards from current line to find member/collection context
+  local depth = 0
+  for i = line_number - 1, 1, -1 do
+    local line = content[i]
+
+    -- Count 'end' statements (going backwards, so 'end' increases depth)
+    if line:match "^%s*end%s*$" then
+      depth = depth + 1
+    -- Found a 'do' block - check what type
+    elseif line:match "%s+do%s*$" then
+      if line:match "member%s+do" or line:match "collection%s+do" then
+        -- This is a member/collection block
+        if depth == 0 then
+          -- We are directly inside this member/collection block
+          return true
+        else
+          -- Deeper nested block, reduce depth and continue
+          depth = depth - 1
+        end
+      else
+        -- Other 'do' blocks (resources, namespace, etc.)
+        depth = depth - 1
+      end
+    elseif line:match "Rails%.application%.routes%.draw" then
+      break
+    end
+  end
+
+  return false
 end
 
 ---Checks if content looks like Rails routing or controller code

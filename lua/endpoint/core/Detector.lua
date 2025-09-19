@@ -6,17 +6,17 @@ Detector.__index = Detector
 
 ---Creates a new Detector instance with optional fields
 function Detector:new(detection_name, fields)
-  local detector_instance = setmetatable({}, self)
-  detector_instance.detection_name = detection_name or "unknown"
+  local detector = setmetatable({}, self)
+  detector.detection_name = detection_name or "unknown"
 
   -- Set additional fields if provided
   if fields then
     for key, value in pairs(fields) do
-      detector_instance[key] = value
+      detector[key] = value
     end
   end
 
-  return detector_instance
+  return detector
 end
 
 ---Creates a new Detector for dependency-based detection

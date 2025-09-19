@@ -30,7 +30,7 @@ function SymfonyParser:extract_base_path(file_path, line_number)
 end
 
 ---Extracts endpoint path from Symfony annotation content
-function SymfonyParser:extract_endpoint_path(content)
+function SymfonyParser:extract_endpoint_path(content, file_path, line_number)
   -- Skip controller-level @Route (without methods parameter)
   if self:_is_controller_level_route(content) then
     return nil
@@ -67,22 +67,22 @@ function SymfonyParser:extract_method(content)
   return "GET"
 end
 
----Parses Symfony line and returns array of endpoints (can return multiple for multiple methods)
-function SymfonyParser:parse_line_to_endpoints(content, file_path, line_number, column)
+---Override parse_content to handle multiple HTTP methods in Symfony
+function SymfonyParser:parse_content(content, file_path, line_number, column)
   -- Only process if this looks like Symfony annotation
   if not self:is_content_valid_for_parsing(content) then
-    return {}
+    return nil
   end
 
   -- Skip controller-level routes
   if self:_is_controller_level_route(content) then
-    return {}
+    return nil
   end
 
   -- Extract path
-  local endpoint_path = self:extract_endpoint_path(content)
+  local endpoint_path = self:extract_endpoint_path(content, file_path, line_number)
   if not endpoint_path then
-    return {}
+    return nil
   end
 
   -- Get base path and combine
@@ -112,6 +112,11 @@ function SymfonyParser:parse_line_to_endpoints(content, file_path, line_number, 
         methods_count = #methods,
       }, content),
     })
+  end
+
+  -- Return single endpoint if only one method, multiple if more
+  if #endpoints == 1 then
+    return endpoints[1]
   end
 
   return endpoints

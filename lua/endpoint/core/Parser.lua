@@ -4,20 +4,20 @@ Parser.__index = Parser
 
 ---Creates a new Parser instance with optional fields
 function Parser:new(fields)
-  local parser_instance = setmetatable({}, self)
+  local parser = setmetatable({}, self)
 
-  parser_instance.parser_name = "unknown_parser"
-  parser_instance.framework_name = "unknown"
-  parser_instance.language = "unknown"
+  parser.parser_name = "unknown_parser"
+  parser.framework_name = "unknown"
+  parser.language = "unknown"
 
   -- Set fields if provided
   if fields then
     for key, value in pairs(fields) do
-      parser_instance[key] = value
+      parser[key] = value
     end
   end
 
-  return parser_instance
+  return parser
 end
 
 ---Extracts base path from file (controller/class level)
@@ -27,7 +27,7 @@ function Parser:extract_base_path()
 end
 
 ---Extracts endpoint path from content (method level)
-function Parser:extract_endpoint_path()
+function Parser:extract_endpoint_path(content, file_path, line_number)
   -- Must be implemented by subclasses
   error("extract_endpoint_path() must be implemented by subclass: " .. self.parser_name)
 end
@@ -60,9 +60,9 @@ function Parser:parse_content(content, file_path, line_number, column)
     return nil
   end
 
-  -- Extract components using the 4 core methods
+  -- Use the 4 core methods to create endpoint
   local base_path = self:extract_base_path(file_path, line_number)
-  local endpoint_path = self:extract_endpoint_path(content)
+  local endpoint_path = self:extract_endpoint_path(content, file_path, line_number)
   local method = self:extract_method(content)
 
   if not endpoint_path or not method then
@@ -89,12 +89,6 @@ function Parser:parse_content(content, file_path, line_number, column)
   }
 end
 
----Parses a line and returns array of endpoints (allows 1:N mapping)
-function Parser:parse_line_to_endpoints(content, file_path, line_number, column)
-  -- Default implementation: single endpoint only
-  local result = self:parse_content(content, file_path, line_number, column)
-  return result and { result } or {}
-end
 
 ---Gets the name of this parser
 function Parser:get_name()
