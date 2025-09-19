@@ -82,7 +82,12 @@ function RailsParser:is_content_valid_for_parsing(content)
   end
 
   -- Check if content contains Rails route or controller patterns
-  return self:_is_rails_content(content)
+  if not self:_is_rails_content(content) then
+    return false
+  end
+
+  -- Additional validation for Rails-specific filtering
+  return self:_is_valid_route_line(content)
 end
 
 ---Gets parsing confidence for Rails content
@@ -118,8 +123,8 @@ end
 
 ---Extracts HTTP method from Rails route content
 function RailsParser:_extract_http_method(content)
-  -- Match HTTP verbs followed by space (with more strict validation)
-  local route_method = content:match "(%w+)%s+"
+  -- Match HTTP verbs at the start of line followed by space (with optional leading whitespace)
+  local route_method = content:match "^%s*(%w+)%s+"
   if route_method then
     -- Only accept valid HTTP verbs
     local valid_methods = {
@@ -781,17 +786,19 @@ end
 ---Checks if content looks like Rails routing or controller code
 function RailsParser:_is_rails_content(content)
   return content:match "Rails%.application%.routes%.draw"
-    or content:match "get%s"
-    or content:match "post%s"
-    or content:match "put%s"
-    or content:match "delete%s"
-    or content:match "patch%s"
-    or content:match "resources%s"
+    or content:match "^%s*get%s"        -- HTTP verbs must be at start of line (with optional whitespace)
+    or content:match "^%s*post%s"
+    or content:match "^%s*put%s"
+    or content:match "^%s*delete%s"
+    or content:match "^%s*patch%s"
+    or content:match "^%s*head%s"
+    or content:match "^%s*options%s"
+    or content:match "resources%s"      -- Resources can be anywhere
     or content:match "resource%s"
     or content:match "namespace%s"
     or content:match "scope%s"
     or content:match "root%s"
-    or content:match "def%s+[%w_]+"
+    or content:match "def%s+[%w_]+"     -- Method definitions
 end
 
 return RailsParser

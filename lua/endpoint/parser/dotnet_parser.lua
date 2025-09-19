@@ -29,41 +29,84 @@ function DotNetParser:extract_endpoint_path(content, file_path, line_number)
   -- Use _extract_route_info for better accuracy
   local http_method, endpoint_path = self:_extract_route_info(content)
   if endpoint_path then
-    return endpoint_path
+    -- If the path starts with '/', it's an absolute path and shouldn't be combined with base path
+    if endpoint_path:match("^/") then
+      return endpoint_path
+    else
+      return endpoint_path
+    end
   end
 
   -- Fallback to attribute extraction
   local path = self:_extract_path_from_attributes(content)
   if path then
-    return path
+    -- Same logic for fallback path
+    if path:match("^/") then
+      return path
+    else
+      return path
+    end
   end
 
   return nil
 end
 
 ---Extracts HTTP method from .NET attribute content
-function DotNetParser:extract_method(content)
+function DotNetParser:extract_method(content, file_path, line_number)
   local method = self:_extract_method_from_attributes(content)
   if method then
     return method:upper()
   end
 
+  -- If no method found in current line and we have file context, check surrounding lines
+  if file_path and line_number then
+    method = self:_extract_method_from_surrounding_lines(file_path, line_number)
+    if method then
+      return method:upper()
+    end
+  end
+
   return "GET" -- Default fallback
 end
 
----Override parse_content to add .NET-specific metadata
+---Override parse_content to add .NET-specific metadata and handle absolute paths
 function DotNetParser:parse_content(content, file_path, line_number, column)
-  -- Call parent implementation
-  local endpoint = Parser.parse_content(self, content, file_path, line_number, column)
+  -- Only process if this looks like .NET attribute content
+  if not self:is_content_valid_for_parsing(content) then
+    return nil
+  end
 
-  if endpoint then
-    -- Add .NET-specific tags and metadata
-    endpoint.tags = { "csharp", "dotnet", "attribute" }
-    endpoint.metadata = self:create_metadata("attribute", {
+  local endpoint_path = self:extract_endpoint_path(content, file_path, line_number)
+  local method = self:extract_method(content, file_path, line_number)
+
+  if not endpoint_path or not method then
+    return nil
+  end
+
+  -- For absolute paths (starting with /), don't combine with base path
+  local final_path
+  if endpoint_path:match("^/") then
+    final_path = endpoint_path
+  else
+    -- For relative paths, combine with base path
+    local base_path = self:extract_base_path(file_path, line_number)
+    final_path = self:_combine_paths(base_path, endpoint_path)
+  end
+
+  local endpoint = {
+    method = method:upper(),
+    endpoint_path = final_path,
+    file_path = file_path,
+    line_number = line_number,
+    column = column,
+    display_value = method:upper() .. " " .. final_path,
+    confidence = self:get_parsing_confidence(content),
+    tags = { "csharp", "dotnet", "attribute" },
+    metadata = self:create_metadata("attribute", {
       attribute_type = self:_detect_attribute_type(content),
       has_route_template = self:_has_route_template(content),
-    }, content)
-  end
+    }, content),
+  }
 
   return endpoint
 end
@@ -216,6 +259,38 @@ function DotNetParser:_extract_path_from_attributes(content)
   path = content:match "%.%w+%([\"']([^\"']+)[\"']"
   if path then
     return path
+  end
+
+  return nil
+end
+
+---Extracts HTTP method from surrounding lines
+function DotNetParser:_extract_method_from_surrounding_lines(file_path, line_number)
+  local file = io.open(file_path, "r")
+  if not file then
+    return nil
+  end
+
+  local lines = {}
+  for line in file:lines() do
+    table.insert(lines, line)
+  end
+  file:close()
+
+  if #lines == 0 or line_number > #lines then
+    return nil
+  end
+
+  -- Check current line and a few lines around it for HTTP method attributes
+  local start_line = math.max(1, line_number - 3)
+  local end_line = math.min(#lines, line_number + 3)
+
+  for i = start_line, end_line do
+    local line = lines[i]
+    local method = self:_extract_method_from_attributes(line)
+    if method then
+      return method
+    end
   end
 
   return nil
