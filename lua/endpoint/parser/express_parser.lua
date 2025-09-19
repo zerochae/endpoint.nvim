@@ -85,6 +85,42 @@ function ExpressParser:extract_endpoint_path(content, file_path, line_number)
     return path
   end
 
+  -- For multiline generics, check if this is a starting line (app.get<)
+  -- If so, read the file and look for the closing pattern
+  if (content:match("^[^/]*app%.%w+%s*<$") or content:match("^[^/]*router%.%w+%s*<$")) and file_path and line_number then
+    -- Try to read file using pcall to handle vim dependency gracefully
+    local success, lines = pcall(function()
+      if vim and vim.fn and vim.fn.readfile then
+        return vim.fn.readfile(file_path)
+      else
+        -- Fallback for non-vim environments
+        local file = io.open(file_path, "r")
+        if not file then return nil end
+        local content = file:read("*all")
+        file:close()
+        -- Simple string split function
+        local lines = {}
+        for line in content:gmatch("[^\r\n]*") do
+          table.insert(lines, line)
+        end
+        return lines
+      end
+    end)
+
+    if success and lines then
+      -- Look for closing pattern in next 10 lines
+      for i = line_number + 1, math.min(line_number + 10, #lines) do
+        local line = lines[i]
+        if line then
+          local multiline_path = line:match(js_patterns.path_extract.quoted)
+          if multiline_path and multiline_path:match "^/" then
+            return multiline_path
+          end
+        end
+      end
+    end
+  end
+
   return nil
 end
 
@@ -206,6 +242,22 @@ function ExpressParser:_is_express_route_content(content)
         or http_method == "del"
         or http_method == "patch"
     end
+  end
+
+  -- Check for continuation lines in multiline generics
+  -- Type object lines: "  { userId: string; postId: string },"
+  if content:match("^%s*{%s*%w+") then
+    return true
+  end
+
+  -- Type name lines: "  FooType," or "  ApiResponse<User>,"
+  if content:match("^%s*%w+[%w<>%[%]%s%{%}%:,]*[,>]?%s*$") then
+    return true
+  end
+
+  -- Closing bracket with function call: ">('/path', ..." or "}>, ..."
+  if content:match("^%s*[>}]+%s*%(['\"]") then
+    return true
   end
 
   return false

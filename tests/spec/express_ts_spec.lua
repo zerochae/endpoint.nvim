@@ -290,4 +290,104 @@ describe("Express TypeScript Support", function()
       assert.equals("GET", ts_method)
     end)
   end)
+
+  describe("Multiline Generic Support", function()
+    it("should parse simple multiline generic", function()
+      local content = [[app.get<
+  FooType,
+  BarType
+>('/complex-nested', (req, res) => {]]
+
+      local endpoint = framework:parse(content, "test.ts", 167, 1)
+      assert.is_not_nil(endpoint)
+      assert.equals("GET", endpoint.method)
+      assert.equals("/complex-nested", endpoint.endpoint_path)
+      assert.equals("GET /complex-nested", endpoint.display_value)
+    end)
+
+    it("should parse complex multiline generic with multiple types", function()
+      local content = [[app.get<
+  { userId: string; postId: string },
+  ApiResponse<{ user: User; post: any }>,
+  {},
+  QueryParams
+>('/api/v1/users/:userId/posts/:postId', (req, res) => {]]
+
+      local endpoint = framework:parse(content, "test.ts", 138, 1)
+      assert.is_not_nil(endpoint)
+      assert.equals("GET", endpoint.method)
+      assert.equals("/api/v1/users/:userId/posts/:postId", endpoint.endpoint_path)
+    end)
+
+    it("should parse extreme nested generics", function()
+      local content = [[app.put<
+  Record<string, Map<number, Set<Promise<Array<User>>>>>,
+  Promise<ApiResponse<Record<string, Array<{ id: number; data: Map<string, any> }>>>>
+>('/extreme-nesting', (req, res) => {]]
+
+      local endpoint = framework:parse(content, "test.ts", 182, 1)
+      assert.is_not_nil(endpoint)
+      assert.equals("PUT", endpoint.method)
+      assert.equals("/extreme-nesting", endpoint.endpoint_path)
+    end)
+
+    it("should parse multiline router generics", function()
+      local content = [[router.get<
+  { id: string; action: string },
+  ApiResponse<{ user: User; action: string }>,
+  {},
+  { details?: boolean }
+>('/:id/:action', (req, res) => {]]
+
+      local endpoint = framework:parse(content, "test.ts", 100, 1)
+      assert.is_not_nil(endpoint)
+      assert.equals("GET", endpoint.method)
+      assert.equals("/:id/:action", endpoint.endpoint_path)
+    end)
+
+    it("should validate multiline generic content", function()
+      -- First line of multiline generic
+      local first_line = "app.get<"
+      assert.is_true(parser:is_content_valid_for_parsing(first_line))
+
+      -- Type definition lines
+      local type_line = "  { userId: string; postId: string },"
+      assert.is_true(parser:is_content_valid_for_parsing(type_line))
+
+      -- Closing line with path
+      local closing_line = ">('/api/path', (req, res) => {"
+      assert.is_true(parser:is_content_valid_for_parsing(closing_line))
+    end)
+
+    it("should extract method from multiline patterns", function()
+      local multiline_content = [[app.post<
+  RequestType<string, number>,
+  ResponseType<ApiResponse<User[]>>
+>('/super-complex', (req, res) => {]]
+
+      local method = parser:extract_method(multiline_content)
+      assert.equals("POST", method)
+    end)
+
+    it("should extract path from multiline patterns", function()
+      local multiline_content = [[app.delete<
+  { id: string },
+  MessageResponse
+>('/users/:id', (req, res) => {]]
+
+      local path = parser:extract_endpoint_path(multiline_content, "test.ts", 100)
+      assert.equals("/users/:id", path)
+    end)
+
+    it("should have high confidence for multiline generics", function()
+      local multiline_content = [[app.patch<
+  { id: string },
+  ApiResponse<User>,
+  Partial<UpdateUserRequest>
+>('/users/:id', (req, res) => {]]
+
+      local confidence = parser:get_parsing_confidence(multiline_content)
+      assert.is_true(confidence >= 0.9)
+    end)
+  end)
 end)
