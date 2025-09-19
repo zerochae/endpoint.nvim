@@ -88,7 +88,7 @@ describe("ServletFramework", function()
     end)
 
     it("should parse doGet methods", function()
-      local content = 'protected void doGet(HttpServletRequest request, HttpServletResponse response)'
+      local content = "protected void doGet(HttpServletRequest request, HttpServletResponse response)"
       local result = parser:parse_content(content, "UserServlet.java", 1, 1)
 
       if result then
@@ -97,7 +97,7 @@ describe("ServletFramework", function()
     end)
 
     it("should parse doPost methods", function()
-      local content = 'protected void doPost(HttpServletRequest request, HttpServletResponse response)'
+      local content = "protected void doPost(HttpServletRequest request, HttpServletResponse response)"
       local result = parser:parse_content(content, "UserServlet.java", 1, 1)
 
       if result then
@@ -135,12 +135,12 @@ describe("ServletFramework", function()
 
   describe("Controller Name Extraction", function()
     it("should extract servlet name from Java file", function()
-      local controller_name = framework:getControllerName("src/main/java/com/example/UserServlet.java")
+      local controller_name = framework:getControllerName "src/main/java/com/example/UserServlet.java"
       assert.is_not_nil(controller_name)
     end)
 
     it("should handle nested servlet paths", function()
-      local controller_name = framework:getControllerName("src/main/java/com/example/admin/UserServlet.java")
+      local controller_name = framework:getControllerName "src/main/java/com/example/admin/UserServlet.java"
       assert.is_not_nil(controller_name)
     end)
   end)
@@ -188,22 +188,22 @@ describe("ServletParser", function()
 
   describe("Endpoint Path Extraction", function()
     it("should extract simple paths from WebServlet", function()
-      local path = parser:extract_endpoint_path('@WebServlet("/users")')
+      local path = parser:extract_endpoint_path '@WebServlet("/users")'
       assert.equals("/users", path)
     end)
 
     it("should extract paths with urlPatterns", function()
-      local path = parser:extract_endpoint_path('@WebServlet(urlPatterns = "/users")')
+      local path = parser:extract_endpoint_path '@WebServlet(urlPatterns = "/users")'
       assert.equals("/users", path)
     end)
 
     it("should handle wildcard patterns", function()
-      local path = parser:extract_endpoint_path('@WebServlet("/users/*")')
+      local path = parser:extract_endpoint_path '@WebServlet("/users/*")'
       assert.equals("/users/*", path)
     end)
 
     it("should handle single quotes", function()
-      local path = parser:extract_endpoint_path("@WebServlet('/users')")
+      local path = parser:extract_endpoint_path "@WebServlet('/users')"
       if path then
         assert.equals("/users", path)
       end
@@ -212,27 +212,27 @@ describe("ServletParser", function()
 
   describe("HTTP Method Extraction", function()
     it("should extract GET from doGet", function()
-      local method = parser:extract_method('protected void doGet(')
+      local method = parser:extract_method "protected void doGet("
       assert.equals("GET", method)
     end)
 
     it("should extract POST from doPost", function()
-      local method = parser:extract_method('protected void doPost(')
+      local method = parser:extract_method "protected void doPost("
       assert.equals("POST", method)
     end)
 
     it("should extract PUT from doPut", function()
-      local method = parser:extract_method('protected void doPut(')
+      local method = parser:extract_method "protected void doPut("
       assert.equals("PUT", method)
     end)
 
     it("should extract DELETE from doDelete", function()
-      local method = parser:extract_method('protected void doDelete(')
+      local method = parser:extract_method "protected void doDelete("
       assert.equals("DELETE", method)
     end)
 
     it("should extract OPTIONS from doOptions", function()
-      local method = parser:extract_method('protected void doOptions(')
+      local method = parser:extract_method "protected void doOptions("
       if method then
         assert.equals("OPTIONS", method)
       end
@@ -270,3 +270,4 @@ describe("ServletParser", function()
     end)
   end)
 end)
+

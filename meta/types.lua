@@ -119,7 +119,6 @@
 ---@field protected detection_name string
 ---@field private required_dependencies? string[]
 ---@field private manifest_files? string[]
----@field private file_system_utils table
 ---@field new fun(self: endpoint.Detector, detection_name: string, fields: table?): endpoint.Detector
 ---@field new_dependency_detector fun(self: endpoint.Detector, required_dependencies: string[], manifest_files: string[], name?: string): endpoint.Detector
 ---@field is_target_detected fun(self: endpoint.Detector): boolean

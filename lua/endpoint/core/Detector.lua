@@ -16,11 +16,6 @@ function Detector:new(detection_name, fields)
     end
   end
 
-  -- Initialize file system utils if not provided
-  if not detector_instance.file_system_utils then
-    detector_instance.file_system_utils = fs
-  end
-
   return detector_instance
 end
 
@@ -38,7 +33,7 @@ function Detector:is_target_detected()
   -- If we have dependencies and manifest files, use dependency detection
   if self.required_dependencies and self.manifest_files then
     for _, manifest_file_path in ipairs(self.manifest_files) do
-      if self.file_system_utils.has_file { manifest_file_path } then
+      if fs.has_file { manifest_file_path } then
         if self:_check_manifest_file_for_dependencies(manifest_file_path) then
           return true
         end
@@ -54,7 +49,7 @@ end
 ---Checks a specific manifest file for required dependencies
 function Detector:_check_manifest_file_for_dependencies(manifest_file_path)
   for _, required_dependency_identifier in ipairs(self.required_dependencies) do
-    if self.file_system_utils.file_contains(manifest_file_path, required_dependency_identifier) then
+    if fs.file_contains(manifest_file_path, required_dependency_identifier) then
       return true
     end
   end
@@ -85,11 +80,11 @@ function Detector:get_detection_details()
     local searched_manifest_files = {}
 
     for _, manifest_file_path in ipairs(self.manifest_files) do
-      if self.file_system_utils.has_file { manifest_file_path } then
+      if fs.has_file { manifest_file_path } then
         table.insert(searched_manifest_files, manifest_file_path)
 
         for _, required_dependency_identifier in ipairs(self.required_dependencies) do
-          if self.file_system_utils.file_contains(manifest_file_path, required_dependency_identifier) then
+          if fs.file_contains(manifest_file_path, required_dependency_identifier) then
             table.insert(detected_dependencies, {
               dependency_identifier = required_dependency_identifier,
               found_in_manifest = manifest_file_path,

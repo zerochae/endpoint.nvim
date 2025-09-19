@@ -20,7 +20,6 @@ function Parser:new(fields)
   return parser_instance
 end
 
-
 ---Extracts base path from file (controller/class level)
 function Parser:extract_base_path()
   -- Must be implemented by subclasses
@@ -94,7 +93,7 @@ end
 function Parser:parse_line_to_endpoints(content, file_path, line_number, column)
   -- Default implementation: single endpoint only
   local result = self:parse_content(content, file_path, line_number, column)
-  return result and {result} or {}
+  return result and { result } or {}
 end
 
 ---Gets the name of this parser

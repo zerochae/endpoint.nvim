@@ -11,11 +11,13 @@ function NestJsFramework:new()
     file_extensions = { "*.ts", "*.js" },
     exclude_patterns = { "**/node_modules", "**/dist", "**/build" },
     patterns = {
-      GET = { "@Get\\(", "@HttpCode.-@Get" },
-      POST = { "@Post\\(", "@HttpCode.-@Post" },
-      PUT = { "@Put\\(", "@HttpCode.-@Put" },
-      DELETE = { "@Delete\\(", "@HttpCode.-@Delete" },
-      PATCH = { "@Patch\\(", "@HttpCode.-@Patch" },
+      GET = { "@Get\\s*\\(", "@HttpCode.*@Get" },
+      POST = { "@Post\\s*\\(", "@HttpCode.*@Post" },
+      PUT = { "@Put\\s*\\(", "@HttpCode.*@Put" },
+      DELETE = { "@Delete\\s*\\(", "@HttpCode.*@Delete" },
+      PATCH = { "@Patch\\s*\\(", "@HttpCode.*@Patch" },
+      OPTIONS = { "@Options\\s*\\(", "@HttpCode.*@Options" },
+      HEAD = { "@Head\\s*\\(", "@HttpCode.*@Head" },
     },
     search_options = { "--case-sensitive", "--type", "ts" },
     controller_extractors = {

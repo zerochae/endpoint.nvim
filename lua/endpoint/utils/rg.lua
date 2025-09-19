@@ -43,6 +43,9 @@ function M.create_command(ripgrep_search_options)
     ripgrep_command = ripgrep_command .. " -e '" .. search_pattern .. "'"
   end
 
+  -- Add search path (current directory)
+  ripgrep_command = ripgrep_command .. " ."
+
   return ripgrep_command
 end
 

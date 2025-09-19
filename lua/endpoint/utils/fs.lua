@@ -66,6 +66,11 @@ function M.file_contains(filepath, patterns)
     return false
   end
 
+  -- Check if it's actually a file, not a directory
+  if not M.file_exists(filepath) then
+    return false
+  end
+
   local content = vim.fn.readfile(filepath)
   local file_str = table.concat(content, "\n")
 

@@ -56,55 +56,15 @@ function NestJsParser:extract_method(content)
   return "GET" -- Default fallback
 end
 
----Parses NestJS line and returns array of endpoints
-function NestJsParser:parse_line_to_endpoints(content, file_path, line_number, column)
-  -- Only process if this looks like NestJS decorator
-  if not self:is_content_valid_for_parsing(content) then
-    return {}
-  end
-
-  -- Skip @Controller decorators
-  if self:_is_controller_decorator(content) then
-    return {}
-  end
-
-  -- Extract path and method
-  local endpoint_path = self:extract_endpoint_path(content)
-  if not endpoint_path then
-    return {}
-  end
-
-  local method = self:extract_method(content)
-  if not method then
-    return {}
-  end
-
-  -- Get base path and combine
-  local base_path = self:extract_base_path(file_path, line_number)
-  local full_path = self:_combine_paths(base_path, endpoint_path)
-
-  -- Create single endpoint
-  local endpoint = {
-    method = method:upper(),
-    endpoint_path = full_path,
-    file_path = file_path,
-    line_number = line_number,
-    column = column,
-    display_value = method:upper() .. " " .. full_path,
-    confidence = self:get_parsing_confidence(content),
-    tags = { "typescript", "nestjs", "decorator" },
-    metadata = self:create_metadata("decorator", {
-      decorator_type = self:_extract_decorator_type(content),
-      has_http_code = self:_has_http_code_decorator(content),
-    }, content),
-  }
-
-  return { endpoint }
-end
-
 ---Validates if content contains NestJS decorators
 function NestJsParser:is_content_valid_for_parsing(content)
   if not Parser.is_content_valid_for_parsing(self, content) then
+    return false
+  end
+
+  -- Must be non-empty and trimmed content
+  local trimmed = content:match "^%s*(.-)%s*$"
+  if not trimmed or trimmed == "" then
     return false
   end
 
@@ -146,9 +106,26 @@ end
 
 ---Checks if content looks like NestJS decorator content
 function NestJsParser:_is_nestjs_decorator_content(content)
-  -- Check for NestJS HTTP method decorators
-  return content:match "@(Get|Post|Put|Delete|Patch|Options|Head)%s*%("
-    or content:match "@HttpCode.-@(Get|Post|Put|Delete|Patch)"
+  -- Check for NestJS HTTP method decorators with optional whitespace
+  local http_method_pattern = "@(Get|Post|Put|Delete|Patch|Options|Head)%s*%("
+  if content:match(http_method_pattern) then
+    return true
+  end
+
+  -- Check for HttpCode decorator followed by HTTP method
+  local http_code_pattern = "@HttpCode.-@(Get|Post|Put|Delete|Patch|Options|Head)"
+  if content:match(http_code_pattern) then
+    return true
+  end
+
+  -- Check for common NestJS decorator patterns (case-insensitive)
+  local case_insensitive_pattern = "@[Gg][Ee][Tt]%s*%("
+    or content:match "@[Pp][Oo][Ss][Tt]%s*%("
+    or content:match "@[Pp][Uu][Tt]%s*%("
+    or content:match "@[Dd][Ee][Ll][Ee][Tt][Ee]%s*%("
+    or content:match "@[Pp][Aa][Tt][Cc][Hh]%s*%("
+
+  return case_insensitive_pattern ~= nil
 end
 
 ---Checks if this is a @Controller decorator
