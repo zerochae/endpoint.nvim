@@ -3,12 +3,7 @@ local M = {}
 
 -- New improved configuration structure
 local default_config = {
-  -- Cache configuration (new structure)
-  cache = {
-    mode = "none", -- "none", "session", "persistent"
-  },
-
-  -- Picker configuration (new structure)
+  -- Picker configuration
   picker = {
     type = "telescope", -- "telescope", "vim_ui_select", "snacks"
     options = {
@@ -38,10 +33,18 @@ local default_config = {
       display_format = "smart", -- "action_only", "controller_action", "smart"
       show_action_annotation = true, -- Show [controller#action] annotations
     },
+    django = {
+      url_param_format = "%v:%t", -- Content template: %v=variable name, %t=type
+      url_param_fallback = "%v", -- Fallback content when type is unavailable (regex patterns)
+      url_param_brackets = "{}", -- Bracket style: "{}", "<>", "[]", "()", or custom like "⟨⟩"
+      -- Examples:
+      --   "%v:%t" + "{}" -> {pk:int}
+      --   "%t:%v" + "<>" -> <int:pk>
+      --   "%v" + "[]" -> [pk]
+    },
   },
 
   -- Legacy fields for backward compatibility (will be removed in v2.0)
-  cache_mode = "none", -- @deprecated: use cache.mode instead
   picker_opts = {}, -- @deprecated: use picker.options instead
 }
 
@@ -65,12 +68,6 @@ end
 local function migrate_config(config)
   local migrated = vim.deepcopy(config)
 
-  -- Handle cache_mode -> cache.mode migration
-  if config.cache_mode and not config.cache then
-    warn_deprecated("cache_mode", "cache.mode", "v2.0")
-    migrated.cache = migrated.cache or {}
-    migrated.cache.mode = config.cache_mode
-  end
 
   -- Handle picker + picker_opts -> picker.type + picker.options migration
   if config.picker and type(config.picker) == "string" then
@@ -119,7 +116,6 @@ local function migrate_config(config)
   end
 
   -- Clean up legacy keys
-  migrated.cache_mode = nil
   migrated.picker_opts = nil
 
   return migrated
@@ -134,33 +130,19 @@ function M.setup(user_config)
 
   -- Merge with default config
   current_config = vim.tbl_deep_extend("force", default_config, migrated_config)
-
-  -- Initialize cache with the configured mode (support both old and new format)
-  local cache = require "endpoint.cache"
-  local cache_mode = current_config.cache and current_config.cache.mode or current_config.cache_mode
-  cache.set_mode(cache_mode)
-
-  -- Initialize scanner
-  local scanner = require "endpoint.scanner"
-  scanner.setup(current_config)
 end
 
 -- Get current configuration
----@return table
 function M.get()
   return current_config
 end
 
 -- Get specific config value
----@param key string
----@return any
 function M.get_value(key)
   return current_config[key]
 end
 
 -- Set specific config value
----@param key string
----@param value any
 function M.set_value(key, value)
   current_config[key] = value
 end

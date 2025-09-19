@@ -1,122 +1,54 @@
--- Simplified Endpoint.nvim Main Entry Point (Function-based)
 local config = require "endpoint.config"
-local scanner = require "endpoint.scanner"
+local EndpointManager = require "endpoint.manager.EndpointManager"
+
+local endpoint_manager = EndpointManager:new()
 
 local M = {}
 
--- Available pickers
-local pickers = {
-  telescope = require "endpoint.pickers.telescope",
-  vim_ui_select = require "endpoint.pickers.vim_ui_select",
-  snacks = require "endpoint.pickers.snacks",
-}
-
 -- Setup function
----@param user_config? table
 function M.setup(user_config)
-  config.setup(user_config)
+  endpoint_manager:setup(user_config)
 end
 
 -- Main function to find and show endpoints
----@param method? string
----@param opts? table
-function M.find_endpoints(method, opts)
-  method = method or "ALL"
-  opts = opts or {}
-
-  -- Scan for endpoints
-  local endpoints = scanner.scan(method, opts)
-
-  if #endpoints == 0 then
-    vim.notify("No endpoints found for method: " .. method, vim.log.levels.INFO)
-    return
-  end
-
-  -- Get configured picker (support both new and old structure)
-  local current_config = config.get()
-  local picker_name = current_config.picker and current_config.picker.type or current_config.picker or "telescope"
-  local picker = pickers[picker_name]
-
-  if not picker then
-    vim.notify("Picker '" .. picker_name .. "' not found, using vim_ui_select", vim.log.levels.WARN)
-    picker = pickers.vim_ui_select
-  end
-
-  if not picker.is_available() then
-    vim.notify("Picker '" .. picker_name .. "' not available, using vim_ui_select", vim.log.levels.WARN)
-    picker = pickers.vim_ui_select
-  end
-
-  -- Show endpoints in picker
-  -- Support both new and old config structure for backward compatibility
-  local current_config = config.get()
-  local picker_config = current_config.picker or {}
-  
-  -- Get picker options (new structure first, then fallback to old)
-  local all_picker_opts = picker_config.options or current_config.picker_opts or {}
-  local current_picker_opts = all_picker_opts[picker_name] or {}
-  
-  -- Handle user-provided picker_opts (maintain compatibility)
-  local user_picker_opts = (opts.picker_opts and opts.picker_opts[picker_name]) or opts.picker_opts or {}
-  local picker_opts = vim.tbl_deep_extend("force", current_picker_opts, user_picker_opts)
-  picker.show(endpoints, picker_opts)
+function M.find(opts)
+  endpoint_manager:find(opts)
 end
 
--- Convenience functions for specific methods
-function M.find_all()
-  M.find_endpoints "ALL"
-end
 
-function M.find_get()
-  M.find_endpoints "GET"
-end
-
-function M.find_post()
-  M.find_endpoints "POST"
-end
-
-function M.find_put()
-  M.find_endpoints "PUT"
-end
-
-function M.find_delete()
-  M.find_endpoints "DELETE"
-end
-
-function M.find_patch()
-  M.find_endpoints "PATCH"
-end
-
-function M.find_route()
-  M.find_endpoints "ROUTE"
+-- Force refresh (bypass cache)
+function M.refresh()
+  M.find { force_refresh = true }
 end
 
 -- Cache management
 function M.clear_cache()
-  scanner.clear_cache()
-  vim.notify("Cache cleared", vim.log.levels.INFO)
+  endpoint_manager:clear_cache()
 end
 
 function M.show_cache_stats()
-  local cache_status_ui = require "endpoint.ui.cache_status"
-  cache_status_ui.show_cache_status()
-end
-
--- Force refresh (bypass cache)
----@param method? string
-function M.refresh(method)
-  M.find_endpoints(method, { force_refresh = true })
+  endpoint_manager:show_cache_stats()
 end
 
 -- Get configuration
----@return table
 function M.get_config()
   return config.get()
 end
 
--- Expose internal modules for advanced usage
-M._cache = require "endpoint.cache"
-M._scanner = scanner
-M._config = config
+-- Get framework information
+function M.get_framework_info()
+  return endpoint_manager:get_framework_info()
+end
+
+-- Detect frameworks in current project
+function M.detect_frameworks()
+  return endpoint_manager:detect_project_frameworks()
+end
+
+-- Scan with specific framework
+function M.scan_with_framework(framework_name, opts)
+  return endpoint_manager:scan_with_framework(framework_name, opts)
+end
+
 
 return M

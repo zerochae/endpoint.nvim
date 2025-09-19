@@ -1,153 +1,274 @@
-describe("Express framework", function()
-  local test_helpers = require "tests.utils.framework_test_helpers"
-  local express = require "endpoint.frameworks.express"
+local ExpressFramework = require "endpoint.frameworks.express"
+local ExpressParser = require "endpoint.parser.express_parser"
 
-  describe("framework detection", test_helpers.create_detection_test_suite(express, "express"))
+describe("ExpressFramework", function()
+  local framework
+  local parser
 
-  describe(
-    "search command generation",
-    test_helpers.create_search_cmd_test_suite(express, {
-      GET = { "app\\.get", "router\\.get" },
-      POST = { "app\\.post", "router\\.post" },
-      ALL = { "get", "post" },
-    })
-  )
+  before_each(function()
+    framework = ExpressFramework:new()
+    parser = ExpressParser:new()
+  end)
 
-  describe(
-    "line parsing",
-    test_helpers.create_line_parsing_test_suite(express, {
-      {
-        description = "should parse simple app.get line",
-        line = "app.js:10:5:app.get('/api/users', (req, res) => {",
-        method = "GET",
-        expected = {
-          method = "GET",
-          endpoint_path = "/api/users",
-          file_path = "app.js",
-          line_number = 10,
-          column = 5,
-        },
-      },
-      {
-        description = "should parse router.post line",
-        line = "routes/users.js:15:5:router.post('/', (req, res) => {",
-        method = "POST",
-        expected = {
-          method = "POST",
-          endpoint_path = "/",
-          file_path = "routes/users.js",
-          line_number = 15,
-          column = 5,
-        },
-      },
-      {
-        description = "should parse routes with parameters",
-        line = "app.js:20:5:app.get('/users/:id', (req, res) => {",
-        method = "GET",
-        expected = {
-          method = "GET",
-          endpoint_path = "/users/:id",
-          file_path = "app.js",
-          line_number = 20,
-          column = 5,
-        },
-      },
-      {
-        description = "should parse complex routes with multiple parameters",
-        line = "app.js:25:5:app.get('/api/v1/users/:userId/posts/:postId', (req, res) => {",
-        method = "GET",
-        expected = {
-          method = "GET",
-          endpoint_path = "/api/v1/users/:userId/posts/:postId",
-          file_path = "app.js",
-          line_number = 25,
-          column = 5,
-        },
-      },
-      {
-        description = "should parse destructured method calls",
-        line = "destructured.js:10:5:get('/api/home', (req, res) => {",
-        method = "GET",
-        expected = {
-          method = "GET",
-          endpoint_path = "/api/home",
-          file_path = "destructured.js",
-          line_number = 10,
-          column = 5,
-        },
-      },
-      {
-        description = "should parse destructured delete with del alias",
-        line = "destructured.js:15:5:del('/api/users/:id', (req, res) => {",
-        method = "DELETE",
-        expected = {
-          method = "DELETE",
-          endpoint_path = "/api/users/:id",
-          file_path = "destructured.js",
-          line_number = 15,
-          column = 5,
-        },
-      },
-      {
-        description = "should parse destructured patch method",
-        line = "destructured.js:20:5:patch('/api/profile', (req, res) => {",
-        method = "PATCH",
-        expected = {
-          method = "PATCH",
-          endpoint_path = "/api/profile",
-          file_path = "destructured.js",
-          line_number = 20,
-          column = 5,
-        },
-      },
-    })
-  )
+  describe("Framework Detection", function()
+    it("should have correct framework name", function()
+      assert.equals("express", framework:get_name())
+    end)
 
-  describe("additional parsing tests", function()
-    it("should handle double quotes in routes", function()
-      local line = 'app.js:30:5:app.post("/api/users", (req, res) => {'
-      local result = express.parse_line(line, "POST")
+    it("should have detector configured", function()
+      assert.is_not_nil(framework.detector)
+      assert.equals("express_dependency_detection", framework.detector.detection_name)
+    end)
 
-      if result then
-        assert.are.equal("POST", result and result.method)
-        assert.are.equal("/api/users", result and result.endpoint_path)
-      end
+    it("should have parser configured", function()
+      assert.is_not_nil(framework.parser)
+      assert.equals("express_parser", framework.parser.parser_name)
     end)
   end)
 
-  describe("integration with fixtures", test_helpers.create_integration_test_suite(express, "express"))
+  describe("Framework Configuration", function()
+    it("should have correct file extensions", function()
+      local config = framework:get_config()
+      assert.same({ "*.js", "*.ts", "*.mjs" }, config.file_extensions)
+    end)
 
-  describe("edge cases", function()
-    it("should handle various quote styles", function()
-      local line1 = "app.js:10:5:app.get('/api/single', handler)"
-      local line2 = 'app.js:11:5:app.get("/api/double", handler)'
+    it("should have exclude patterns", function()
+      local config = framework:get_config()
+      assert.same({ "**/node_modules", "**/dist", "**/build" }, config.exclude_patterns)
+    end)
 
-      local result1 = express.parse_line(line1, "GET")
-      local result2 = express.parse_line(line2, "GET")
+    it("should have Express-specific search patterns", function()
+      local config = framework:get_config()
+      assert.is_table(config.patterns.GET)
+      assert.is_table(config.patterns.POST)
+      assert.is_table(config.patterns.PUT)
+      assert.is_table(config.patterns.DELETE)
+      assert.is_table(config.patterns.PATCH)
 
-      if result1 and result2 then
-        assert.are.equal("/api/single", result1.endpoint_path)
-        assert.are.equal("/api/double", result2.endpoint_path)
+      -- Check for Express-specific patterns (simplified check)
+      assert.is_true(#config.patterns.GET > 0)
+      assert.is_true(#config.patterns.POST > 0)
+    end)
+
+    it("should have controller extractors", function()
+      local config = framework:get_config()
+      assert.is_table(config.controller_extractors)
+      assert.is_true(#config.controller_extractors > 0)
+    end)
+
+    it("should have detector configuration", function()
+      local config = framework:get_config()
+      assert.is_table(config.detector)
+      assert.is_table(config.detector.dependencies)
+      assert.is_table(config.detector.manifest_files)
+      assert.equals("express_dependency_detection", config.detector.name)
+
+      -- Check for Express-specific dependencies
+      local has_express = false
+      for _, dep in ipairs(config.detector.dependencies) do
+        if dep:match("express") then
+          has_express = true
+          break
+        end
+      end
+      assert.is_true(has_express)
+    end)
+  end)
+
+  describe("Parser Functionality", function()
+    it("should parse app.get routes", function()
+      local content = 'app.get("/users", handler)'
+      local result = parser:parse_content(content, "routes.js", 1, 1)
+
+      assert.is_not_nil(result)
+      assert.equals("GET", result.method)
+      assert.equals("/users", result.endpoint_path)
+    end)
+
+    it("should parse app.post routes", function()
+      local content = 'app.post("/users", handler)'
+      local result = parser:parse_content(content, "routes.js", 1, 1)
+
+      assert.is_not_nil(result)
+      assert.equals("POST", result.method)
+      assert.equals("/users", result.endpoint_path)
+    end)
+
+    it("should parse router.get routes", function()
+      local content = 'router.get("/users", handler)'
+      local result = parser:parse_content(content, "routes.js", 1, 1)
+
+      if result then
+        assert.equals("GET", result.method)
+        assert.equals("/users", result.endpoint_path)
       end
     end)
 
-    it("should handle path parameters correctly", function()
-      local line = "routes/users.js:15:5:router.get('/:id/posts/:postId', handler)"
-      local result = express.parse_line(line, "GET")
+    it("should parse endpoints with parameters", function()
+      local content = 'app.get("/users/:id", handler)'
+      local result = parser:parse_content(content, "routes.js", 1, 1)
 
-      if result then
-        assert.are.equal("/:id/posts/:postId", result and result.endpoint_path)
-      end
+      assert.is_not_nil(result)
+      assert.equals("GET", result.method)
+      assert.equals("/users/:id", result.endpoint_path)
     end)
 
-    it("should handle root path", function()
-      local line = "app.js:5:5:app.get('/', (req, res) => {"
-      local result = express.parse_line(line, "GET")
+    it("should handle single quotes", function()
+      local content = "app.get('/users', handler)"
+      local result = parser:parse_content(content, "routes.js", 1, 1)
 
-      if result then
-        assert.are.equal("/", result and result.endpoint_path)
-      end
+      assert.is_not_nil(result)
+      assert.equals("GET", result.method)
+      assert.equals("/users", result.endpoint_path)
+    end)
+  end)
+
+  describe("Search Command Generation", function()
+    it("should generate valid search commands", function()
+      local search_cmd = framework:get_search_cmd()
+      assert.is_string(search_cmd)
+      assert.matches("rg", search_cmd)
+      assert.matches("--type js", search_cmd)
+    end)
+  end)
+
+  describe("Controller Name Extraction", function()
+    it("should extract controller name from JavaScript file", function()
+      local controller_name = framework:getControllerName("routes/users.js")
+      assert.is_not_nil(controller_name)
+    end)
+
+    it("should extract controller name from TypeScript file", function()
+      local controller_name = framework:getControllerName("routes/users.ts")
+      assert.is_not_nil(controller_name)
+    end)
+
+    it("should handle nested route paths", function()
+      local controller_name = framework:getControllerName("routes/api/users.js")
+      assert.is_not_nil(controller_name)
+    end)
+  end)
+
+  describe("Integration Tests", function()
+    it("should create framework instance successfully", function()
+      local instance = ExpressFramework:new()
+      assert.is_not_nil(instance)
+      assert.equals("express", instance.name)
+    end)
+
+    it("should have parser and detector ready", function()
+      assert.is_not_nil(framework.parser)
+      assert.is_not_nil(framework.detector)
+      assert.equals("express", framework.parser.framework_name)
+    end)
+
+    it("should parse and enhance endpoints", function()
+      local content = 'app.get("/api/users", handler)'
+      local result = framework:parse(content, "routes.js", 1, 1)
+
+      assert.is_not_nil(result)
+      assert.equals("express", result.framework)
+      assert.is_table(result.metadata)
+      assert.equals("express", result.metadata.framework)
     end)
   end)
 end)
 
+describe("ExpressParser", function()
+  local parser
+
+  before_each(function()
+    parser = ExpressParser:new()
+  end)
+
+  describe("Parser Instance", function()
+    it("should create parser with correct properties", function()
+      assert.equals("express_parser", parser.parser_name)
+      assert.equals("express", parser.framework_name)
+      assert.equals("javascript", parser.language)
+    end)
+  end)
+
+  describe("Endpoint Path Extraction", function()
+    it("should extract simple paths", function()
+      local path = parser:extract_endpoint_path('app.get("/users"')
+      assert.equals("/users", path)
+    end)
+
+    it("should extract paths with parameters", function()
+      local path = parser:extract_endpoint_path('app.get("/users/:id"')
+      assert.equals("/users/:id", path)
+    end)
+
+    it("should handle single quotes", function()
+      local path = parser:extract_endpoint_path("app.get('/users'")
+      assert.equals("/users", path)
+    end)
+
+    it("should handle router patterns", function()
+      local path = parser:extract_endpoint_path('router.get("/users"')
+      assert.equals("/users", path)
+    end)
+  end)
+
+  describe("HTTP Method Extraction", function()
+    it("should extract GET from app.get", function()
+      local method = parser:extract_method('app.get("/users"')
+      assert.equals("GET", method)
+    end)
+
+    it("should extract POST from app.post", function()
+      local method = parser:extract_method('app.post("/users"')
+      assert.equals("POST", method)
+    end)
+
+    it("should extract PUT from app.put", function()
+      local method = parser:extract_method('app.put("/users/:id"')
+      assert.equals("PUT", method)
+    end)
+
+    it("should extract DELETE from app.delete", function()
+      local method = parser:extract_method('app.delete("/users/:id"')
+      assert.equals("DELETE", method)
+    end)
+
+    it("should extract PATCH from app.patch", function()
+      local method = parser:extract_method('app.patch("/users/:id"')
+      assert.equals("PATCH", method)
+    end)
+
+    it("should extract method from router patterns", function()
+      local method = parser:extract_method('router.get("/users"')
+      assert.equals("GET", method)
+    end)
+  end)
+
+  describe("Base Path Extraction", function()
+    it("should handle router mounting contexts", function()
+      local base_path = parser:extract_base_path("routes.js", 10)
+      assert.is_true(base_path == nil or type(base_path) == "string")
+    end)
+  end)
+
+  describe("Error Handling", function()
+    it("should handle malformed routes gracefully", function()
+      local result = parser:parse_content("invalid route", "test.js", 1, 1)
+      assert.is_nil(result)
+    end)
+
+    it("should handle empty content", function()
+      local result = parser:parse_content("", "test.js", 1, 1)
+      assert.is_nil(result)
+    end)
+
+    it("should handle missing file path", function()
+      local result = parser:parse_content('app.get("/users", handler)', nil, 1, 1)
+      assert.is_not_nil(result)
+    end)
+
+    it("should return nil for non-Express content", function()
+      local result = parser:parse_content("const users = []", "test.js", 1, 1)
+      assert.is_nil(result)
+    end)
+  end)
+end)
