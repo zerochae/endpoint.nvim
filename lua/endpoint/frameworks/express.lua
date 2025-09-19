@@ -11,13 +11,13 @@ function ExpressFramework:new()
     file_extensions = { "*.js", "*.ts", "*.mjs" },
     exclude_patterns = { "**/node_modules", "**/dist", "**/build" },
     patterns = {
-      GET = { "app\\.get\\(", "router\\.get\\(", "\\.get\\(" },
-      POST = { "app\\.post\\(", "router\\.post\\(", "\\.post\\(" },
-      PUT = { "app\\.put\\(", "router\\.put\\(", "\\.put\\(" },
-      DELETE = { "app\\.delete\\(", "router\\.delete\\(", "\\.delete\\(" },
-      PATCH = { "app\\.patch\\(", "router\\.patch\\(", "\\.patch\\(" },
+      GET = { "app\\.get\\b", "router\\.get\\b", "^\\s*get\\s*[<(]", "^[^/]*app\\.get\\s*<", "^[^/]*router\\.get\\s*<" },
+      POST = { "app\\.post\\b", "router\\.post\\b", "^\\s*post\\s*[<(]", "^[^/]*app\\.post\\s*<", "^[^/]*router\\.post\\s*<" },
+      PUT = { "app\\.put\\b", "router\\.put\\b", "^\\s*put\\s*[<(]", "^[^/]*app\\.put\\s*<", "^[^/]*router\\.put\\s*<" },
+      DELETE = { "app\\.delete\\b", "router\\.delete\\b", "^\\s*(delete|del)\\s*[<(]", "^[^/]*app\\.delete\\s*<", "^[^/]*router\\.delete\\s*<" },
+      PATCH = { "app\\.patch\\b", "router\\.patch\\b", "^\\s*patch\\s*[<(]", "^[^/]*app\\.patch\\s*<", "^[^/]*router\\.patch\\s*<" },
     },
-    search_options = { "--type", "js" },
+    search_options = { "--type", "js", "--type", "ts", "-U", "--multiline-dotall" },
     controller_extractors = {
       {
         pattern = "([^/]+)%.%w+$",
