@@ -84,20 +84,32 @@ function DotNetParser:parse_content(content, file_path, line_number, column)
     return nil
   end
 
-  -- If endpoint path is empty, this is likely a standalone HTTP attribute
-  -- without a Route attribute, which should not be parsed as an endpoint
+  -- If endpoint path is empty, check if there's a class-level Route attribute
   if not endpoint_path or endpoint_path == "" then
-    return nil
+    -- For HTTP method attributes without explicit paths, use base path from controller
+    local base_path = self:extract_base_path(file_path, line_number)
+    if base_path and base_path ~= "" then
+      endpoint_path = base_path  -- Use controller base path
+    else
+      return nil  -- No route information available
+    end
   end
 
-  -- For absolute paths (starting with /), don't combine with base path
+  -- Handle path combination logic
   local final_path
   if endpoint_path:match("^/") then
+    -- Absolute path - use as is
     final_path = endpoint_path
   else
-    -- For relative paths, combine with base path
+    -- Relative path or endpoint_path equals base_path - combine properly
     local base_path = self:extract_base_path(file_path, line_number)
-    final_path = self:_combine_paths(base_path, endpoint_path)
+
+    -- If endpoint_path is the same as base_path, don't combine
+    if endpoint_path == base_path then
+      final_path = "/" .. endpoint_path
+    else
+      final_path = self:_combine_paths(base_path, endpoint_path)
+    end
   end
 
   local endpoint = {
