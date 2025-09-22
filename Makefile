@@ -23,6 +23,9 @@ test-fastapi:
 test-express:
 	nvim --headless --noplugin -u tests/minit.lua -c "PlenaryBustedDirectory tests/spec/express_spec.lua"
 
+test-express-ts:
+	nvim --headless --noplugin -u tests/minit.lua -c "PlenaryBustedDirectory tests/spec/express_ts_spec.lua"
+
 test-react-router:
 	nvim --headless --noplugin -u tests/minit.lua -c "PlenaryBustedDirectory tests/spec/react_router_spec.lua"
 
