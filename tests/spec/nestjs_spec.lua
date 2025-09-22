@@ -44,10 +44,14 @@ describe("NestjsFramework", function()
       assert.is_table(config.patterns.PUT)
       assert.is_table(config.patterns.DELETE)
       assert.is_table(config.patterns.PATCH)
+      assert.is_table(config.patterns.QUERY)
+      assert.is_table(config.patterns.MUTATION)
 
       -- Check for NestJS-specific patterns
       assert.is_true(#config.patterns.GET > 0)
       assert.is_true(#config.patterns.POST > 0)
+      assert.is_true(#config.patterns.QUERY > 0)
+      assert.is_true(#config.patterns.MUTATION > 0)
     end)
 
     it("should have controller extractors", function()
@@ -126,6 +130,53 @@ describe("NestjsFramework", function()
 
       if result then
         assert.equals("GET", result.method)
+      end
+    end)
+
+    it("should parse @Query decorators", function()
+      local content = '@Query(() => [User])\n  async findAll(): Promise<User[]> {'
+      local result = parser:parse_content(content, "users.resolver.ts", 1, 1)
+
+      if result then
+        assert.equals("QUERY", result.method)
+        assert.equals("findAll", result.endpoint_path)
+      end
+    end)
+
+    it("should parse @Mutation decorators", function()
+      local content = '@Mutation(() => User)\n  async createUser(@Args("input") input: CreateUserInput): Promise<User> {'
+      local result = parser:parse_content(content, "users.resolver.ts", 1, 1)
+
+      if result then
+        assert.equals("MUTATION", result.method)
+        assert.equals("createUser", result.endpoint_path)
+      end
+    end)
+
+    it("should parse GraphQL decorators with custom names", function()
+      local content = '@Query(() => [User], { name: "users" })\n  async findAll(): Promise<User[]> {'
+      local result = parser:parse_content(content, "users.resolver.ts", 1, 1)
+
+      if result then
+        assert.equals("QUERY", result.method)
+        assert.equals("users", result.endpoint_path)
+      end
+    end)
+
+    it("should parse multiline GraphQL decorators", function()
+      local content = [[
+@Mutation(() => User, {
+  name: 'createUser',
+  description: 'Create a new user'
+})
+async createNewUser(
+  @Args('input') input: CreateUserInput
+): Promise<User> {]]
+      local result = parser:parse_content(content, "users.resolver.ts", 1, 1)
+
+      if result then
+        assert.equals("MUTATION", result.method)
+        assert.equals("createUser", result.endpoint_path)
       end
     end)
   end)
@@ -217,6 +268,26 @@ describe("NestjsParser", function()
       local path = parser:extract_endpoint_path("@Get()")
       assert.is_true(path == nil or path == "" or type(path) == "string")
     end)
+
+    it("should extract GraphQL query names from function names", function()
+      local path = parser:extract_endpoint_path('@Query(() => [User])\n  async findAllUsers(): Promise<User[]> {')
+      assert.equals("findAllUsers", path)
+    end)
+
+    it("should extract GraphQL mutation names from custom name options", function()
+      local path = parser:extract_endpoint_path('@Mutation(() => User, { name: "createUser" })')
+      assert.equals("createUser", path)
+    end)
+
+    it("should extract GraphQL query names with single quotes", function()
+      local path = parser:extract_endpoint_path("@Query(() => [User], { name: 'users' })")
+      assert.equals("users", path)
+    end)
+
+    it("should handle GraphQL decorators without explicit names", function()
+      local path = parser:extract_endpoint_path('@Query(() => User)\n  async getUser(): Promise<User> {')
+      assert.equals("getUser", path)
+    end)
   end)
 
   describe("HTTP Method Extraction", function()
@@ -243,6 +314,16 @@ describe("NestjsParser", function()
     it("should extract PATCH from @Patch", function()
       local method = parser:extract_method('@Patch("/users/:id")')
       assert.equals("PATCH", method)
+    end)
+
+    it("should extract QUERY from @Query", function()
+      local method = parser:extract_method('@Query(() => [User])')
+      assert.equals("QUERY", method)
+    end)
+
+    it("should extract MUTATION from @Mutation", function()
+      local method = parser:extract_method('@Mutation(() => User)')
+      assert.equals("MUTATION", method)
     end)
   end)
 

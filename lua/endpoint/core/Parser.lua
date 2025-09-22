@@ -51,6 +51,11 @@ function Parser:combine_paths(base_path, endpoint_path)
   base_path = base_path:gsub("/$", "")
   endpoint_path = endpoint_path:gsub("^/", "")
 
+  -- Handle root endpoint case
+  if endpoint_path == "" then
+    return base_path
+  end
+
   return base_path .. "/" .. endpoint_path
 end
 

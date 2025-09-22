@@ -7,7 +7,9 @@ export class UsersController {
     return `All users (limit: ${limit || 'none'})`;
   }
 
-  @Get('active')
+  @Get(
+    'active'
+  )
   findActiveUsers(): string {
     return 'Active users';
   }
