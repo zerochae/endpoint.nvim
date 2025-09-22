@@ -88,7 +88,7 @@ function TelescopePicker:_create_entry(entry, config)
     filename = entry.file_path,
     lnum = entry.line_number,
     col = entry.column,
-    end_lnum = entry.end_line_number,  -- For multiline highlighting
+    end_lnum = entry.end_line_number, -- For multiline highlighting
   }
 end
 
@@ -218,7 +218,7 @@ function TelescopePicker:_highlight_endpoint_line(bufnr, preview_line, preview_c
         self.highlight_ns,
         "TelescopePreviewMatch",
         line,
-        line == start_line and start_col or 0,  -- Start from specified column on first line, 0 on others
+        line == start_line and start_col or 0, -- Start from specified column on first line, 0 on others
         -1
       )
     end

@@ -108,9 +108,35 @@ require("endpoint").setup({
 
 ## 🎯 Picker Options
 
-- **Telescope** (default): Rich fuzzy search with preview
-- **vim.ui.select**: Native Neovim interface, works with dressing.nvim
-- **Snacks**: Modern picker with file preview and line highlighting
+⚠️ **Important**: You must set `picker.type` to match your installed picker!
+
+- **Telescope**: `picker.type = "telescope"` - Rich fuzzy search with preview
+- **vim.ui.select**: `picker.type = "vim_ui_select"` - Native Neovim interface, works with dressing.nvim
+- **Snacks**: `picker.type = "snacks"` - Modern picker with file preview and line highlighting
+
+```lua
+-- If you use snacks.nvim
+{
+  "zerochae/endpoint.nvim",
+  dependencies = { "folke/snacks.nvim" },
+  config = function()
+    require("endpoint").setup({
+      picker = { type = "snacks" }
+    })
+  end,
+}
+
+-- If you use telescope.nvim
+{
+  "zerochae/endpoint.nvim",
+  dependencies = { "nvim-telescope/telescope.nvim" },
+  config = function()
+    require("endpoint").setup({
+      picker = { type = "telescope" }
+    })
+  end,
+}
+```
 
 ## 🔧 Caching
 
