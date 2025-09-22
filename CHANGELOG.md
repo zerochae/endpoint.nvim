@@ -1,5 +1,15 @@
 # Changelog
 
+## [2.1.0](https://github.com/zerochae/endpoint.nvim/compare/v2.0.0...v2.1.0) (2025-09-22)
+
+
+### Features
+
+* add comprehensive Express TypeScript support ([9ef6c89](https://github.com/zerochae/endpoint.nvim/commit/9ef6c89770e85e2e55537d45bcb152c91a34c713))
+* add comprehensive multiline TypeScript generic support ([0b0d0ef](https://github.com/zerochae/endpoint.nvim/commit/0b0d0ef1b5d6b687915baebfac07e00e01e869cd))
+* comprehensive NestJS improvements with GraphQL and multiline support ([9498d34](https://github.com/zerochae/endpoint.nvim/commit/9498d34c474a61369e9373d598f1de92c5a575f0))
+* Express TypeScript support with comprehensive multiline generic detection ([3625bd0](https://github.com/zerochae/endpoint.nvim/commit/3625bd025f7a122dea6993a8cafef6cb88e1bf26))
+
 ## [2.0.0](https://github.com/zerochae/endpoint.nvim/compare/v1.11.0...v2.0.0) (2025-09-19)
 
 
