@@ -88,6 +88,7 @@ function TelescopePicker:_create_entry(entry, config)
     filename = entry.file_path,
     lnum = entry.line_number,
     col = entry.column,
+    end_lnum = entry.end_line_number,  -- For multiline highlighting
   }
 end
 
@@ -175,7 +176,7 @@ function TelescopePicker:_handle_preview_callback(bufnr, endpoint, picker_self, 
   if endpoint.component_file_path and endpoint.component_name then
     self:_highlight_component_definition(bufnr, endpoint)
   else
-    self:_highlight_endpoint_line(bufnr, preview_line, preview_col)
+    self:_highlight_endpoint_line(bufnr, preview_line, preview_col, endpoint.end_line_number)
   end
 
   -- Set cursor and center
@@ -203,17 +204,24 @@ function TelescopePicker:_highlight_component_definition(bufnr, endpoint)
   end, 50)
 end
 
----Highlight the endpoint line
-function TelescopePicker:_highlight_endpoint_line(bufnr, preview_line, preview_col)
+---Highlight the endpoint line(s)
+function TelescopePicker:_highlight_endpoint_line(bufnr, preview_line, preview_col, end_line)
   if preview_line then
-    vim.api.nvim_buf_add_highlight(
-      bufnr,
-      self.highlight_ns,
-      "TelescopePreviewMatch",
-      preview_line - 1,
-      math.max(0, (preview_col or 1) - 1),
-      -1
-    )
+    local start_line = preview_line - 1
+    local end_line_num = end_line and (end_line - 1) or start_line
+    local start_col = math.max(0, (preview_col or 1) - 1)
+
+    -- Highlight multiple lines if end_line is provided
+    for line = start_line, end_line_num do
+      vim.api.nvim_buf_add_highlight(
+        bufnr,
+        self.highlight_ns,
+        "TelescopePreviewMatch",
+        line,
+        line == start_line and start_col or 0,  -- Start from specified column on first line, 0 on others
+        -1
+      )
+    end
   end
 end
 

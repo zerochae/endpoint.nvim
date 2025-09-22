@@ -18,6 +18,8 @@ function NestJsFramework:new()
       PATCH = { "@Patch\\s*\\(", "@HttpCode.*@Patch" },
       OPTIONS = { "@Options\\s*\\(", "@HttpCode.*@Options" },
       HEAD = { "@Head\\s*\\(", "@HttpCode.*@Head" },
+      QUERY = { "@Query\\s*\\(", "@Resolver.*@Query" },
+      MUTATION = { "@Mutation\\s*\\(", "@Resolver.*@Mutation" },
     },
     search_options = { "--case-sensitive", "--type", "ts" },
     controller_extractors = {
@@ -33,9 +35,20 @@ function NestJsFramework:new()
         end,
       },
       {
+        pattern = "([^/]+)%.resolver%.%w+$",
+        transform = function(name)
+          local pascal = name
+            :gsub("%-(%w)", function(l)
+              return l:upper()
+            end)
+            :gsub("^%w", string.upper)
+          return pascal .. "Resolver"
+        end,
+      },
+      {
         pattern = "([^/]+)%.%w+$",
         transform = function(name)
-          return name:gsub("Controller$", ""):gsub("Service$", "")
+          return name:gsub("Controller$", ""):gsub("Service$", ""):gsub("Resolver$", "")
         end,
       },
     },
