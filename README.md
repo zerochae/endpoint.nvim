@@ -41,9 +41,10 @@ A powerful Neovim plugin for quickly finding and navigating web framework API en
 :Endpoint          " Find all endpoints
 :Endpoint Get      " Find GET endpoints
 :Endpoint Post     " Find POST endpoints
+:Endpoint Put      " Find PUT endpoints
 :Endpoint Delete   " Find DELETE endpoints
-:Endpoint ClearCache   " Clear cached data
-:Endpoint CacheStatus  " Show cache statistics
+:Endpoint Patch    " Find PATCH endpoints
+:EndpointRefresh   " Force refresh (clear cache and rescan)
 ```
 
 ## 📦 Installation
@@ -177,16 +178,6 @@ Use `:EndpointRefresh` to clear cache and force rescan.
 - [ripgrep](https://github.com/BurntSushi/ripgrep)
 - Optional: telescope.nvim or snacks.nvim for enhanced UI
 
-## 🤝 Contributing
-
-Contributions welcome! To add a new framework:
-
-1. Create `lua/endpoint/frameworks/yourframework.lua`
-2. Implement `detect()`, `get_search_cmd()`, and `parse_line()` functions
-3. Register in `lua/endpoint/scanner.lua`
-4. Add test cases
-
-See existing framework files for examples.
 
 ## 📄 License
 
