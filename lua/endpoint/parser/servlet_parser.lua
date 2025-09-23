@@ -170,7 +170,6 @@ function ServletParser:parse_content(content, file_path, line_number, column)
   return endpoints
 end
 
-
 ---Validates if content contains Servlet patterns
 function ServletParser:is_content_valid_for_parsing(content)
   if not Parser.is_content_valid_for_parsing(self, content) then
@@ -308,7 +307,7 @@ function ServletParser:_extract_servlet_method(content)
     "do(%w+)%s*%(", -- simple method call pattern
   }
 
-  for i, pattern in ipairs(patterns) do
+  for _, pattern in ipairs(patterns) do
     local method_name = content:match(pattern)
     if method_name then
       -- Validate it's a known HTTP method
@@ -357,6 +356,8 @@ function ServletParser:_has_web_xml_mapping()
 end
 
 ---Finds servlet mapping path for a Java servlet file
+---@param java_file_path string
+---@return string[]|nil
 function ServletParser:_find_servlet_mapping_for_file(java_file_path)
   -- Extract class name from file path
   local class_name = java_file_path:match "([^/]+)%.java$"
@@ -427,13 +428,9 @@ function ServletParser:_find_servlet_mapping_for_file(java_file_path)
   return #url_patterns > 0 and url_patterns or nil
 end
 
----Finds @WebServlet annotation path for a Java servlet file (backward compatibility)
-function ServletParser:_find_webservlet_annotation_for_file(java_file_path)
-  local paths = self:_find_webservlet_annotation_paths_for_file(java_file_path)
-  return paths and paths[1] or nil
-end
-
 ---Finds @WebServlet annotation paths for a Java servlet file
+---@param java_file_path string
+---@return string[]|nil
 function ServletParser:_find_webservlet_annotation_paths_for_file(java_file_path)
   -- Try multiple path variations
   local paths_to_try = {
