@@ -277,7 +277,28 @@ function EndpointManager:find(opts)
   end
 
   endpoints = self:_handle_cache(endpoints, opts)
+
+  -- Filter by method if specified
+  if opts.method and opts.method ~= "" then
+    endpoints = self:_filter_by_method(endpoints, opts.method)
+    if #endpoints == 0 then
+      vim.notify("No " .. opts.method .. " endpoints found", vim.log.levels.INFO)
+      return
+    end
+  end
+
   self:_show_with_picker(endpoints, opts)
+end
+
+---Filter endpoints by HTTP method
+function EndpointManager:_filter_by_method(endpoints, method)
+  local filtered = {}
+  for _, endpoint in ipairs(endpoints) do
+    if endpoint.method and endpoint.method:upper() == method:upper() then
+      table.insert(filtered, endpoint)
+    end
+  end
+  return filtered
 end
 
 ---Handles caching logic for endpoints

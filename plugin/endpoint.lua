@@ -7,10 +7,15 @@ vim.g.loaded_endpoint_nvim = 1
 -- Create user commands for old_backup structure
 
 -- Main endpoint finding command
-vim.api.nvim_create_user_command("Endpoint", function()
-  require("endpoint").find()
+vim.api.nvim_create_user_command("Endpoint", function(opts)
+  local method = opts.args and opts.args:upper()
+  require("endpoint").find({ method = method })
 end, {
-  desc = "Find all endpoints"
+  nargs = "?",
+  complete = function()
+    return { "Get", "Post", "Put", "Delete", "Patch" }
+  end,
+  desc = "Find endpoints (optionally filter by method: Get, Post, etc.)"
 })
 
 vim.api.nvim_create_user_command("EndpointRefresh", function()
