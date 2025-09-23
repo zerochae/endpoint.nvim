@@ -44,7 +44,7 @@ A powerful Neovim plugin for quickly finding and navigating web framework API en
 :Endpoint Put      " Find PUT endpoints
 :Endpoint Delete   " Find DELETE endpoints
 :Endpoint Patch    " Find PATCH endpoints
-:EndpointRefresh   " Force refresh (clear cache and rescan)
+:EndpointRefresh   " Force refresh (bypass cache)
 ```
 
 ## 📦 Installation
@@ -60,7 +60,7 @@ A powerful Neovim plugin for quickly finding and navigating web framework API en
     "folke/snacks.nvim",            -- For snacks picker
     -- vim.ui.select picker works without dependencies
   },
-  cmd = { "Endpoint" },
+  cmd = { "Endpoint", "EndpointRefresh" },
   config = function()
     require("endpoint").setup()
   end,
@@ -73,7 +73,7 @@ A powerful Neovim plugin for quickly finding and navigating web framework API en
 require("endpoint").setup({
   -- Picker configuration
   picker = {
-    type = "telescope",   -- "telescope", "vim_ui_select", "snacks"
+    type = "vim_ui_select", -- "telescope", "vim_ui_select", "snacks"
     options = {
       telescope = {},     -- Telescope-specific options
       snacks = {},        -- Snacks-specific options
@@ -170,7 +170,7 @@ Persistent cache files are stored in:
 └── myproject_POST.lua         # POST endpoints
 ```
 
-Use `:EndpointRefresh` to clear cache and force rescan.
+Use `:EndpointRefresh` to force refresh (bypass cache).
 
 ## ⚡️ Requirements
 
