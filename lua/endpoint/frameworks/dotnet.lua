@@ -17,20 +17,19 @@ function DotNetFramework:new()
       DELETE = { "\\[Route\\(", "\\[HttpDelete\\(", "app\\.MapDelete", "endpoints\\.MapDelete", "\\.Delete\\(" },
       PATCH = { "\\[Route\\(", "\\[HttpPatch\\(", "app\\.MapPatch", "endpoints\\.MapPatch", "\\.Patch\\(" },
     },
-    search_options = { "--case-sensitive", "--type", "csharp" },
+    search_options = { "--case-sensitive", "--type", "csharp", "-U", "--multiline-dotall" },
     controller_extractors = {
       { pattern = "([^/]+)%.cs$" },
     },
     detector = {
       dependencies = { "Microsoft.AspNetCore", "Microsoft.AspNet.WebApi" },
       manifest_files = { "*.csproj", "*.sln", "global.json", "appsettings.json", "Program.cs", "Startup.cs" },
-      name = "dotnet_dependency_detection"
+      name = "dotnet_dependency_detection",
     },
-    parser = DotNetParser
+    parser = DotNetParser,
   })
   setmetatable(dotnet_framework_instance, self)
   return dotnet_framework_instance
 end
-
 
 return DotNetFramework

@@ -8,51 +8,83 @@ ExpressParser.__index = ExpressParser
 local js_patterns = {
   -- Content validation patterns
   app_methods = { "^[^/]*app%.get", "^[^/]*app%.post", "^[^/]*app%.put", "^[^/]*app%.delete", "^[^/]*app%.patch" },
-  router_methods = { "^[^/]*router%.get", "^[^/]*router%.post", "^[^/]*router%.put", "^[^/]*router%.delete", "^[^/]*router%.patch" },
-  destructured_methods = { "^%s*get%f[%W]%s*[<(]", "^%s*post%f[%W]%s*[<(]", "^%s*put%f[%W]%s*[<(]", "^%s*delete%f[%W]%s*[<(]", "^%s*del%f[%W]%s*[<(]", "^%s*patch%f[%W]%s*[<(]" },
+  router_methods = {
+    "^[^/]*router%.get",
+    "^[^/]*router%.post",
+    "^[^/]*router%.put",
+    "^[^/]*router%.delete",
+    "^[^/]*router%.patch",
+  },
+  destructured_methods = {
+    "^%s*get%f[%W]%s*[<(]",
+    "^%s*post%f[%W]%s*[<(]",
+    "^%s*put%f[%W]%s*[<(]",
+    "^%s*delete%f[%W]%s*[<(]",
+    "^%s*del%f[%W]%s*[<(]",
+    "^%s*patch%f[%W]%s*[<(]",
+  },
 
   -- Method extraction patterns
   method_extract = {
     standard = "%w+%.(%w+)%f[%W]",
-    destructured = "^%s*(%w+)%f[%W]%s*[<(]"
+    destructured = "^%s*(%w+)%f[%W]%s*[<(]",
   },
 
   -- Path extraction patterns
   path_extract = {
-    quoted = "['\"]([^'\"]+)['\"]"
+    quoted = "['\"]([^'\"]+)['\"]",
   },
 
   -- Route type detection patterns
   route_type = {
     app = "app%.",
     router = "router%.",
-    destructured = "^%s*%w+%s*%("
-  }
+    destructured = "^%s*%w+%s*%(",
+  },
 }
 
 local ts_patterns = {
   -- Content validation patterns
-  app_methods = { "^[^/]*app%.get%s*<", "^[^/]*app%.post%s*<", "^[^/]*app%.put%s*<", "^[^/]*app%.delete%s*<", "^[^/]*app%.patch%s*<" },
-  router_methods = { "^[^/]*router%.get%s*<", "^[^/]*router%.post%s*<", "^[^/]*router%.put%s*<", "^[^/]*router%.delete%s*<", "^[^/]*router%.patch%s*<" },
-  destructured_methods = { "^%s*get%f[%W]%s*<", "^%s*post%f[%W]%s*<", "^%s*put%f[%W]%s*<", "^%s*delete%f[%W]%s*<", "^%s*del%f[%W]%s*<", "^%s*patch%f[%W]%s*<" },
+  app_methods = {
+    "^[^/]*app%.get%s*<",
+    "^[^/]*app%.post%s*<",
+    "^[^/]*app%.put%s*<",
+    "^[^/]*app%.delete%s*<",
+    "^[^/]*app%.patch%s*<",
+  },
+  router_methods = {
+    "^[^/]*router%.get%s*<",
+    "^[^/]*router%.post%s*<",
+    "^[^/]*router%.put%s*<",
+    "^[^/]*router%.delete%s*<",
+    "^[^/]*router%.patch%s*<",
+  },
+  destructured_methods = {
+    "^%s*get%f[%W]%s*<",
+    "^%s*post%f[%W]%s*<",
+    "^%s*put%f[%W]%s*<",
+    "^%s*delete%f[%W]%s*<",
+    "^%s*del%f[%W]%s*<",
+    "^%s*patch%f[%W]%s*<",
+  },
 
   -- Method extraction patterns (same as JS since we use word boundaries)
   method_extract = {
     standard = "%w+%.(%w+)%f[%W]",
-    destructured = "^%s*(%w+)%f[%W]%s*[<(]"
+    destructured = "^%s*(%w+)%f[%W]%s*[<(]",
   },
 
   -- Path extraction patterns (same as JS)
   path_extract = {
-    quoted = "['\"]([^'\"]+)['\"]"
+    quoted = "['\"]([^'\"]+)['\"]",
   },
 
   -- Route type detection patterns
   route_type = {
     app = "app%.",
     router = "router%.",
-    destructured = "^%s*%w+%f[%W]%s*[<(]"
-  }
+    destructured = "^%s*%w+%f[%W]%s*[<(]",
+  },
 }
 
 -- ========================================
@@ -87,7 +119,7 @@ function ExpressParser:extract_endpoint_path(content, file_path, line_number)
 
   -- For multiline generics, check if this is a starting line (app.get<)
   -- If so, read the file and look for the closing pattern
-  if (content:match("^[^/]*app%.%w+%s*<$") or content:match("^[^/]*router%.%w+%s*<$")) and file_path and line_number then
+  if (content:match "^[^/]*app%.%w+%s*<$" or content:match "^[^/]*router%.%w+%s*<$") and file_path and line_number then
     -- Try to read file using pcall to handle vim dependency gracefully
     local success, lines = pcall(function()
       if vim and vim.fn and vim.fn.readfile then
@@ -95,12 +127,14 @@ function ExpressParser:extract_endpoint_path(content, file_path, line_number)
       else
         -- Fallback for non-vim environments
         local file = io.open(file_path, "r")
-        if not file then return nil end
-        local content = file:read("*all")
+        if not file then
+          return nil
+        end
+        local file_content = file:read "*all"
         file:close()
         -- Simple string split function
         local lines = {}
-        for line in content:gmatch("[^\r\n]*") do
+        for line in file_content:gmatch "[^\r\n]*" do
           table.insert(lines, line)
         end
         return lines
@@ -226,13 +260,13 @@ function ExpressParser:_is_express_route_content(content)
   end
 
   -- Check for multiline generic patterns (app.get< or router.get< at line start)
-  if content:match("^[^/]*app%.%w+%s*<") or content:match("^[^/]*router%.%w+%s*<") then
+  if content:match "^[^/]*app%.%w+%s*<" or content:match "^[^/]*router%.%w+%s*<" then
     return true
   end
 
   -- Check for destructured multiline patterns
-  if content:match("^%s*%w+%f[%W]%s*<") then
-    local method = content:match("^%s*(%w+)%f[%W]%s*<")
+  if content:match "^%s*%w+%f[%W]%s*<" then
+    local method = content:match "^%s*(%w+)%f[%W]%s*<"
     if method then
       local http_method = method:lower()
       return http_method == "get"
@@ -246,17 +280,17 @@ function ExpressParser:_is_express_route_content(content)
 
   -- Check for continuation lines in multiline generics
   -- Type object lines: "  { userId: string; postId: string },"
-  if content:match("^%s*{%s*%w+") then
+  if content:match "^%s*{%s*%w+" then
     return true
   end
 
   -- Type name lines: "  FooType," or "  ApiResponse<User>,"
-  if content:match("^%s*%w+[%w<>%[%]%s%{%}%:,]*[,>]?%s*$") then
+  if content:match "^%s*%w+[%w<>%[%]%s%{%}%:,]*[,>]?%s*$" then
     return true
   end
 
   -- Closing bracket with function call: ">('/path', ..." or "}>, ..."
-  if content:match("^%s*[>}]+%s*%(['\"]") then
+  if content:match "^%s*[>}]+%s*%(['\"]" then
     return true
   end
 
@@ -294,4 +328,3 @@ function ExpressParser:_extract_app_type(content)
 end
 
 return ExpressParser
-

@@ -17,7 +17,7 @@ function FastApiFramework:new()
       DELETE = { "@app\\.delete", "@router\\.delete" },
       PATCH = { "@app\\.patch", "@router\\.patch" },
     },
-    search_options = { "--case-sensitive", "--type", "py" },
+    search_options = { "--case-sensitive", "--type", "py", "-U", "--multiline-dotall" },
     controller_extractors = {
       {
         pattern = "([^/]+)%.py$",

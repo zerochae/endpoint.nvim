@@ -17,20 +17,24 @@ function KtorFramework:new()
       DELETE = { "delete\\s*\\(", "delete\\s*\\{", "delete<.*>\\s*\\(" },
       PATCH = { "patch\\s*\\(", "patch\\s*\\{", "patch<.*>\\s*\\(" },
     },
-    search_options = { "--case-sensitive", "--type", "kotlin" },
+    search_options = { "--case-sensitive", "--type", "kotlin", "-U", "--multiline-dotall" },
     controller_extractors = {
-      { pattern = "([^/]+)%.kt$", transform = function(name) return name:gsub("Routes$", ""):gsub("Routing$", "") end }
+      {
+        pattern = "([^/]+)%.kt$",
+        transform = function(name)
+          return name:gsub("Routes$", ""):gsub("Routing$", "")
+        end,
+      },
     },
     detector = {
       dependencies = { "io.ktor:ktor", "ktor-server", "io.ktor.plugin" },
       manifest_files = { "build.gradle", "build.gradle.kts", "pom.xml" },
-      name = "ktor_dependency_detection"
+      name = "ktor_dependency_detection",
     },
-    parser = KtorParser
+    parser = KtorParser,
   })
   setmetatable(ktor_framework_instance, self)
   return ktor_framework_instance
 end
-
 
 return KtorFramework

@@ -71,7 +71,7 @@ function Detector:get_detection_details()
   local base_details = {
     detector_name = self.detection_name,
     detected_at = os.time(),
-    is_detected = true
+    is_detected = true,
   }
 
   -- Add dependency-specific details if applicable

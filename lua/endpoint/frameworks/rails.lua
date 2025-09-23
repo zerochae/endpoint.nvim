@@ -32,7 +32,7 @@ function RailsFramework:new()
         "resource\\s+",
         "def\\s+create",
         "def\\s+like",
-        "def\\s+share"
+        "def\\s+share",
       },
       PUT = { "put\\s+", "resources\\s+", "resource\\s+", "def\\s+update" },
       PATCH = {
@@ -40,17 +40,17 @@ function RailsFramework:new()
         "resources\\s+",
         "resource\\s+",
         "def\\s+update",
-        "def\\s+update_status"
+        "def\\s+update_status",
       },
       DELETE = {
         "delete\\s+",
         "resources\\s+",
         "resource\\s+",
         "def\\s+destroy",
-        "def\\s+unlike"
+        "def\\s+unlike",
       },
     },
-    search_options = { "--type", "ruby" },
+    search_options = { "--type", "ruby", "-U", "--multiline-dotall" },
     controller_extractors = {
       { pattern = "controllers/(.*)_controller%.rb$" },
     },

@@ -153,7 +153,7 @@ describe("KtorFramework", function()
     it("should create framework instance successfully", function()
       local instance = KtorFramework:new()
       assert.is_not_nil(instance)
-      assert.equals("ktor", instance.name)
+      assert.equals("ktor", instance:get_name())
     end)
 
     it("should have parser and detector ready", function()

@@ -1,0 +1,17 @@
+{
+  "diagnostics": {
+    "globals": ["vim"]
+  },
+  "workspace": {
+    "library": [
+      "${3rd}/luv/library",
+      "${3rd}/busted/library"
+    ]
+  },
+  "runtime": {
+    "version": "LuaJIT"
+  },
+  "hint": {
+    "enable": true
+  }
+}

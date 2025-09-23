@@ -27,7 +27,7 @@ end
 ---Extracts endpoint path from Ktor routing content
 function KtorParser:extract_endpoint_path(content)
   -- Pattern 1: Basic routing - get("/path") { }
-  local method, path = content:match "(%w+)%(\"([^\"]+)\""
+  local method, path = content:match '(%w+)%("([^"]+)"'
   if method and path then
     return path
   end
@@ -39,7 +39,7 @@ function KtorParser:extract_endpoint_path(content)
   end
 
   -- Pattern 3: Parameter-only path - get("{id}") { }
-  method, path = content:match "(%w+)%(\"([^\"]*)\""
+  method, path = content:match '(%w+)%("([^"]*)"'
   if method and path and path:match "^{" then
     return path
   end
@@ -82,10 +82,15 @@ end
 
 ---Checks if a method string is a valid HTTP method
 function KtorParser:_is_valid_http_method(method)
-  if not method then return false end
+  if not method then
+    return false
+  end
   local lower_method = method:lower()
-  return lower_method == "get" or lower_method == "post" or lower_method == "put" or
-         lower_method == "delete" or lower_method == "patch"
+  return lower_method == "get"
+    or lower_method == "post"
+    or lower_method == "put"
+    or lower_method == "delete"
+    or lower_method == "patch"
 end
 
 ---Get full path by analyzing file context for nested routing
@@ -149,9 +154,9 @@ function KtorParser:_extract_base_paths_from_file(file_path, target_line)
       local _, close_count = line:gsub("}", "")
 
       -- Check for route("path") declarations
-      local route_path = line:match('route%s*%("([^"]+)"%)')
+      local route_path = line:match 'route%s*%("([^"]+)"%)'
       if not route_path then
-        route_path = line:match("route%s*%('([^']+)'%)")
+        route_path = line:match "route%s*%('([^']+)'%)"
       end
       if route_path then
         table.insert(route_stack, { path = route_path, depth = bracket_depth })
@@ -174,7 +179,6 @@ function KtorParser:_extract_base_paths_from_file(file_path, target_line)
   return base_paths
 end
 
-
 ---Validates if the content is suitable for Ktor endpoint parsing
 function KtorParser:is_content_valid_for_parsing(content_to_validate)
   if not content_to_validate or content_to_validate == "" then
@@ -182,18 +186,18 @@ function KtorParser:is_content_valid_for_parsing(content_to_validate)
   end
 
   -- Exclude route() calls as they only define path segments, not endpoints
-  if content_to_validate:match("route%s*%(") then
+  if content_to_validate:match "route%s*%(" then
     return false
   end
 
   -- Pattern 1: HTTP method with parentheses - get("/path") { }
-  local method = content_to_validate:match("(%w+)%s*%(")
+  local method = content_to_validate:match "(%w+)%s*%("
   if self:_is_valid_http_method(method) then
     return true
   end
 
   -- Pattern 2: HTTP method without parentheses - get { }
-  method = content_to_validate:match("^%s*(%w+)%s*{")
+  method = content_to_validate:match "^%s*(%w+)%s*{"
   if self:_is_valid_http_method(method) then
     return true
   end
@@ -202,3 +206,4 @@ function KtorParser:is_content_valid_for_parsing(content_to_validate)
 end
 
 return KtorParser
+

@@ -27,7 +27,7 @@ function Parser:extract_base_path()
 end
 
 ---Extracts endpoint path from content (method level)
-function Parser:extract_endpoint_path(content, file_path, line_number)
+function Parser:extract_endpoint_path()
   -- Must be implemented by subclasses
   error("extract_endpoint_path() must be implemented by subclass: " .. self.parser_name)
 end
@@ -93,7 +93,6 @@ function Parser:parse_content(content, file_path, line_number, column)
     }, content),
   }
 end
-
 
 ---Gets the name of this parser
 function Parser:get_name()

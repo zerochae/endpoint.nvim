@@ -248,7 +248,7 @@ function SpringParser:_extract_method_from_specific_mapping(content)
       Post = "POST",
       Put = "PUT",
       Delete = "DELETE",
-      Patch = "PATCH"
+      Patch = "PATCH",
     }
     return method_mapping[annotation]
   end

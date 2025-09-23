@@ -149,7 +149,7 @@ describe("ServletFramework", function()
     it("should create framework instance successfully", function()
       local instance = ServletFramework:new()
       assert.is_not_nil(instance)
-      assert.equals("servlet", instance.name)
+      assert.equals("servlet", instance:get_name())
     end)
 
     it("should have parser and detector ready", function()

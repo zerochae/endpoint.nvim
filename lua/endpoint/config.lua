@@ -73,7 +73,6 @@ end
 local function migrate_config(config)
   local migrated = vim.deepcopy(config)
 
-
   -- Handle picker + picker_opts -> picker.type + picker.options migration
   if config.picker and type(config.picker) == "string" then
     -- Old format: picker is a string, convert to new format

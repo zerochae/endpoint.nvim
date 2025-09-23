@@ -17,7 +17,7 @@ function ServletFramework:new()
       DELETE = { "doDelete" },
       PATCH = { "doPatch" },
     },
-    search_options = { "--case-sensitive", "--type", "java" },
+    search_options = { "--case-sensitive", "--type", "java", "-U", "--multiline-dotall" },
     controller_extractors = {
       { pattern = "([^/]+)%.java$" },
     },
@@ -37,4 +37,3 @@ function ServletFramework:new()
 end
 
 return ServletFramework
-

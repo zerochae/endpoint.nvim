@@ -46,13 +46,13 @@ end
 ---Ensures the endpoint manager is initialized
 function EndpointManager:_ensure_initialized()
   if not self._initialized then
-    error("endpoint.nvim not initialized. Call setup() first.")
+    error "endpoint.nvim not initialized. Call setup() first."
   end
 end
 
 ---Registers all available frameworks with the endpoint manager
 function EndpointManager:register_all_frameworks()
-  log.framework_debug("Registering all available frameworks")
+  log.framework_debug "Registering all available frameworks"
 
   -- Register all framework instances
   local framework_classes = {
@@ -329,7 +329,7 @@ function EndpointManager:_show_with_picker(endpoints, opts)
   local user_picker_opts = (opts.picker_opts and opts.picker_opts[selected_picker_name]) or opts.picker_opts or {}
   local picker_opts = vim.tbl_deep_extend("force", current_picker_opts, user_picker_opts)
 
-  picker_instance.show(endpoints, picker_opts)
+  picker_instance:show(endpoints, picker_opts)
 end
 
 ---Clears the endpoint cache
@@ -350,7 +350,8 @@ function EndpointManager:show_cache_stats()
 
   if self.cache_manager then
     local stats = self.cache_manager:get_stats()
-    local message = string.format("Cache: %d endpoints, valid: %s", stats.total_endpoints, stats.valid and "yes" or "no")
+    local message =
+      string.format("Cache: %d endpoints, valid: %s", stats.total_endpoints, stats.valid and "yes" or "no")
     vim.notify(message, vim.log.levels.INFO)
   else
     vim.notify("Cache not available", vim.log.levels.WARN)
@@ -358,4 +359,3 @@ function EndpointManager:show_cache_stats()
 end
 
 return EndpointManager
-

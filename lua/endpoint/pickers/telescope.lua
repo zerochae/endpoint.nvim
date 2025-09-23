@@ -256,25 +256,4 @@ function TelescopePicker:_attach_mappings(prompt_bufnr, actions, action_state)
   return true
 end
 
--- Create and return singleton instance for backward compatibility
-local telescope_picker = TelescopePicker:new()
-
----@class endpoint.pickers.telescope
-local M = {}
-
----Check if Telescope is available
-function M.is_available()
-  return telescope_picker:is_available()
-end
-
----Show endpoints in Telescope picker
-function M.show(endpoints, opts)
-  return telescope_picker:show(endpoints, opts)
-end
-
----Create endpoint-specific previewer with line/column highlighting
-function M.create_endpoint_previewer()
-  return telescope_picker:_create_previewer()
-end
-
-return M
+return TelescopePicker

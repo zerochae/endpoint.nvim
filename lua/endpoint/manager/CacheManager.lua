@@ -19,7 +19,7 @@ function CacheManager:_get_cache_key(method)
 end
 
 function CacheManager:_get_cache_dir()
-  return vim.fn.stdpath("cache") .. "/endpoint.nvim"
+  return vim.fn.stdpath "cache" .. "/endpoint.nvim"
 end
 
 function CacheManager:_get_project_hash()
@@ -49,7 +49,8 @@ end
 
 function CacheManager:is_valid(method)
   if self.cache_mode == "persistent" then
-    return self:_load_from_disk(method)
+    local loaded_data = self:_load_from_disk(method)
+    return loaded_data ~= nil and #loaded_data > 0
   else
     local cache_key = self:_get_cache_key(method)
     return self.cached_endpoints[cache_key] and #self.cached_endpoints[cache_key] > 0
@@ -71,7 +72,7 @@ function CacheManager:save_endpoints(endpoints, method)
 
   -- Always save to memory for session access
   self.cached_endpoints[cache_key] = endpoints
-  self.cache_timestamps[cache_key] = vim.loop.hrtime()
+  self.cache_timestamps[cache_key] = os.time()
 
   -- Also save to disk if persistent mode
   if self.cache_mode == "persistent" then
@@ -88,7 +89,7 @@ function CacheManager:_save_to_disk(endpoints, method)
     local lua_content = "-- Generated cache file for endpoint.nvim\n"
     lua_content = lua_content .. "-- Project: " .. self:_get_project_hash() .. "\n"
     lua_content = lua_content .. "-- Method: " .. (method or "all") .. "\n"
-    lua_content = lua_content .. "-- Timestamp: " .. os.date("%Y-%m-%d %H:%M:%S") .. "\n\n"
+    lua_content = lua_content .. "-- Timestamp: " .. os.date "%Y-%m-%d %H:%M:%S" .. "\n\n"
     lua_content = lua_content .. "return " .. self:_serialize_table(endpoints)
 
     local file = io.open(file_path, "w")
@@ -174,8 +175,8 @@ function CacheManager:_clear_disk_cache()
 
     -- Remove all cache files for this project
     local patterns = {
-      cache_dir .. "/" .. project_hash .. "_*.lua",  -- Method-specific files
-      cache_dir .. "/" .. project_hash .. ".lua"     -- All endpoints file
+      cache_dir .. "/" .. project_hash .. "_*.lua", -- Method-specific files
+      cache_dir .. "/" .. project_hash .. ".lua", -- All endpoints file
     }
 
     for _, pattern in ipairs(patterns) do
@@ -195,7 +196,7 @@ end
 
 function CacheManager:get_stats()
   local total_endpoints = 0
-  for cache_key, endpoints in pairs(self.cached_endpoints) do
+  for _, endpoints in pairs(self.cached_endpoints) do
     total_endpoints = total_endpoints + #endpoints
   end
 

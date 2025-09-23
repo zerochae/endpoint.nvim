@@ -122,21 +122,4 @@ function SnacksPicker:_create_picker_config(items, opts)
   return vim.tbl_deep_extend("force", default_config, opts or {})
 end
 
--- Create and return singleton instance for backward compatibility
-local snacks_picker = SnacksPicker:new()
-
----@class endpoint.pickers.snacks
-local M = {}
-
----Check if Snacks is available
-function M.is_available()
-  return snacks_picker:is_available()
-end
-
----Show endpoints in Snacks picker
-function M.show(endpoints, opts)
-  return snacks_picker:show(endpoints, opts)
-end
-
-return M
-
+return SnacksPicker

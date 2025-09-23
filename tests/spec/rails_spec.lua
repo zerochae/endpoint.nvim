@@ -143,7 +143,7 @@ describe("RailsFramework", function()
     it("should create framework instance successfully", function()
       local instance = RailsFramework:new()
       assert.is_not_nil(instance)
-      assert.equals("rails", instance.name)
+      assert.equals("rails", instance:get_name())
     end)
 
     it("should have parser and detector ready", function()

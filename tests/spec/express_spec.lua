@@ -153,7 +153,7 @@ describe("ExpressFramework", function()
     it("should create framework instance successfully", function()
       local instance = ExpressFramework:new()
       assert.is_not_nil(instance)
-      assert.equals("express", instance.name)
+      assert.equals("express", instance:get_name())
     end)
 
     it("should have parser and detector ready", function()

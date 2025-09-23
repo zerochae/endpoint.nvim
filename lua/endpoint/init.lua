@@ -15,7 +15,6 @@ function M.find(opts)
   endpoint_manager:find(opts)
 end
 
-
 -- Force refresh (bypass cache)
 function M.refresh()
   M.find { force_refresh = true }
@@ -49,6 +48,5 @@ end
 function M.scan_with_framework(framework_name, opts)
   return endpoint_manager:scan_with_framework(framework_name, opts)
 end
-
 
 return M
