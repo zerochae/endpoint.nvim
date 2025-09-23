@@ -117,16 +117,25 @@ function Framework:getControllerName(file_path)
 end
 
 ---Gets the search command for finding all endpoints
-function Framework:get_search_cmd()
+function Framework:get_search_cmd(method)
   if not self.config.patterns then
     error("Patterns not configured for framework: " .. self.name)
   end
 
   local rg = require "endpoint.utils.rg"
 
-  -- Create search options for all patterns
+  -- Filter patterns by method if specified
+  local patterns_to_search = self.config.patterns
+  if method and method ~= "" then
+    patterns_to_search = {}
+    if self.config.patterns[method:upper()] then
+      patterns_to_search[method:upper()] = self.config.patterns[method:upper()]
+    end
+  end
+
+  -- Create search options
   local search_options = {
-    method_patterns = self.config.patterns,
+    method_patterns = patterns_to_search,
     file_globs = self.config.file_extensions,
     exclude_globs = self.config.exclude_patterns,
     extra_flags = self.config.search_options or {},
@@ -158,8 +167,9 @@ function Framework:scan(options)
 end
 
 ---Searches files and parses matching lines using framework parser
-function Framework:_search_and_parse()
-  local search_command = self:get_search_cmd()
+function Framework:_search_and_parse(options)
+  options = options or {}
+  local search_command = self:get_search_cmd(options.method)
 
   log.framework_debug("Executing search: " .. search_command)
 
