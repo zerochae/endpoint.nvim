@@ -8,18 +8,19 @@ vim.g.loaded_endpoint_nvim = 1
 
 -- Main endpoint finding command
 vim.api.nvim_create_user_command("Endpoint", function(opts)
-  local method = opts.args and opts.args:upper()
-  require("endpoint").find({ method = method })
+  ---@diagnostic disable-next-line: undefined-field
+  local method = opts.args and string.upper(opts.args) or nil
+  require("endpoint").find { method = method }
 end, {
   nargs = "?",
   complete = function()
     return { "Get", "Post", "Put", "Delete", "Patch" }
   end,
-  desc = "Find endpoints (optionally filter by method: Get, Post, etc.)"
+  desc = "Find endpoints (optionally filter by method: Get, Post, etc.)",
 })
 
 vim.api.nvim_create_user_command("EndpointRefresh", function()
   require("endpoint").refresh()
 end, {
-  desc = "Force refresh endpoints (bypass cache)"
+  desc = "Force refresh endpoints (bypass cache)",
 })
