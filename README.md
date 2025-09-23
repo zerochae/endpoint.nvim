@@ -80,6 +80,11 @@ require("endpoint").setup({
     },
   },
 
+  -- Cache configuration
+  cache = {
+    mode = "session",   -- "none", "session", "persistent"
+  },
+
   -- UI configuration
   ui = {
     show_icons = true,
@@ -140,9 +145,31 @@ require("endpoint").setup({
 
 ## 🔧 Caching
 
-- **`"none"`** (default): Real-time search, always up-to-date
-- **`"session"`**: Cache until nvim closes, good performance balance
-- **`"persistent"`**: Disk cache, best for large stable projects
+Configure caching behavior for optimal performance:
+
+- **`"none"`**: Real-time search, always up-to-date (no caching)
+- **`"session"`** (default): Cache until nvim closes, good performance balance
+- **`"persistent"`**: Disk cache, survives nvim restarts until manual refresh
+
+### Cache Storage
+
+Persistent cache files are stored in:
+- **Location**: `~/.cache/nvim/endpoint.nvim/`
+- **Format**: Lua files for optimal performance
+- **Naming**:
+  - `{project}.lua` (all endpoints)
+  - `{project}_GET.lua` (GET endpoints only)
+  - `{project}_POST.lua` (POST endpoints only)
+
+**Example cache files:**
+```
+~/.cache/nvim/endpoint.nvim/
+├── myproject.lua              # All endpoints
+├── myproject_GET.lua          # GET endpoints
+└── myproject_POST.lua         # POST endpoints
+```
+
+Use `:EndpointRefresh` to clear cache and force rescan.
 
 ## ⚡️ Requirements
 
