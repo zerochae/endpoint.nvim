@@ -37,13 +37,13 @@ function NestJsParser:extract_endpoint_path(content)
   end
 
   -- @Get('path'), @Post("path"), etc. - only HTTP method decorators
-  local path = content:match "@Get%s*%(%s*[\"']([^\"']+)[\"']" or
-               content:match "@Post%s*%(%s*[\"']([^\"']+)[\"']" or
-               content:match "@Put%s*%(%s*[\"']([^\"']+)[\"']" or
-               content:match "@Delete%s*%(%s*[\"']([^\"']+)[\"']" or
-               content:match "@Patch%s*%(%s*[\"']([^\"']+)[\"']" or
-               content:match "@Options%s*%(%s*[\"']([^\"']+)[\"']" or
-               content:match "@Head%s*%(%s*[\"']([^\"']+)[\"']"
+  local path = content:match "@Get%s*%(%s*[\"']([^\"']+)[\"']"
+    or content:match "@Post%s*%(%s*[\"']([^\"']+)[\"']"
+    or content:match "@Put%s*%(%s*[\"']([^\"']+)[\"']"
+    or content:match "@Delete%s*%(%s*[\"']([^\"']+)[\"']"
+    or content:match "@Patch%s*%(%s*[\"']([^\"']+)[\"']"
+    or content:match "@Options%s*%(%s*[\"']([^\"']+)[\"']"
+    or content:match "@Head%s*%(%s*[\"']([^\"']+)[\"']"
   if path then
     -- Ensure path starts with /
     if not path:match "^/" then
@@ -53,9 +53,15 @@ function NestJsParser:extract_endpoint_path(content)
   end
 
   -- @Get() without parameter - root path
-  if content:match "@Get%s*%(%s*%)" or content:match "@Post%s*%(%s*%)" or content:match "@Put%s*%(%s*%)" or
-     content:match "@Delete%s*%(%s*%)" or content:match "@Patch%s*%(%s*%)" or
-     content:match "@Options%s*%(%s*%)" or content:match "@Head%s*%(%s*%)" then
+  if
+    content:match "@Get%s*%(%s*%)"
+    or content:match "@Post%s*%(%s*%)"
+    or content:match "@Put%s*%(%s*%)"
+    or content:match "@Delete%s*%(%s*%)"
+    or content:match "@Patch%s*%(%s*%)"
+    or content:match "@Options%s*%(%s*%)"
+    or content:match "@Head%s*%(%s*%)"
+  then
     return "/" -- Root path for this controller
   end
 
@@ -99,15 +105,17 @@ function NestJsParser:parse_content(content, file_path, line_number, column)
 
   -- If standard parsing failed and this looks like an incomplete decorator,
   -- try to read extended context from the file
-  if (self:_is_graphql_decorator(content) or self:_is_rest_decorator(content)) and
-     self:_looks_like_incomplete_decorator(content) then
+  if
+    (self:_is_graphql_decorator(content) or self:_is_rest_decorator(content))
+    and self:_looks_like_incomplete_decorator(content)
+  then
     local extended_content, end_line = self:_get_extended_decorator_content(file_path, line_number)
     if extended_content then
-      local result = Parser.parse_content(self, extended_content, file_path, line_number, column)
-      if result and end_line then
-        result.end_line_number = end_line
+      local extended_result = Parser.parse_content(self, extended_content, file_path, line_number, column)
+      if extended_result and end_line then
+        extended_result.end_line_number = end_line
       end
-      return result
+      return extended_result
     end
   end
 
@@ -124,8 +132,13 @@ function NestJsParser:get_parsing_confidence(content)
   local confidence_boost = 0
 
   -- Boost for HTTP method decorators
-  if content:match "@Get%s*%(" or content:match "@Post%s*%(" or content:match "@Put%s*%(" or
-     content:match "@Delete%s*%(" or content:match "@Patch%s*%(" then
+  if
+    content:match "@Get%s*%("
+    or content:match "@Post%s*%("
+    or content:match "@Put%s*%("
+    or content:match "@Delete%s*%("
+    or content:match "@Patch%s*%("
+  then
     confidence_boost = confidence_boost + 0.05
   end
 
@@ -155,9 +168,15 @@ end
 ---Checks if content looks like NestJS decorator content
 function NestJsParser:_is_nestjs_decorator_content(content)
   -- Check for NestJS HTTP method decorators with optional whitespace
-  if content:match("@Get%s*%(") or content:match("@Post%s*%(") or content:match("@Put%s*%(") or
-     content:match("@Delete%s*%(") or content:match("@Patch%s*%(") or
-     content:match("@Options%s*%(") or content:match("@Head%s*%(") then
+  if
+    content:match "@Get%s*%("
+    or content:match "@Post%s*%("
+    or content:match "@Put%s*%("
+    or content:match "@Delete%s*%("
+    or content:match "@Patch%s*%("
+    or content:match "@Options%s*%("
+    or content:match "@Head%s*%("
+  then
     return true
   end
 
@@ -168,14 +187,20 @@ function NestJsParser:_is_nestjs_decorator_content(content)
   end
 
   -- Check for GraphQL decorators
-  if content:match("@Query%s*%(") or content:match("@Mutation%s*%(") then
+  if content:match "@Query%s*%(" or content:match "@Mutation%s*%(" then
     return true
   end
 
   -- Check for HttpCode decorator followed by HTTP method
-  if content:match("@HttpCode.-@Get") or content:match("@HttpCode.-@Post") or content:match("@HttpCode.-@Put") or
-     content:match("@HttpCode.-@Delete") or content:match("@HttpCode.-@Patch") or
-     content:match("@HttpCode.-@Options") or content:match("@HttpCode.-@Head") then
+  if
+    content:match "@HttpCode.-@Get"
+    or content:match "@HttpCode.-@Post"
+    or content:match "@HttpCode.-@Put"
+    or content:match "@HttpCode.-@Delete"
+    or content:match "@HttpCode.-@Patch"
+    or content:match "@HttpCode.-@Options"
+    or content:match "@HttpCode.-@Head"
+  then
     return true
   end
 
@@ -192,16 +217,18 @@ function NestJsParser:_is_nestjs_decorator_content(content)
 
   -- Reject decorators that are not endpoint-related (like @Args, @Param, @Body, etc.)
   -- Note: Be careful with @Query as it can be both GraphQL @Query and HTTP @Query parameter
-  if content:match "@Args%s*%(" or
-     content:match "@Param%s*%(" or
-     content:match "@Body%s*%(" or
-     content:match "@Headers%s*%(" or
-     content:match "@Req%s*%(" or
-     content:match "@Res%s*%(" or
-     content:match "@Next%s*%(" or
-     content:match "@Session%s*%(" or
-     content:match "@Ip%s*%(" or
-     content:match "@HostParam%s*%(" then
+  if
+    content:match "@Args%s*%("
+    or content:match "@Param%s*%("
+    or content:match "@Body%s*%("
+    or content:match "@Headers%s*%("
+    or content:match "@Req%s*%("
+    or content:match "@Res%s*%("
+    or content:match "@Next%s*%("
+    or content:match "@Session%s*%("
+    or content:match "@Ip%s*%("
+    or content:match "@HostParam%s*%("
+  then
     return false
   end
 
@@ -294,8 +321,10 @@ function NestJsParser:_is_graphql_decorator(content)
   end
 
   -- Also check case variations for GraphQL decorators
-  if content:match "@[Qq][Uu][Ee][Rr][Yy]%s*%(%s*%(%s*%)" or
-     content:match "@[Mm][Uu][Tt][Aa][Tt][Ii][Oo][Nn]%s*%(%s*%(%s*%)" then
+  if
+    content:match "@[Qq][Uu][Ee][Rr][Yy]%s*%(%s*%(%s*%)"
+    or content:match "@[Mm][Uu][Tt][Aa][Tt][Ii][Oo][Nn]%s*%(%s*%(%s*%)"
+  then
     return true
   end
 
@@ -314,19 +343,19 @@ function NestJsParser:_extract_graphql_name(content)
   -- Try multiple patterns in order of specificity
   local function_name =
     -- Pattern 1: @Decorator(...)\n  async functionName(
-    content:match "@%w+%s*%(.-%)%s*\n%s*async%s+(%w+)%s*%(" or
+    content:match "@%w+%s*%(.-%)%s*\n%s*async%s+(%w+)%s*%("
     -- Pattern 2: @Decorator(...)\n  functionName(
-    content:match "@%w+%s*%(.-%)%s*\n%s*(%w+)%s*%(" or
+    or content:match "@%w+%s*%(.-%)%s*\n%s*(%w+)%s*%("
     -- Pattern 3: @Decorator(...) async functionName( (same line, with space)
-    content:match "@%w+%s*%(.-%)%s*async%s+(%w+)%s*%(" or
+    or content:match "@%w+%s*%(.-%)%s*async%s+(%w+)%s*%("
     -- Pattern 4: @Decorator(...) functionName( (same line, with space)
-    content:match "@%w+%s*%(.-%)%s+(%w+)%s*%(" or
+    or content:match "@%w+%s*%(.-%)%s+(%w+)%s*%("
     -- Pattern 5: Handle multiline decorator with async keyword
-    content:match "@%w+.-\n%s*async%s+(%w+)%s*%(" or
+    or content:match "@%w+.-\n%s*async%s+(%w+)%s*%("
     -- Pattern 6: Handle multiline decorator without async keyword
-    content:match "@%w+.-\n%s*(%w+)%s*%(" or
+    or content:match "@%w+.-\n%s*(%w+)%s*%("
     -- Pattern 7: Simple async pattern as fallback
-    content:match "async%s+(%w+)%s*%("
+    or content:match "async%s+(%w+)%s*%("
 
   if function_name then
     return function_name
@@ -335,11 +364,11 @@ function NestJsParser:_extract_graphql_name(content)
   -- Special case: if content is just a decorator line, return nil
   -- This signals that we need more context to extract the function name
   local decorator_only = content:match "^%s*@%w+%s*%(.-%)%s*$"
-    or content:match "^%s*@%w+%s*%(.-{%s*$"  -- Handles multiline decorators ending with {
-    or content:match "^%s*@%w+%s*%(.-,$"      -- Handles incomplete decorators ending with ,
+    or content:match "^%s*@%w+%s*%(.-{%s*$" -- Handles multiline decorators ending with {
+    or content:match "^%s*@%w+%s*%(.-,$" -- Handles incomplete decorators ending with ,
 
   if decorator_only then
-    return nil  -- Need more context
+    return nil -- Need more context
   end
 
   -- Fallback: return the decorator type only if we have some function context
@@ -354,9 +383,15 @@ end
 ---Checks if content contains REST API decorators
 function NestJsParser:_is_rest_decorator(content)
   -- Check for HTTP method decorators
-  if content:match("@Get%s*%(") or content:match("@Post%s*%(") or content:match("@Put%s*%(") or
-     content:match("@Delete%s*%(") or content:match("@Patch%s*%(") or
-     content:match("@Options%s*%(") or content:match("@Head%s*%(") then
+  if
+    content:match "@Get%s*%("
+    or content:match "@Post%s*%("
+    or content:match "@Put%s*%("
+    or content:match "@Delete%s*%("
+    or content:match "@Patch%s*%("
+    or content:match "@Options%s*%("
+    or content:match "@Head%s*%("
+  then
     return true
   end
   return false
@@ -366,9 +401,9 @@ end
 function NestJsParser:_looks_like_incomplete_decorator(content)
   -- Check for patterns that indicate incomplete decorators
   local incomplete_patterns = {
-    "^%s*@%w+%s*%(.-{%s*$",      -- Ends with opening brace
-    "^%s*@%w+%s*%(.-,%s*$",      -- Ends with comma
-    "^%s*@%w+%s*%($",            -- Decorator with opening paren only (like "@Get(")
+    "^%s*@%w+%s*%(.-{%s*$", -- Ends with opening brace
+    "^%s*@%w+%s*%(.-,%s*$", -- Ends with comma
+    "^%s*@%w+%s*%($", -- Decorator with opening paren only (like "@Get(")
   }
 
   for _, pattern in ipairs(incomplete_patterns) do
@@ -381,7 +416,7 @@ function NestJsParser:_looks_like_incomplete_decorator(content)
   -- Count parentheses to see if they're balanced
   local open_count = 0
   local close_count = 0
-  for char in content:gmatch(".") do
+  for char in content:gmatch "." do
     if char == "(" then
       open_count = open_count + 1
     elseif char == ")" then
@@ -390,7 +425,7 @@ function NestJsParser:_looks_like_incomplete_decorator(content)
   end
 
   -- If we have unbalanced parentheses and it starts with @decorator(
-  if open_count > close_count and content:match("^%s*@%w+%s*%(") then
+  if open_count > close_count and content:match "^%s*@%w+%s*%(" then
     return true
   end
 
@@ -416,7 +451,7 @@ function NestJsParser:_get_extended_decorator_content(file_path, start_line)
 
   -- Read from decorator start until we find a complete decorator + function
   local extended_lines = {}
-  local max_lines = 15  -- Limit search to prevent infinite loops
+  local max_lines = 15 -- Limit search to prevent infinite loops
   local paren_count = 0
   local decorator_complete = false
   local decorator_end_line = start_line
@@ -426,7 +461,7 @@ function NestJsParser:_get_extended_decorator_content(file_path, start_line)
       table.insert(extended_lines, lines[i])
 
       -- Count parentheses to track decorator completion
-      for char in lines[i]:gmatch(".") do
+      for char in lines[i]:gmatch "." do
         if char == "(" then
           paren_count = paren_count + 1
         elseif char == ")" then
@@ -437,13 +472,15 @@ function NestJsParser:_get_extended_decorator_content(file_path, start_line)
       -- If parentheses are balanced and we haven't marked completion yet, decorator is complete
       if paren_count == 0 and #extended_lines > 1 and not decorator_complete then
         decorator_complete = true
-        decorator_end_line = i  -- Record where decorator ends (for highlighting)
+        decorator_end_line = i -- Record where decorator ends (for highlighting)
       end
 
       -- After decorator is complete, look for function declaration to finish parsing
       if decorator_complete then
-        if lines[i]:match("async%s+%w+%s*%(") or
-           (lines[i]:match("%w+%s*%(") and not lines[i]:match("@%w+") and not lines[i]:match(":%s")) then
+        if
+          lines[i]:match "async%s+%w+%s*%("
+          or (lines[i]:match "%w+%s*%(" and not lines[i]:match "@%w+" and not lines[i]:match ":%s")
+        then
           break
         end
       end
