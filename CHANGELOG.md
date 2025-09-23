@@ -1,5 +1,19 @@
 # Changelog
 
+## [2.2.0](https://github.com/zerochae/endpoint.nvim/compare/v2.1.0...v2.2.0) (2025-09-23)
+
+
+### Features
+
+* add HTTP method filtering to endpoint command ([55d7fba](https://github.com/zerochae/endpoint.nvim/commit/55d7fbabbdb79e7ea512a6065fef36c7ac672e00))
+* implement persistent disk cache with configurable cache modes ([e101692](https://github.com/zerochae/endpoint.nvim/commit/e1016925c668580d1c2b153c7329ae4ec49af478))
+
+
+### Performance Improvements
+
+* implement method-specific search with optimized caching ([d0010fa](https://github.com/zerochae/endpoint.nvim/commit/d0010fa1a292b625839b4c98f47be55de192ff48))
+* switch from JSON to Lua file format for persistent cache ([153ab50](https://github.com/zerochae/endpoint.nvim/commit/153ab50ea14b0cda4cc36a0731ec37e78e562b28))
+
 ## [2.1.0](https://github.com/zerochae/endpoint.nvim/compare/v2.0.0...v2.1.0) (2025-09-22)
 
 
