@@ -269,53 +269,40 @@ function EndpointManager:find(opts)
   self:_ensure_initialized()
   opts = opts or {}
 
-  local endpoints = self:scan_all_endpoints(opts)
+  local endpoints
 
-  if #endpoints == 0 then
-    vim.notify("No endpoints found", vim.log.levels.INFO)
-    return
+  -- Check cache first (if caching is enabled)
+  local cache_config = config.get().cache
+  local cache_enabled = cache_config.mode ~= "none"
+
+  -- Set cache mode
+  if self.cache_manager then
+    self.cache_manager:set_mode(cache_config.mode)
   end
 
-  endpoints = self:_handle_cache(endpoints, opts)
+  if not opts.force_refresh and cache_enabled and self.cache_manager and self.cache_manager:is_valid(opts.method) then
+    endpoints = self.cache_manager:get_endpoints(opts.method)
+  else
+    -- Scan if no cache
+    endpoints = self:scan_all_endpoints(opts)
 
-  -- Filter by method if specified
-  if opts.method and opts.method ~= "" then
-    endpoints = self:_filter_by_method(endpoints, opts.method)
-    if #endpoints == 0 then
-      vim.notify("No " .. opts.method .. " endpoints found", vim.log.levels.INFO)
-      return
+    -- Save to cache (if caching is enabled)
+    if cache_enabled and self.cache_manager then
+      self.cache_manager:save_endpoints(endpoints, opts.method)
     end
+  end
+
+  if #endpoints == 0 then
+    local method_msg = opts.method and (" " .. opts.method) or ""
+    vim.notify("No" .. method_msg .. " endpoints found", vim.log.levels.INFO)
+    return
   end
 
   self:_show_with_picker(endpoints, opts)
 end
 
----Filter endpoints by HTTP method
-function EndpointManager:_filter_by_method(endpoints, method)
-  local filtered = {}
-  for _, endpoint in ipairs(endpoints) do
-    if endpoint.method and endpoint.method:upper() == method:upper() then
-      table.insert(filtered, endpoint)
-    end
-  end
-  return filtered
-end
-
----Handles caching logic for endpoints
-function EndpointManager:_handle_cache(endpoints, opts)
-  if opts.force_refresh then
-    return endpoints
-  end
-
-  if self.cache_manager and self.cache_manager:is_valid() then
-    return self.cache_manager:get_endpoints()
-  else
-    if self.cache_manager then
-      self.cache_manager:save_endpoints(endpoints)
-    end
-    return endpoints
-  end
-end
+-- Legacy _handle_cache function - now integrated into find()
+-- function EndpointManager:_handle_cache(endpoints, opts) ... end
 
 ---Shows endpoints using the configured picker
 function EndpointManager:_show_with_picker(endpoints, opts)

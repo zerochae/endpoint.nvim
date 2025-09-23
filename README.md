@@ -41,9 +41,10 @@ A powerful Neovim plugin for quickly finding and navigating web framework API en
 :Endpoint          " Find all endpoints
 :Endpoint Get      " Find GET endpoints
 :Endpoint Post     " Find POST endpoints
+:Endpoint Put      " Find PUT endpoints
 :Endpoint Delete   " Find DELETE endpoints
-:Endpoint ClearCache   " Clear cached data
-:Endpoint CacheStatus  " Show cache statistics
+:Endpoint Patch    " Find PATCH endpoints
+:EndpointRefresh   " Force refresh (clear cache and rescan)
 ```
 
 ## 📦 Installation
@@ -78,6 +79,11 @@ require("endpoint").setup({
       snacks = {},        -- Snacks-specific options
       vim_ui_select = {}, -- vim.ui.select-specific options
     },
+  },
+
+  -- Cache configuration
+  cache = {
+    mode = "session",   -- "none", "session", "persistent"
   },
 
   -- UI configuration
@@ -140,9 +146,31 @@ require("endpoint").setup({
 
 ## 🔧 Caching
 
-- **`"none"`** (default): Real-time search, always up-to-date
-- **`"session"`**: Cache until nvim closes, good performance balance
-- **`"persistent"`**: Disk cache, best for large stable projects
+Configure caching behavior for optimal performance:
+
+- **`"none"`**: Real-time search, always up-to-date (no caching)
+- **`"session"`** (default): Cache until nvim closes, good performance balance
+- **`"persistent"`**: Disk cache, survives nvim restarts until manual refresh
+
+### Cache Storage
+
+Persistent cache files are stored in:
+- **Location**: `~/.cache/nvim/endpoint.nvim/`
+- **Format**: Lua files for optimal performance
+- **Naming**:
+  - `{project}.lua` (all endpoints)
+  - `{project}_GET.lua` (GET endpoints only)
+  - `{project}_POST.lua` (POST endpoints only)
+
+**Example cache files:**
+```
+~/.cache/nvim/endpoint.nvim/
+├── myproject.lua              # All endpoints
+├── myproject_GET.lua          # GET endpoints
+└── myproject_POST.lua         # POST endpoints
+```
+
+Use `:EndpointRefresh` to clear cache and force rescan.
 
 ## ⚡️ Requirements
 
@@ -150,16 +178,6 @@ require("endpoint").setup({
 - [ripgrep](https://github.com/BurntSushi/ripgrep)
 - Optional: telescope.nvim or snacks.nvim for enhanced UI
 
-## 🤝 Contributing
-
-Contributions welcome! To add a new framework:
-
-1. Create `lua/endpoint/frameworks/yourframework.lua`
-2. Implement `detect()`, `get_search_cmd()`, and `parse_line()` functions
-3. Register in `lua/endpoint/scanner.lua`
-4. Add test cases
-
-See existing framework files for examples.
 
 ## 📄 License
 

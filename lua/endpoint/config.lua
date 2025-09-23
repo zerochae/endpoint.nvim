@@ -27,6 +27,11 @@ local default_config = {
     },
   },
 
+  -- Cache configuration
+  cache = {
+    mode = "session", -- "none", "session", "persistent"
+  },
+
   -- Framework-specific configuration
   frameworks = {
     rails = {
