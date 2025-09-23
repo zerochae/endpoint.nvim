@@ -5,7 +5,7 @@ local M = {}
 local default_config = {
   -- Picker configuration
   picker = {
-    type = "telescope", -- "telescope", "vim_ui_select", "snacks"
+    type = "vim_ui_select", -- "telescope", "vim_ui_select", "snacks"
     options = {
       telescope = {}, -- Telescope-specific options
       snacks = {}, -- Snacks-specific options

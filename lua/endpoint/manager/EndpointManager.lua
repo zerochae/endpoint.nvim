@@ -307,12 +307,19 @@ end
 ---Shows endpoints using the configured picker
 function EndpointManager:_show_with_picker(endpoints, opts)
   local picker_config = config.get()
-  local picker_name = picker_config.picker and picker_config.picker.type or picker_config.picker or "telescope"
+  local picker_name = picker_config.picker and picker_config.picker.type or picker_config.picker or "vim_ui_select"
 
   local picker_instance, selected_picker_name = self.picker_manager:get_best_available_picker(picker_name)
 
   if selected_picker_name ~= picker_name then
-    vim.notify("Picker '" .. picker_name .. "' not available, using " .. selected_picker_name, vim.log.levels.WARN)
+    vim.notify(
+      string.format(
+        "Picker '%s' not available. Using fallback '%s'. Please install the required dependency or set picker.type explicitly in your config.",
+        picker_name,
+        selected_picker_name
+      ),
+      vim.log.levels.WARN
+    )
   end
 
   local picker_configuration = picker_config.picker or {}
