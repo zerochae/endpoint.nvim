@@ -271,15 +271,23 @@ function EndpointManager:find(opts)
 
   local endpoints
 
-  -- Check cache first
-  if not opts.force_refresh and self.cache_manager and self.cache_manager:is_valid(opts.method) then
+  -- Check cache first (if caching is enabled)
+  local cache_config = config.get().cache
+  local cache_enabled = cache_config.mode ~= "none"
+
+  -- Set cache mode
+  if self.cache_manager then
+    self.cache_manager:set_mode(cache_config.mode)
+  end
+
+  if not opts.force_refresh and cache_enabled and self.cache_manager and self.cache_manager:is_valid(opts.method) then
     endpoints = self.cache_manager:get_endpoints(opts.method)
   else
     -- Scan if no cache
     endpoints = self:scan_all_endpoints(opts)
 
-    -- Save to cache
-    if self.cache_manager then
+    -- Save to cache (if caching is enabled)
+    if cache_enabled and self.cache_manager then
       self.cache_manager:save_endpoints(endpoints, opts.method)
     end
   end
