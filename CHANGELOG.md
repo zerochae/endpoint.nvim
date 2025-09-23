@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.2.1](https://github.com/zerochae/endpoint.nvim/compare/v2.2.0...v2.2.1) (2025-09-23)
+
+
+### Bug Fixes
+
+* improve picker selection logic with explicit configuration ([d1a451d](https://github.com/zerochae/endpoint.nvim/commit/d1a451da63a22f9ba6c444b045288d724e513536))
+
 ## [2.2.0](https://github.com/zerochae/endpoint.nvim/compare/v2.1.0...v2.2.0) (2025-09-23)
 
 
