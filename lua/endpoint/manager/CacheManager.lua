@@ -34,9 +34,9 @@ function CacheManager:_get_cache_file_path(method)
 
   -- Handle the case where method is nil (all endpoints)
   if not method or method == "" then
-    return cache_dir .. "/" .. project_hash .. ".json"
+    return cache_dir .. "/" .. project_hash .. ".lua"
   else
-    return cache_dir .. "/" .. project_hash .. "_" .. cache_key .. ".json"
+    return cache_dir .. "/" .. project_hash .. "_" .. cache_key .. ".lua"
   end
 end
 
@@ -83,15 +83,17 @@ function CacheManager:_save_to_disk(endpoints, method)
   local success, err = pcall(function()
     self:_ensure_cache_dir()
     local file_path = self:_get_cache_file_path(method)
-    local cache_data = {
-      endpoints = endpoints,
-      timestamp = os.time(),
-      method = method,
-    }
-    local json_str = vim.json.encode(cache_data)
+
+    -- Generate Lua code that returns the endpoints table
+    local lua_content = "-- Generated cache file for endpoint.nvim\n"
+    lua_content = lua_content .. "-- Project: " .. self:_get_project_hash() .. "\n"
+    lua_content = lua_content .. "-- Method: " .. (method or "all") .. "\n"
+    lua_content = lua_content .. "-- Timestamp: " .. os.date("%Y-%m-%d %H:%M:%S") .. "\n\n"
+    lua_content = lua_content .. "return " .. self:_serialize_table(endpoints)
+
     local file = io.open(file_path, "w")
     if file then
-      file:write(json_str)
+      file:write(lua_content)
       file:close()
     end
   end)
@@ -99,6 +101,34 @@ function CacheManager:_save_to_disk(endpoints, method)
   if not success then
     vim.notify("Failed to save cache to disk: " .. (err or "unknown error"), vim.log.levels.WARN)
   end
+end
+
+function CacheManager:_serialize_table(tbl)
+  if type(tbl) ~= "table" then
+    if type(tbl) == "string" then
+      return string.format("%q", tbl)
+    else
+      return tostring(tbl)
+    end
+  end
+
+  local parts = {}
+  table.insert(parts, "{")
+
+  for k, v in pairs(tbl) do
+    local key_str
+    if type(k) == "number" then
+      key_str = "[" .. k .. "]"
+    else
+      key_str = "[" .. string.format("%q", k) .. "]"
+    end
+
+    local value_str = self:_serialize_table(v)
+    table.insert(parts, key_str .. "=" .. value_str .. ",")
+  end
+
+  table.insert(parts, "}")
+  return table.concat(parts)
 end
 
 function CacheManager:_load_from_disk(method)
@@ -109,20 +139,14 @@ function CacheManager:_load_from_disk(method)
       return nil
     end
 
-    local file = io.open(file_path, "r")
-    if not file then
+    -- Load and execute the Lua file
+    local loader = loadfile(file_path)
+    if not loader then
       return nil
     end
 
-    local json_str = file:read("*a")
-    file:close()
-
-    if not json_str or json_str == "" then
-      return nil
-    end
-
-    local cache_data = vim.json.decode(json_str)
-    return cache_data.endpoints
+    local endpoints = loader()
+    return endpoints
   end)
 
   if success then
@@ -149,12 +173,17 @@ function CacheManager:_clear_disk_cache()
     local project_hash = self:_get_project_hash()
 
     -- Remove all cache files for this project
-    local pattern = cache_dir .. "/" .. project_hash .. "_*.json"
-    local files = vim.split(vim.fn.glob(pattern), "\n")
+    local patterns = {
+      cache_dir .. "/" .. project_hash .. "_*.lua",  -- Method-specific files
+      cache_dir .. "/" .. project_hash .. ".lua"     -- All endpoints file
+    }
 
-    for _, file_path in ipairs(files) do
-      if file_path ~= "" and vim.fn.filereadable(file_path) == 1 then
-        os.remove(file_path)
+    for _, pattern in ipairs(patterns) do
+      local files = vim.split(vim.fn.glob(pattern), "\n")
+      for _, file_path in ipairs(files) do
+        if file_path ~= "" and vim.fn.filereadable(file_path) == 1 then
+          os.remove(file_path)
+        end
       end
     end
   end)
