@@ -30,7 +30,7 @@ function SymfonyParser:extract_base_path(file_path, line_number)
 end
 
 ---Extracts endpoint path from Symfony annotation content
-function SymfonyParser:extract_endpoint_path(content, file_path, line_number)
+function SymfonyParser:extract_endpoint_path(content, _, _)
   -- Skip controller-level @Route (without methods parameter)
   if self:_is_controller_level_route(content) then
     return nil
@@ -307,9 +307,8 @@ end
 
 ---Checks if content looks like Symfony Route annotation
 function SymfonyParser:_is_symfony_route_content(content)
-  return content:match "#%[Route%("
-    or content:match "@Route%("
-    or content:match "\\* @Route%("
+  return content:match "#%[Route%(" or content:match "@Route%(" or content:match "\\* @Route%("
 end
 
 return SymfonyParser
+

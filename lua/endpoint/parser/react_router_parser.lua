@@ -25,7 +25,7 @@ function ReactRouterParser:extract_base_path()
 end
 
 ---Extracts endpoint path from React Router content
-function ReactRouterParser:extract_endpoint_path(content, file_path, line_number)
+function ReactRouterParser:extract_endpoint_path(content, _, _)
   local path = self:_extract_route_path(content)
   if path then
     return path
@@ -35,7 +35,7 @@ function ReactRouterParser:extract_endpoint_path(content, file_path, line_number
 end
 
 ---Extracts HTTP method from React Router content (always returns ROUTE)
-function ReactRouterParser:extract_method(content)
+function ReactRouterParser:extract_method(_)
   return "ROUTE" -- React Router doesn't use HTTP methods, it's client-side routing
 end
 
@@ -258,4 +258,3 @@ function ReactRouterParser:_find_component_file(component_name)
 end
 
 return ReactRouterParser
-
