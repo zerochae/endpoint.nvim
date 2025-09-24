@@ -1,5 +1,14 @@
 # Changelog
 
+## [2.4.0](https://github.com/zerochae/endpoint.nvim/compare/v2.3.0...v2.4.0) (2025-09-24)
+
+
+### Features
+
+* implement comprehensive Ktor multiline routing support ([c91dc9b](https://github.com/zerochae/endpoint.nvim/commit/c91dc9b701fefd86ff903cafad6fad5472fa8a60))
+* implement comprehensive Ktor multiline routing support ([f4b6014](https://github.com/zerochae/endpoint.nvim/commit/f4b6014da34c5f9c6425686a034778b5419d30de))
+* implement comprehensive Symfony multiline annotation support ([fcbd3fb](https://github.com/zerochae/endpoint.nvim/commit/fcbd3fb5d5ea4eec3dcb801839c41a6a2e752df0))
+
 ## [2.3.0](https://github.com/zerochae/endpoint.nvim/compare/v2.2.1...v2.3.0) (2025-09-24)
 
 
