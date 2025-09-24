@@ -35,13 +35,16 @@ end
 function FastApiParser:extract_endpoint_path(content, file_path, line_number)
   -- Use multiline extraction for better accuracy
   if file_path and line_number then
-    local path = self:_extract_path_multiline(file_path, line_number, content)
+    local path, end_line = self:_extract_path_multiline(file_path, line_number, content)
     if path then
+      -- Store end_line_number for highlighting
+      self._last_end_line_number = end_line
       return path
     end
   end
 
-  -- Fallback to single line extraction
+  -- Fallback to single line extraction (clear end_line for single line)
+  self._last_end_line_number = nil
   local path = self:_extract_path_single_line(content)
   if path then
     return path
@@ -63,6 +66,9 @@ end
 
 ---Override parse_content to add FastAPI-specific metadata
 function FastApiParser:parse_content(content, file_path, line_number, column)
+  -- Pre-extract end_line_number before parent call (parent may reset it)
+  local _, end_line = self:_extract_path_multiline(file_path, line_number, content)
+
   -- Call parent implementation
   local endpoint = Parser.parse_content(self, content, file_path, line_number, column)
 
@@ -73,6 +79,12 @@ function FastApiParser:parse_content(content, file_path, line_number, column)
       decorator_type = self:_extract_decorator_type(content),
       has_multiline = self:_is_multiline_decorator(content),
     }, content)
+
+    -- Add end_line_number for multiline highlighting
+    -- Note: Highlighter does (end_line - 1), so we add +1 to include the closing parenthesis
+    if end_line then
+      endpoint.end_line_number = end_line + 1
+    end
   end
 
   return endpoint
@@ -137,14 +149,14 @@ function FastApiParser:_extract_path_multiline(file_path, start_line, content)
   -- First try single line extraction
   local path = self:_extract_path_single_line(content)
   if path then
-    return path
+    return path, nil  -- Single line, no end_line
   end
 
-  -- If it's a multiline decorator, read the file to find the path
+  -- If it's a multiline decorator, read the file to find the path and end line
   if self:_is_multiline_decorator(content) then
     local file = io.open(file_path, "r")
     if not file then
-      return nil
+      return nil, nil
     end
 
     local lines = {}
@@ -153,25 +165,45 @@ function FastApiParser:_extract_path_multiline(file_path, start_line, content)
     end
     file:close()
 
-    -- Look for the path in the next few lines
-    for i = start_line + 1, math.min(start_line + 5, #lines) do
+    local found_path = nil
+    local decorator_end_line = nil
+
+    -- Look for the path in the next few lines and find decorator end
+    for i = start_line + 1, math.min(start_line + 15, #lines) do
       local line = lines[i]
       if line then
-        -- Look for path string in quotes
-        local found_path = line:match "%s*[\"']([^\"']*)[\"']"
-        if found_path then
-          return found_path
+        -- Look for path string in quotes (first occurrence)
+        if not found_path then
+          local path_match = line:match "%s*[\"']([^\"']*)[\"']"
+          if path_match then
+            found_path = path_match
+          end
+        end
+
+        -- Look for decorator closing parenthesis
+        if line:match "%s*%)%s*$" then
+          decorator_end_line = i
+          break
         end
 
         -- If we hit the function definition, stop
-        if line:match "def%s+%w+" then
+        if line:match "def%s+%w+" or line:match "async%s+def%s+%w+" then
+          -- If we found a path but no explicit closing, use the line before function
+          if found_path and not decorator_end_line then
+            decorator_end_line = i - 1
+          end
           break
         end
       end
     end
+
+    -- Return path and end line if found
+    if found_path then
+      return found_path, decorator_end_line
+    end
   end
 
-  return nil
+  return nil, nil
 end
 
 ---Checks if decorator spans multiple lines

@@ -234,9 +234,10 @@
 ---@field private _combine_paths fun(self: endpoint.NestJsParser, base?: string, endpoint?: string): string
 
 ---@class endpoint.FastApiParser : endpoint.Parser
+---@field private _last_end_line_number number|nil
 ---@field private _is_fastapi_decorator_content fun(self: endpoint.FastApiParser, content: string): boolean
 ---@field private _extract_path_single_line fun(self: endpoint.FastApiParser, content: string): string|nil
----@field private _extract_path_multiline fun(self: endpoint.FastApiParser, file_path: string, start_line: number, content: string): string|nil
+---@field private _extract_path_multiline fun(self: endpoint.FastApiParser, file_path: string, start_line: number, content: string): string|nil, number|nil
 ---@field private _is_multiline_decorator fun(self: endpoint.FastApiParser, content: string): boolean
 ---@field private _extract_decorator_type fun(self: endpoint.FastApiParser, content: string): string
 ---@field private _find_router_prefix fun(self: endpoint.FastApiParser, file_path: string, line_number: number): string
