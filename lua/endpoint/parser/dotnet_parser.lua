@@ -151,6 +151,11 @@ function DotNetParser:parse_content(content, file_path, line_number, column)
     return nil
   end
 
+  -- Skip class-level Route attributes - they are for basepath, not endpoints
+  if self:_is_class_level_route(content, file_path, line_number) then
+    return nil
+  end
+
   -- Extract path (this will handle multiline extraction and set end_line_number)
   local endpoint_path = self:extract_endpoint_path(content, file_path, line_number)
 
@@ -243,6 +248,11 @@ function DotNetParser:is_content_valid_for_parsing(content)
     return false
   end
 
+  -- Filter out content that contains unwanted multiline artifacts
+  if self:_contains_unwanted_artifacts(content) then
+    return false
+  end
+
   -- Check if content contains .NET attribute patterns
   return self:_is_dotnet_attribute_content(content)
 end
@@ -291,6 +301,58 @@ function DotNetParser:_is_dotnet_attribute_content(content)
     -- Also match controller method patterns without attributes
     or content:match "public%s+.*%s+%w+%s*%("
     or content:match "public%s+async%s+.*%s+%w+%s*%("
+end
+
+---Checks if content contains unwanted multiline artifacts that should be filtered
+function DotNetParser:_contains_unwanted_artifacts(content)
+  -- Filter out content that contains closing brackets followed by other attributes
+  -- These are usually ripgrep multiline artifacts
+  if content:match "%]%s*%[" then
+    return true
+  end
+
+  -- Filter out content that contains method declarations (these shouldn't be in attribute matches)
+  if content:match "public%s+.*%s+%w+%s*%(.*%)" then
+    return true
+  end
+
+  -- Filter out content with too many closing brackets or parentheses
+  local _, bracket_count = content:gsub("%]", "")
+  local _, paren_count = content:gsub("%)", "")
+  if bracket_count > 2 or paren_count > 2 then
+    return true
+  end
+
+  return false
+end
+
+---Checks if this is a class-level Route attribute that should be ignored as endpoint
+function DotNetParser:_is_class_level_route(content, file_path, line_number)
+  -- Only check Route attributes, not HttpX attributes
+  if not content:match "%[Route%(" then
+    return false
+  end
+
+  -- If we have file context, check if this Route is on a class
+  if file_path and line_number then
+    local file = io.open(file_path, "r")
+    if file then
+      local lines = {}
+      for line in file:lines() do
+        table.insert(lines, line)
+      end
+      file:close()
+
+      -- Look for class declaration within a few lines after this Route
+      for i = line_number, math.min(line_number + 5, #lines) do
+        if lines[i] and lines[i]:match "class%s+%w+" then
+          return true -- This Route is at class level
+        end
+      end
+    end
+  end
+
+  return false
 end
 
 ---Checks if content is inside a block comment or single line comment (basic check)
