@@ -251,6 +251,10 @@
 ---@field private _is_valid_http_method fun(self: endpoint.KtorParser, method?: string): boolean
 ---@field private _get_full_path fun(self: endpoint.KtorParser, path: string, file_path?: string, line_number?: number): string
 ---@field private _extract_base_paths_from_file fun(self: endpoint.KtorParser, file_path: string, target_line: number): string[]
+---@field private _extract_path_single_line fun(self: endpoint.KtorParser, content: string): string|nil
+---@field private _extract_path_multiline fun(self: endpoint.KtorParser, file_path: string, start_line: number, content: string): string|nil, number|nil
+---@field private _is_multiline_routing fun(self: endpoint.KtorParser, content: string): boolean
+---@field private _last_end_line_number number|nil
 ---@field private _looks_like_incomplete_ktor_routing fun(self: endpoint.KtorParser, content: string): boolean
 ---@field private _get_extended_routing_content fun(self: endpoint.KtorParser, initial_content: string, file_path?: string, start_line?: number): string|nil
 

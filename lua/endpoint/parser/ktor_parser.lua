@@ -25,7 +25,24 @@ function KtorParser:extract_base_path(file_path, line_number)
 end
 
 ---Extracts endpoint path from Ktor routing content
-function KtorParser:extract_endpoint_path(content)
+function KtorParser:extract_endpoint_path(content, file_path, line_number)
+  -- Use multiline extraction for better accuracy
+  if file_path and line_number then
+    local path, end_line = self:_extract_path_multiline(file_path, line_number, content)
+    if path then
+      -- Store end_line_number for highlighting
+      self._last_end_line_number = end_line
+      return path
+    end
+  end
+
+  -- Fallback to single line extraction
+  self._last_end_line_number = nil
+  return self:_extract_path_single_line(content)
+end
+
+---Extracts path from single line content
+function KtorParser:_extract_path_single_line(content)
   -- Handle multiline patterns by normalizing whitespace
   local normalized_content = content:gsub("%s+", " "):gsub("[\r\n]+", " ")
 
@@ -54,6 +71,102 @@ function KtorParser:extract_endpoint_path(content)
   end
 
   return nil
+end
+
+---Extracts path handling multiline routing definitions
+function KtorParser:_extract_path_multiline(file_path, start_line, content)
+  -- First try single line extraction
+  local path = self:_extract_path_single_line(content)
+  if path then
+    return path, nil  -- Single line, no end_line
+  end
+
+  -- If it's a multiline routing definition, read the file to find the path
+  if self:_is_multiline_routing(content) then
+    local file = io.open(file_path, "r")
+    if not file then
+      return nil, nil
+    end
+
+    local lines = {}
+    for line in file:lines() do
+      table.insert(lines, line)
+    end
+    file:close()
+
+    -- Read the next few lines to find the path parameter
+    local multiline_content = content
+    for i = start_line + 1, math.min(start_line + 5, #lines) do
+      local next_line = lines[i]
+      if next_line then
+        multiline_content = multiline_content .. " " .. next_line:gsub("^%s+", ""):gsub("%s+$", "")
+
+        -- Try to extract path from accumulated content
+        local extracted_path = self:_extract_path_single_line(multiline_content)
+        if extracted_path then
+          return extracted_path, i  -- Return path and end line number
+        end
+
+        -- If we hit closing parenthesis followed by opening brace, stop and return end line
+        if next_line:match "%s*%)%s*{" then
+          -- Try one more time to extract path before stopping
+          local final_path = self:_extract_path_single_line(multiline_content)
+          return final_path, i
+        end
+      end
+    end
+  end
+
+  return nil, nil
+end
+
+---Checks if routing definition spans multiple lines
+function KtorParser:_is_multiline_routing(content)
+  -- Check if content has HTTP method followed by opening parenthesis but no closing parenthesis and path
+  return content:match "^%s*%w+%s*%(%s*$" or content:match "^%s*%w+%s*%($"
+end
+
+---Override parse_content to add end_line_number for multiline endpoints
+function KtorParser:parse_content(content, file_path, line_number, column)
+  if not self:is_content_valid_for_parsing(content) then
+    return nil
+  end
+
+  -- Use the 4 core methods to create endpoint
+  local base_path = self:extract_base_path(file_path, line_number)
+  local endpoint_path = self:extract_endpoint_path(content, file_path, line_number)
+  local method = self:extract_method(content)
+
+  if not endpoint_path or not method then
+    return nil
+  end
+
+  -- Combine paths
+  local full_path = self:combine_paths(base_path, endpoint_path)
+
+  -- Create endpoint entry
+  local endpoint = {
+    method = method:upper(),
+    endpoint_path = full_path,
+    file_path = file_path,
+    line_number = line_number,
+    column = column,
+    display_value = method:upper() .. " " .. full_path,
+    confidence = self:get_parsing_confidence(content),
+    tags = { "api" },
+    metadata = self:create_metadata("endpoint", {
+      base_path = base_path,
+      raw_endpoint_path = endpoint_path,
+    }, content),
+  }
+
+  -- Add end_line_number if multiline
+  if self._last_end_line_number then
+    endpoint.end_line_number = self._last_end_line_number
+    self._last_end_line_number = nil  -- Clean up
+  end
+
+  return endpoint
 end
 
 ---Extracts HTTP method from Ktor routing content
@@ -151,6 +264,8 @@ function KtorParser:_extract_base_paths_from_file(file_path, target_line)
   -- Track nesting level and extract route paths
   local bracket_depth = 0
   local route_stack = {}
+  local multiline_route_buffer = nil
+  local multiline_route_start_depth = nil
 
   for i = 1, target_line - 1 do
     local line = lines[i]
@@ -159,13 +274,36 @@ function KtorParser:_extract_base_paths_from_file(file_path, target_line)
       local _, open_count = line:gsub("{", "")
       local _, close_count = line:gsub("}", "")
 
-      -- Check for route("path") declarations
-      local route_path = line:match 'route%s*%("([^"]+)"%)'
-      if not route_path then
-        route_path = line:match "route%s*%('([^']+)'%)"
-      end
-      if route_path then
-        table.insert(route_stack, { path = route_path, depth = bracket_depth })
+      -- Handle multiline route detection
+      if multiline_route_buffer then
+        -- We're in a multiline route, look for the path
+        multiline_route_buffer = multiline_route_buffer .. " " .. line:gsub("^%s+", ""):gsub("%s+$", "")
+        local route_path = multiline_route_buffer:match 'route%s*%(%s*"([^"]+)"%s*%)'
+        if not route_path then
+          route_path = multiline_route_buffer:match "route%s*%(%s*'([^']+)'%s*%)"
+        end
+        if route_path then
+          table.insert(route_stack, { path = route_path, depth = multiline_route_start_depth })
+          multiline_route_buffer = nil
+          multiline_route_start_depth = nil
+        elseif line:match "%)" then
+          -- Found closing paren but no path, reset
+          multiline_route_buffer = nil
+          multiline_route_start_depth = nil
+        end
+      else
+        -- Check for single line route("path") declarations
+        local route_path = line:match 'route%s*%("([^"]+)"%)'
+        if not route_path then
+          route_path = line:match "route%s*%('([^']+)'%)"
+        end
+        if route_path then
+          table.insert(route_stack, { path = route_path, depth = bracket_depth })
+        elseif line:match "route%s*%(" then
+          -- Found start of multiline route
+          multiline_route_buffer = line
+          multiline_route_start_depth = bracket_depth
+        end
       end
 
       bracket_depth = bracket_depth + open_count - close_count
