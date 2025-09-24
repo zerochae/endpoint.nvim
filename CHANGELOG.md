@@ -1,5 +1,24 @@
 # Changelog
 
+## [2.3.0](https://github.com/zerochae/endpoint.nvim/compare/v2.2.1...v2.3.0) (2025-09-24)
+
+
+### Features
+
+* add configurable previewer highlighting toggle ([fd934ca](https://github.com/zerochae/endpoint.nvim/commit/fd934ca1f1d7c483cc51bae2e743a594ef5b81cf))
+* add multiline endpoint support across all frameworks ([d6989b7](https://github.com/zerochae/endpoint.nvim/commit/d6989b7f570b21e9235185b093b1472c1e6d231c))
+* enhance picker system with improved highlighting and multiline support ([2d82e3a](https://github.com/zerochae/endpoint.nvim/commit/2d82e3a4dde79d5369b3272001a7a3b85b38c90d))
+* enhance Spring parser with comprehensive multiline annotation support ([2e1b619](https://github.com/zerochae/endpoint.nvim/commit/2e1b619e9edc5bbe7edd17c4023e4d90352f1509))
+
+
+### Bug Fixes
+
+* add end_line_number field to endpoint.entry type ([9b7d55e](https://github.com/zerochae/endpoint.nvim/commit/9b7d55ee185e0bdd8a30441b7875039d7d4e3739))
+* remove unused parameter warnings in parsers ([9bb6695](https://github.com/zerochae/endpoint.nvim/commit/9bb66956090e1deb299548d1299f662bb8f4a92d))
+* resolve type issues and remove unused code in servlet parser ([73363cb](https://github.com/zerochae/endpoint.nvim/commit/73363cbcb9ac033406241521246dcc22ca6f56bc))
+* resolve undefined field warning in plugin ([0a004dc](https://github.com/zerochae/endpoint.nvim/commit/0a004dc7042cb5661643abb8d5a6eb51bb75dadc))
+* resolve variable redefinition in nestjs parser ([cf5bab6](https://github.com/zerochae/endpoint.nvim/commit/cf5bab6d4cda6fef8fd5d52c82b1ff2b0f55f8a9))
+
 ## [2.2.1](https://github.com/zerochae/endpoint.nvim/compare/v2.2.0...v2.2.1) (2025-09-23)
 
 
