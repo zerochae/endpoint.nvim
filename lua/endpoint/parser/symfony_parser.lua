@@ -30,7 +30,24 @@ function SymfonyParser:extract_base_path(file_path, line_number)
 end
 
 ---Extracts endpoint path from Symfony annotation content
-function SymfonyParser:extract_endpoint_path(content, _, _)
+function SymfonyParser:extract_endpoint_path(content, file_path, line_number)
+  -- Use multiline extraction for better accuracy
+  if file_path and line_number then
+    local path, end_line = self:_extract_path_multiline(file_path, line_number, content)
+    if path then
+      -- Store end_line_number for highlighting
+      self._last_end_line_number = end_line
+      return path
+    end
+  end
+
+  -- Fallback to single line extraction
+  self._last_end_line_number = nil
+  return self:_extract_path_single_line(content)
+end
+
+---Extracts path from single line content
+function SymfonyParser:_extract_path_single_line(content)
   -- Handle multiline patterns by normalizing whitespace
   local normalized_content = content:gsub("%s+", " "):gsub("[\r\n]+", " ")
 
@@ -58,6 +75,68 @@ function SymfonyParser:extract_endpoint_path(content, _, _)
   return nil
 end
 
+---Extracts path handling multiline annotations
+function SymfonyParser:_extract_path_multiline(file_path, start_line, content)
+  -- First try single line extraction
+  local path = self:_extract_path_single_line(content)
+  if path then
+    return path, nil  -- Single line, no end_line
+  end
+
+  -- If it's a multiline annotation, read the file to find the complete annotation
+  if self:_is_multiline_annotation(content) then
+    local file = io.open(file_path, "r")
+    if not file then
+      return nil, nil
+    end
+
+    local lines = {}
+    for line in file:lines() do
+      table.insert(lines, line)
+    end
+    file:close()
+
+    -- Read the next few lines to find the complete annotation
+    local multiline_content = content
+    local extracted_path = nil
+    local annotation_end_line = nil
+
+    for i = start_line + 1, math.min(start_line + 15, #lines) do
+      local next_line = lines[i]
+      if next_line then
+        multiline_content = multiline_content .. " " .. next_line:gsub("^%s+", ""):gsub("%s+$", "")
+
+        -- Try to extract path from accumulated content (but don't return yet)
+        if not extracted_path then
+          extracted_path = self:_extract_path_single_line(multiline_content)
+        end
+
+        -- If we hit closing bracket followed by closing parenthesis, this is the end
+        if next_line:match "%s*%]%s*$" then
+          annotation_end_line = i
+          break
+        end
+      end
+    end
+
+    -- Return the path and the actual end line of the annotation
+    if extracted_path and annotation_end_line then
+      return extracted_path, annotation_end_line
+    elseif extracted_path then
+      -- Fallback: use last processed line if no closing bracket found
+      return extracted_path, math.min(start_line + 10, #lines)
+    end
+  end
+
+  return nil, nil
+end
+
+---Checks if annotation definition spans multiple lines
+function SymfonyParser:_is_multiline_annotation(content)
+  -- Check if content has annotation start but no closing bracket
+  return (content:match "#%[Route%(%s*$" or content:match "@Route%(%s*$" or content:match "\\* @Route%(%s*$")
+end
+
 ---Extracts HTTP method from Symfony annotation content
 function SymfonyParser:extract_method(content)
   -- Handle multiline patterns by normalizing whitespace
@@ -75,20 +154,12 @@ end
 
 ---Override parse_content to handle multiple HTTP methods in Symfony
 function SymfonyParser:parse_content(content, file_path, line_number, column)
-  -- Handle multiline patterns by normalizing whitespace
-  local normalized_content = content:gsub("%s+", " "):gsub("[\r\n]+", " ")
-
   -- Only process if this looks like Symfony annotation
   if not self:is_content_valid_for_parsing(content) then
     return nil
   end
 
-  -- Skip controller-level routes
-  if self:_is_controller_level_route(normalized_content) then
-    return nil
-  end
-
-  -- Extract path
+  -- Extract path (this will handle multiline extraction and set end_line_number)
   local endpoint_path = self:extract_endpoint_path(content, file_path, line_number)
   if not endpoint_path then
     return nil
@@ -98,30 +169,46 @@ function SymfonyParser:parse_content(content, file_path, line_number, column)
   local base_path = self:extract_base_path(file_path, line_number)
   local full_path = self:_combine_paths(base_path, endpoint_path)
 
-  -- Extract all methods (can be multiple) with normalized content
-  local methods = self:_extract_methods_from_annotation(normalized_content)
+  -- Extract all methods using multiline-aware extraction
+  local methods = self:_extract_methods_multiline(content, file_path, line_number)
   if #methods == 0 then
     methods = { "GET" }
   end
 
+  -- Store end_line_number before creating endpoints
+  local end_line_number = self._last_end_line_number
+
+  -- Calculate correct column position for annotation start
+  local correct_column = self:_calculate_annotation_column(content, file_path, line_number, column)
+
   -- Create endpoint for each method
   local endpoints = {}
   for _, method in ipairs(methods) do
-    table.insert(endpoints, {
+    local endpoint = {
       method = method:upper(),
       endpoint_path = full_path,
       file_path = file_path,
       line_number = line_number,
-      column = column,
+      column = correct_column,
       display_value = method:upper() .. " " .. full_path,
       confidence = self:get_parsing_confidence(content),
       tags = { "php", "symfony", "route" },
       metadata = self:create_metadata("route", {
-        annotation_type = self:_detect_annotation_type(normalized_content),
+        annotation_type = self:_detect_annotation_type(content),
         methods_count = #methods,
       }, content),
-    })
+    }
+
+    -- Add end_line_number if multiline
+    if end_line_number then
+      endpoint.end_line_number = end_line_number
+    end
+
+    table.insert(endpoints, endpoint)
   end
+
+  -- Clean up stored end_line_number
+  self._last_end_line_number = nil
 
   -- Return single endpoint if only one method, multiple if more
   if #endpoints == 1 then
@@ -266,6 +353,51 @@ function SymfonyParser:_extract_path_from_docblock(content)
   return content:match "\\* @Route%(%s*[\"']([^\"']+)[\"']"
 end
 
+---Extracts HTTP methods using multiline-aware extraction
+function SymfonyParser:_extract_methods_multiline(content, file_path, line_number)
+  -- First try single line extraction
+  local methods = self:_extract_methods_from_annotation(content)
+  if #methods > 0 then
+    return methods
+  end
+
+  -- If it's a multiline annotation, use the complete annotation content
+  if self:_is_multiline_annotation(content) and file_path and line_number then
+    local file = io.open(file_path, "r")
+    if not file then
+      return {}
+    end
+
+    local lines = {}
+    for line in file:lines() do
+      table.insert(lines, line)
+    end
+    file:close()
+
+    -- Read the annotation content across multiple lines
+    local multiline_content = content
+    for i = line_number + 1, math.min(line_number + 10, #lines) do
+      local next_line = lines[i]
+      if next_line then
+        multiline_content = multiline_content .. " " .. next_line:gsub("^%s+", ""):gsub("%s+$", "")
+
+        -- Try to extract methods from accumulated content
+        local extracted_methods = self:_extract_methods_from_annotation(multiline_content)
+        if #extracted_methods > 0 then
+          return extracted_methods
+        end
+
+        -- If we hit closing bracket, stop
+        if next_line:match "%s*%]%s*$" then
+          break
+        end
+      end
+    end
+  end
+
+  return {}
+end
+
 ---Extracts HTTP methods from methods parameter
 function SymfonyParser:_extract_methods_from_annotation(content)
   local methods = {}
@@ -320,6 +452,41 @@ function SymfonyParser:_is_symfony_route_content(content)
   local normalized_content = content:gsub("%s+", " "):gsub("[\r\n]+", " ")
 
   return normalized_content:match "#%[Route%(" or normalized_content:match "@Route%(" or normalized_content:match "\\* @Route%("
+end
+
+---Calculates correct column position for annotation start
+function SymfonyParser:_calculate_annotation_column(content, file_path, line_number, ripgrep_column)
+  -- ripgrep in multiline mode often returns column 1, so we need to calculate the actual position
+  if ripgrep_column and ripgrep_column > 1 then
+    return ripgrep_column -- Trust ripgrep if it gives a meaningful column
+  end
+
+  -- Read the actual line to find the annotation start position
+  local file = io.open(file_path, "r")
+  if not file then
+    return 1
+  end
+
+  local current_line = 1
+  for line in file:lines() do
+    if current_line == line_number then
+      file:close()
+      -- Find the position of # or @ character (1-based)
+      local hash_pos = line:find("#%[Route%(")
+      local at_pos = line:find("@Route%(")
+      local docblock_pos = line:find("\\* @Route%(")
+
+      local annotation_pos = hash_pos or at_pos or docblock_pos
+      if annotation_pos then
+        return annotation_pos
+      end
+      break
+    end
+    current_line = current_line + 1
+  end
+  file:close()
+
+  return 1 -- Fallback
 end
 
 return SymfonyParser

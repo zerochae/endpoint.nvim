@@ -202,6 +202,7 @@
 ---@field get_method_text fun(self: endpoint.Themes, method: string, config: table): string
 
 ---@class endpoint.SymfonyParser : endpoint.Parser
+---@field private _last_end_line_number number|nil
 ---@field private _read_file_lines fun(self: endpoint.SymfonyParser, file_path: string, line_number: number): string[]|nil
 ---@field private _find_controller_level_route fun(self: endpoint.SymfonyParser, lines: string[], line_number: number): string
 ---@field private _extract_controller_route_path fun(self: endpoint.SymfonyParser, annotation_line: string): string|nil
@@ -209,9 +210,14 @@
 ---@field private _extract_path_from_php8_attributes fun(self: endpoint.SymfonyParser, content: string): string|nil
 ---@field private _extract_path_from_annotations fun(self: endpoint.SymfonyParser, content: string): string|nil
 ---@field private _extract_path_from_docblock fun(self: endpoint.SymfonyParser, content: string): string|nil
+---@field private _extract_path_single_line fun(self: endpoint.SymfonyParser, content: string): string|nil
+---@field private _extract_path_multiline fun(self: endpoint.SymfonyParser, file_path: string, start_line: number, content: string): string|nil, number|nil
+---@field private _is_multiline_annotation fun(self: endpoint.SymfonyParser, content: string): boolean
+---@field private _extract_methods_multiline fun(self: endpoint.SymfonyParser, content: string, file_path: string, line_number: number): string[]
 ---@field private _extract_methods_from_annotation fun(self: endpoint.SymfonyParser, content: string): string[]
 ---@field private _combine_paths fun(self: endpoint.SymfonyParser, base?: string, endpoint?: string): string
 ---@field private _detect_annotation_type fun(self: endpoint.SymfonyParser, content: string): string
+---@field private _calculate_annotation_column fun(self: endpoint.SymfonyParser, content: string, file_path: string, line_number: number, ripgrep_column: number): number
 ---@field private _is_symfony_route_content fun(self: endpoint.SymfonyParser, content: string): boolean
 
 ---@class endpoint.ExpressParser : endpoint.Parser
