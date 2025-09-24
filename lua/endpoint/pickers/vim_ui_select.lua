@@ -6,8 +6,7 @@ VimUiSelectPicker.__index = VimUiSelectPicker
 
 ---Creates a new VimUiSelectPicker instance
 function VimUiSelectPicker:new()
-  local vim_ui_select_picker = setmetatable({}, self)
-  vim_ui_select_picker.name = "vim_ui_select"
+  local vim_ui_select_picker = setmetatable(Picker:new "vim_ui_select", self)
   return vim_ui_select_picker
 end
 

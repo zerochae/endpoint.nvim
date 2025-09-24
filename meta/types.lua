@@ -48,6 +48,10 @@
 ---@field type "telescope" | "vim_ui_select" | "snacks"
 ---@field options table
 
+-- Previewer configuration (new structure)
+---@class endpoint.picker.previewer.config
+---@field enable_highlighting boolean
+
 -- Controller Name Extractor Configuration
 ---@class endpoint.controller_extractor
 ---@field pattern string Lua pattern to match file paths
@@ -57,6 +61,7 @@
 ---@class endpoint.config
 ---@field cache? endpoint.cache.config -- New structure
 ---@field picker? endpoint.picker.config -- New structure
+---@field previewer? endpoint.picker.previewer.config -- New structure
 ---@field ui endpoint.ui.config
 ---@field frameworks? table
 ---@field cache_mode? "none" | "session" | "persistent" -- Legacy (deprecated)
@@ -103,12 +108,14 @@
 ---@class Picker : endpoint.Picker
 ---@class endpoint.Picker
 ---@field protected name string
+---@field protected themes endpoint.Themes
 ---@field new fun(self: endpoint.Picker, name?: string): endpoint.Picker
 ---@field is_available fun(self: endpoint.Picker): boolean
 ---@field show fun(self: endpoint.Picker, endpoints?: endpoint.entry[], opts?: table)
 ---@field get_name fun(self: endpoint.Picker): string
 ---@field _validate_endpoints fun(self: endpoint.Picker, endpoints: endpoint.entry[]): boolean
 ---@field _format_endpoint_display fun(self: endpoint.Picker, endpoint: endpoint.entry): string
+---@field _format_endpoint_with_theme fun(self: endpoint.Picker, endpoint: endpoint.entry, config: table): string
 ---@field _navigate_to_endpoint fun(self: endpoint.Picker, endpoint: endpoint.entry)
 
 -- ========================================
@@ -176,6 +183,24 @@
 ---@field private _looks_like_incomplete_spring_annotation fun(self: endpoint.SpringParser, content: string): boolean
 ---@field private _get_extended_annotation_content fun(self: endpoint.SpringParser, file_path: string, start_line: number): string|nil, number|nil, number|nil
 
+---@class endpoint.Highlighter
+---@field highlight_ns number
+---@field new fun(self: endpoint.Highlighter, namespace_name: string): endpoint.Highlighter
+---@field is_highlighting_enabled fun(self: endpoint.Highlighter, config: table): boolean
+---@field clear_highlights fun(self: endpoint.Highlighter, bufnr: number)
+---@field highlight_line_range fun(self: endpoint.Highlighter, bufnr: number, start_line: number, start_col: number, end_line?: number, highlight_group?: string)
+---@field highlight_endpoint fun(self: endpoint.Highlighter, bufnr: number, endpoint: table, highlight_group?: string)
+---@field highlight_component_definition fun(self: endpoint.Highlighter, bufnr: number, endpoint: table, highlight_group?: string)
+---@field calculate_highlight_length fun(self: endpoint.Highlighter, entry: table, method_icon: string, method_text: string): number
+
+---@class endpoint.Themes
+---@field DEFAULT_METHOD_COLORS table<string, string>
+---@field DEFAULT_METHOD_ICONS table<string, string>
+---@field new fun(self: endpoint.Themes): endpoint.Themes
+---@field get_method_color fun(self: endpoint.Themes, method: string, config: table): string
+---@field get_method_icon fun(self: endpoint.Themes, method: string, config: table): string
+---@field get_method_text fun(self: endpoint.Themes, method: string, config: table): string
+
 ---@class endpoint.SymfonyParser : endpoint.Parser
 ---@field private _read_file_lines fun(self: endpoint.SymfonyParser, file_path: string, line_number: number): string[]|nil
 ---@field private _find_controller_level_route fun(self: endpoint.SymfonyParser, lines: string[], line_number: number): string
@@ -223,14 +248,11 @@
 ---@field private _combine_paths fun(self: endpoint.DotNetParser, base?: string, endpoint?: string): string
 
 ---@class endpoint.KtorParser : endpoint.Parser
----@field private _is_ktor_routing_content fun(self: endpoint.KtorParser, content: string): boolean
----@field private _extract_route_info fun(self: endpoint.KtorParser, content: string, file_path?: string, line_number?: number): string|nil, string|nil
----@field private _extract_path_from_content fun(self: endpoint.KtorParser, content: string): string|nil
----@field private _extract_method_from_content fun(self: endpoint.KtorParser, content: string): string|nil
----@field private _detect_routing_type fun(self: endpoint.KtorParser, content: string): string
----@field private _has_route_parameters fun(self: endpoint.KtorParser, path?: string): boolean
+---@field private _is_valid_http_method fun(self: endpoint.KtorParser, method?: string): boolean
 ---@field private _get_full_path fun(self: endpoint.KtorParser, path: string, file_path?: string, line_number?: number): string
 ---@field private _extract_base_paths_from_file fun(self: endpoint.KtorParser, file_path: string, target_line: number): string[]
+---@field private _looks_like_incomplete_ktor_routing fun(self: endpoint.KtorParser, content: string): boolean
+---@field private _get_extended_routing_content fun(self: endpoint.KtorParser, initial_content: string, file_path?: string, start_line?: number): string|nil
 
 ---@class endpoint.ServletParser : endpoint.Parser
 ---@field private _is_servlet_content fun(self: endpoint.ServletParser, content: string): boolean
@@ -358,11 +380,12 @@
 -- ========================================
 
 ---@class endpoint.TelescopePicker : endpoint.Picker
----@field private telescope_available boolean
----@field private highlight_ns integer
+---@field telescope_available boolean
+---@field highlighter endpoint.Highlighter
 
 ---@class endpoint.SnacksPicker : endpoint.Picker
----@field private snacks_available boolean
+---@field snacks_available boolean
+---@field highlighter endpoint.Highlighter
 
 ---@class endpoint.VimUiSelectPicker : endpoint.Picker
 

@@ -1,4 +1,5 @@
 local Picker = require "endpoint.core.Picker"
+local Highlighter = require "endpoint.core.Highlighter"
 local log = require "endpoint.utils.log"
 
 ---@class endpoint.SnacksPicker
@@ -7,9 +8,9 @@ SnacksPicker.__index = SnacksPicker
 
 ---Creates a new SnacksPicker instance
 function SnacksPicker:new()
-  local snacksPicker = setmetatable({}, self)
-  snacksPicker.name = "snacks"
+  local snacksPicker = setmetatable(Picker:new "snacks", self)
   snacksPicker.snacks_available = pcall(require, "snacks")
+  snacksPicker.highlighter = Highlighter:new "endpoint_snacks_highlight"
   return snacksPicker
 end
 
@@ -54,18 +55,47 @@ end
 
 ---Create a single picker item from an endpoint
 function SnacksPicker:_create_item(endpoint)
-  local display_text = self:_format_endpoint_display(endpoint)
-  local end_col = self:_calculate_end_column(endpoint)
+  local config_module = require "endpoint.config"
+  local config = config_module.get()
 
-  return {
+  -- Use common theme formatting from base Picker
+  local display_text = self:_format_endpoint_with_theme(endpoint, config)
+
+  -- Get theme data for highlighting in the picker list
+  local method_icon = self.themes:get_method_icon(endpoint.method, config)
+  local method_text = self.themes:get_method_text(endpoint.method, config)
+  local method_color = self.themes:get_method_color(endpoint.method, config)
+
+  -- Calculate highlight length for method part
+  local highlight_length = self.highlighter:calculate_highlight_length(endpoint, method_icon, method_text)
+
+  local item = {
     text = display_text,
     value = endpoint, -- Store endpoint data in value
     file = endpoint.file_path, -- Required for file preview
     -- Use snacks internal pos format: [row, col] - adjust col to 0-based for extmark
     pos = { endpoint.line_number, endpoint.column - 1 },
-    -- Add end_pos with actual line length
-    end_pos = { endpoint.line_number, end_col },
   }
+
+  -- Add multiline range highlighting support
+  if endpoint.end_line_number and endpoint.end_line_number > endpoint.line_number then
+    -- Multiline annotation: highlight from start to end line
+    item.end_pos = { endpoint.end_line_number, endpoint.end_column or 0 }
+  else
+    -- Single line: calculate end column
+    local end_col = self:_calculate_end_column(endpoint)
+    item.end_pos = { endpoint.line_number, end_col }
+  end
+
+  -- Add highlighting for the picker list (method highlighting)
+  -- Use snacks.nvim extmark-based highlighting - flat array format
+  if method_color and highlight_length > 0 then
+    item.highlights = {
+      { col = 0, end_col = highlight_length, hl_group = method_color },
+    }
+  end
+
+  return item
 end
 
 ---Calculate end column for highlighting by reading actual file
@@ -107,18 +137,25 @@ end
 function SnacksPicker:_create_picker_config(items, opts)
   local config_module = require "endpoint.config"
   local config = config_module.get()
-  local enable_highlighting = config.picker and config.picker.previewer and config.picker.previewer.enable_highlighting
-
-  -- Default to true if not configured
-  if enable_highlighting == nil then
-    enable_highlighting = true
-  end
+  local enable_highlighting = self.highlighter:is_highlighting_enabled(config)
 
   local default_config = {
     source = "Endpoint ",
     items = items,
     prompt = "Endpoints ",
-    format = "text", -- Keep simple format for now
+    format = function(item)
+      local ret = {}
+      ret[#ret + 1] = { item.text }
+
+      -- Add method highlighting if available
+      if item.highlights then
+        for _, highlight in ipairs(item.highlights) do
+          ret[#ret + 1] = highlight
+        end
+      end
+
+      return ret
+    end,
     preview = enable_highlighting and "file" or false, -- Disable preview if highlighting is disabled
     matcher = {
       fuzzy = true,

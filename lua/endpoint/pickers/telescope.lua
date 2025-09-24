@@ -1,4 +1,5 @@
 local Picker = require "endpoint.core.Picker"
+local Highlighter = require "endpoint.core.Highlighter"
 
 ---@class endpoint.TelescopePicker
 local TelescopePicker = setmetatable({}, { __index = Picker })
@@ -6,10 +7,9 @@ TelescopePicker.__index = TelescopePicker
 
 ---Creates a new TelescopePicker instance
 function TelescopePicker:new()
-  local telescope_picker = setmetatable({}, self)
-  telescope_picker.name = "telescope"
+  local telescope_picker = setmetatable(Picker:new "telescope", self)
   telescope_picker.telescope_available = pcall(require, "telescope")
-  telescope_picker.highlight_ns = vim.api.nvim_create_namespace "endpoint_preview_highlight"
+  telescope_picker.highlighter = Highlighter:new "endpoint_preview_highlight"
   return telescope_picker
 end
 
@@ -59,19 +59,16 @@ end
 
 ---Create telescope entry for an endpoint
 function TelescopePicker:_create_entry(entry, config)
-  local themes = require "endpoint.ui.themes"
+  -- Use common theme formatting from base Picker
+  local display_text = self:_format_endpoint_with_theme(entry, config)
 
-  -- Create display with method colors and icons
-  local method_icon = themes.get_method_icon(entry.method, config)
-  local method_text = themes.get_method_text(entry.method, config)
-  local method_color = themes.get_method_color(entry.method, config)
-
-  -- Use display_value if available (for Rails action annotations), otherwise use default format
-  local endpoint_display = self:_format_endpoint_display(entry)
-  local display_text = string.format("%s %s", method_icon, endpoint_display)
+  -- Get theme data for telescope-specific highlighting
+  local method_icon = self.themes:get_method_icon(entry.method, config)
+  local method_text = self.themes:get_method_text(entry.method, config)
+  local method_color = self.themes:get_method_color(entry.method, config)
 
   -- Calculate highlight length for Rails controller#action annotations
-  local highlight_length = self:_calculate_highlight_length(entry, method_icon, method_text)
+  local highlight_length = self.highlighter:calculate_highlight_length(entry, method_icon, method_text)
 
   return {
     value = entry,
@@ -90,30 +87,6 @@ function TelescopePicker:_create_entry(entry, config)
     col = entry.column,
     end_lnum = entry.end_line_number, -- For multiline highlighting
   }
-end
-
----Calculate highlight length for different display formats
-function TelescopePicker:_calculate_highlight_length(entry, method_icon, method_text)
-  if entry.display_value and entry.display_value:match "%[.+#.+%]" then
-    -- Rails controller#action annotation: highlight the entire "GET[controller#action]" part
-    local method_with_action = entry.display_value:match "^([^%s]+)"
-    if method_with_action then
-      return #method_icon + #method_with_action + 1
-    else
-      return #method_icon + #method_text + 1
-    end
-  elseif entry.action and entry.display_value and entry.display_value:match "%[#.-%]" then
-    -- Legacy Rails action annotation: highlight the entire "GET[#action]" part
-    local method_with_action = entry.display_value:match "^([^%s]+)"
-    if method_with_action then
-      return #method_icon + #method_with_action + 1
-    else
-      return #method_icon + #method_text + 1
-    end
-  else
-    -- Default: just highlight the method
-    return #method_icon + #method_text + 1
-  end
 end
 
 ---Create endpoint-specific previewer with line/column highlighting
@@ -172,69 +145,21 @@ end
 function TelescopePicker:_handle_preview_callback(bufnr, endpoint, picker_self, preview_line, preview_col)
   local config_module = require "endpoint.config"
   local config = config_module.get()
-  local enable_highlighting = config.picker and config.picker.previewer and config.picker.previewer.enable_highlighting
-
-  -- Default to true if not configured
-  if enable_highlighting == nil then
-    enable_highlighting = true
-  end
 
   -- Clear previous highlights first
-  vim.api.nvim_buf_clear_namespace(bufnr, self.highlight_ns, 0, -1)
+  self.highlighter:clear_highlights(bufnr)
 
   -- Only apply highlighting if enabled in config
-  if enable_highlighting then
+  if self.highlighter:is_highlighting_enabled(config) then
     if endpoint.component_file_path and endpoint.component_name then
-      self:_highlight_component_definition(bufnr, endpoint)
+      self.highlighter:highlight_component_definition(bufnr, endpoint)
     else
-      self:_highlight_endpoint_line(bufnr, preview_line, preview_col, endpoint.end_line_number)
+      self.highlighter:highlight_endpoint(bufnr, endpoint)
     end
   end
 
   -- Set cursor and center (always enabled)
   self:_set_preview_cursor(picker_self, preview_line, preview_col)
-end
-
----Highlight component definition in React Router components
-function TelescopePicker:_highlight_component_definition(bufnr, endpoint)
-  vim.defer_fn(function()
-    if vim.api.nvim_buf_is_valid(bufnr) then
-      local lines = vim.api.nvim_buf_get_lines(bufnr, 0, -1, false)
-      for line_idx, line in ipairs(lines) do
-        -- Look for component definition patterns
-        if
-          line:match("const%s+" .. endpoint.component_name)
-          or line:match("function%s+" .. endpoint.component_name)
-          or line:match("export%s+default%s+" .. endpoint.component_name)
-          or line:match("export%s+default%s+function%s+" .. endpoint.component_name)
-        then
-          vim.api.nvim_buf_add_highlight(bufnr, self.highlight_ns, "TelescopePreviewMatch", line_idx - 1, 0, -1)
-          break
-        end
-      end
-    end
-  end, 50)
-end
-
----Highlight the endpoint line(s)
-function TelescopePicker:_highlight_endpoint_line(bufnr, preview_line, preview_col, end_line)
-  if preview_line then
-    local start_line = preview_line - 1
-    local end_line_num = end_line and (end_line - 1) or start_line
-    local start_col = math.max(0, (preview_col or 1) - 1)
-
-    -- Highlight multiple lines if end_line is provided
-    for line = start_line, end_line_num do
-      vim.api.nvim_buf_add_highlight(
-        bufnr,
-        self.highlight_ns,
-        "TelescopePreviewMatch",
-        line,
-        line == start_line and start_col or 0, -- Start from specified column on first line, 0 on others
-        -1
-      )
-    end
-  end
 end
 
 ---Set cursor position and center in preview window
