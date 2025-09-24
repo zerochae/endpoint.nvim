@@ -460,11 +460,11 @@ function DotNetParser:_extract_route_info(content, file_path, line_number)
       file:close()
 
       -- Read the next few lines to get the complete attribute
-      for i = line_number + 1, math.min(line_number + 10, #lines) do
+      for i = line_number + 1, math.min(line_number + 15, #lines) do
         local next_line = lines[i]
         if next_line then
           full_content = full_content .. " " .. next_line:gsub("^%s+", ""):gsub("%s+$", "")
-          -- Stop when we hit the closing parenthesis
+          -- Stop when we hit the closing parenthesis and bracket
           if next_line:match "%s*%)%s*$" then
             break
           end
@@ -473,8 +473,29 @@ function DotNetParser:_extract_route_info(content, file_path, line_number)
     end
   end
 
+  -- DEBUG: Try to extract path regardless of multiline detection
+  -- This is to catch cases where our multiline detection might be wrong
+  if file_path and line_number and not content:match "%[Http%w+%([\"']([^\"']+)[\"']" then
+    local file = io.open(file_path, "r")
+    if file then
+      local lines = {}
+      for line in file:lines() do
+        table.insert(lines, line)
+      end
+      file:close()
+
+      -- Always try to read a few lines ahead for any [HttpX( pattern
+      for i = line_number + 1, math.min(line_number + 5, #lines) do
+        local next_line = lines[i]
+        if next_line then
+          full_content = full_content .. " " .. next_line:gsub("^%s+", ""):gsub("%s+$", "")
+        end
+      end
+    end
+  end
+
   -- Pattern 1: Attribute-based routing - [HttpGet("/path")]
-  local method, path = full_content:match "%[Http(%w+)%([\"']([^\"']+)[\"']"
+  local method, path = full_content:match "%[Http(%w+)%([^%)]*[\"']([^\"']+)[\"']"
   if method and path then
     return method, path
   end
