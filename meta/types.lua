@@ -259,7 +259,7 @@
 ---@field private _get_controller_base_path fun(self: endpoint.DotNetParser, file_path: string, line_number: number): string
 ---@field private _replace_controller_token fun(self: endpoint.DotNetParser, route_path: string, file_path: string, line_number: number): string
 ---@field private _calculate_attribute_column fun(self: endpoint.DotNetParser, content: string, file_path: string, line_number: number, ripgrep_column: number): number
----@field private _is_commented_code fun(self: endpoint.DotNetParser, content: string): boolean
+---@field private _is_commented_code fun(self: endpoint.DotNetParser, content: string, file_path?: string, line_number?: number): boolean
 ---@field private _combine_paths fun(self: endpoint.DotNetParser, base?: string, endpoint?: string): string
 
 ---@class endpoint.KtorParser : endpoint.Parser

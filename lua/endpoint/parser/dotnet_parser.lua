@@ -146,6 +146,11 @@ function DotNetParser:parse_content(content, file_path, line_number, column)
     return nil
   end
 
+  -- Additional check for commented code with file context
+  if self:_is_commented_code(content, file_path, line_number) then
+    return nil
+  end
+
   -- Extract path (this will handle multiline extraction and set end_line_number)
   local endpoint_path = self:extract_endpoint_path(content, file_path, line_number)
 
@@ -288,24 +293,53 @@ function DotNetParser:_is_dotnet_attribute_content(content)
     or content:match "public%s+async%s+.*%s+%w+%s*%("
 end
 
----Checks if content is inside a block comment
-function DotNetParser:_is_commented_code(content)
-  -- Check for /* */ style comments - look for content that starts with /* or contains */
+---Checks if content is inside a block comment or single line comment (basic check)
+function DotNetParser:_is_commented_code(content, file_path, line_number)
   local trimmed = content:gsub("^%s+", "")
 
-  -- Check if line starts with /* or is inside a block comment
-  if trimmed:match "^/%*" or content:match "%*/" or content:match "/%*.*%*/" then
+  -- Check for single line comments first
+  if trimmed:match "^//" then
     return true
   end
 
-  -- Check if this looks like it's inside a comment block (starts with * and whitespace or just *)
+  -- Check if line starts with /* or contains complete /* */ comment
+  if trimmed:match "^/%*" or content:match "/%*.*%*/" then
+    return true
+  end
+
+  -- Check if this looks like it's inside a comment block (starts with *)
   if trimmed:match "^%*" then
     return true
   end
 
-  -- Check for single line comments
-  if trimmed:match "^//" then
-    return true
+  -- For multiline search results with file context, check if we're inside a /* */ block
+  if file_path and line_number then
+    local file = io.open(file_path, "r")
+    if file then
+      local lines = {}
+      for line in file:lines() do
+        table.insert(lines, line)
+      end
+      file:close()
+
+      -- Look backwards to see if we're inside a comment block
+      local in_comment_block = false
+      for i = math.max(1, line_number - 20), line_number do
+        if lines[i] then
+          local line = lines[i]:gsub("^%s+", "")
+          if line:match "^/%*" then
+            in_comment_block = true
+          elseif line:match "%*/%s*$" then
+            in_comment_block = false
+          elseif i == line_number and in_comment_block then
+            return true
+          end
+        end
+      end
+    end
+  else
+    -- Without file context, do basic check
+    return false
   end
 
   return false
