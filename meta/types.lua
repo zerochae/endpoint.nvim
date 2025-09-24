@@ -248,7 +248,7 @@
 ---@field private _is_dotnet_attribute_content fun(self: endpoint.DotNetParser, content: string): boolean
 ---@field private _extract_route_info fun(self: endpoint.DotNetParser, content: string, file_path: string, line_number: number): string|nil, string|nil
 ---@field private _extract_path_from_attributes fun(self: endpoint.DotNetParser, content: string): string|nil
----@field private _extract_path_single_line fun(self: endpoint.DotNetParser, content: string): string|nil
+---@field private _extract_path_single_line fun(self: endpoint.DotNetParser, content: string, file_path?: string, line_number?: number): string|nil
 ---@field private _extract_path_multiline fun(self: endpoint.DotNetParser, file_path: string, start_line: number, content: string): string|nil, number|nil
 ---@field private _is_multiline_attribute fun(self: endpoint.DotNetParser, content: string): boolean
 ---@field private _extract_methods_multiline fun(self: endpoint.DotNetParser, content: string, file_path: string, line_number: number): string[]

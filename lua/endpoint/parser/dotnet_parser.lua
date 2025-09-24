@@ -38,13 +38,13 @@ function DotNetParser:extract_endpoint_path(content, file_path, line_number)
 
   -- Fallback to single line extraction
   self._last_end_line_number = nil
-  return self:_extract_path_single_line(content)
+  return self:_extract_path_single_line(content, file_path, line_number)
 end
 
 ---Extracts path from single line content
-function DotNetParser:_extract_path_single_line(content)
+function DotNetParser:_extract_path_single_line(content, file_path, line_number)
   -- Use _extract_route_info for better accuracy
-  local _, endpoint_path = self:_extract_route_info(content)
+  local _, endpoint_path = self:_extract_route_info(content, file_path, line_number)
   if endpoint_path then
     return endpoint_path
   end
@@ -61,7 +61,7 @@ end
 ---Extracts path handling multiline attributes
 function DotNetParser:_extract_path_multiline(file_path, start_line, content)
   -- First try single line extraction
-  local path = self:_extract_path_single_line(content)
+  local path = self:_extract_path_single_line(content, file_path, start_line)
   if path then
     return path, nil  -- Single line, no end_line
   end
@@ -91,7 +91,7 @@ function DotNetParser:_extract_path_multiline(file_path, start_line, content)
 
         -- Try to extract path from accumulated content (but don't return yet)
         if not extracted_path then
-          extracted_path = self:_extract_path_single_line(multiline_content)
+          extracted_path = self:_extract_path_single_line(multiline_content, file_path, start_line)
         end
 
         -- If we hit closing parenthesis followed by closing bracket, this is the end
@@ -284,7 +284,6 @@ end
 ---Checks if content is inside a block comment
 function DotNetParser:_is_commented_code(content)
   -- Check for /* */ style comments - look for content that starts with /* or contains */
-  -- This is a simple check - more sophisticated parsing could be done if needed
   local trimmed = content:gsub("^%s+", "")
 
   -- Check if line starts with /* or is inside a block comment
@@ -292,8 +291,13 @@ function DotNetParser:_is_commented_code(content)
     return true
   end
 
-  -- Check if this looks like it's inside a comment block (starts with * and whitespace)
-  if trimmed:match "^%*%s" then
+  -- Check if this looks like it's inside a comment block (starts with * and whitespace or just *)
+  if trimmed:match "^%*" then
+    return true
+  end
+
+  -- Check for single line comments
+  if trimmed:match "^//" then
     return true
   end
 
