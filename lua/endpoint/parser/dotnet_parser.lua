@@ -140,16 +140,15 @@ function DotNetParser:parse_content(content, file_path, line_number, column)
 
   -- Extract path (this will handle multiline extraction and set end_line_number)
   local endpoint_path = self:extract_endpoint_path(content, file_path, line_number)
+
+  -- Get base path for combination
+  local base_path = self:extract_base_path(file_path, line_number)
+
   if not endpoint_path or endpoint_path == "" then
-    -- For HTTP method attributes without explicit paths, check if there's a meaningful base path
-    local base_path = self:extract_base_path(file_path, line_number)
+    -- For HTTP method attributes without explicit paths, use base path if meaningful
     if base_path and base_path ~= "" then
-      -- Only use base path if it contains actual route information (not just controller name)
-      if base_path:match "^api/" or base_path:match "^/api/" then
-        endpoint_path = base_path -- Use controller base path
-      else
-        return nil -- Base path is just controller name, not useful for routing
-      end
+      -- Use base path for standalone HTTP method attributes like [HttpGet] without path
+      endpoint_path = base_path
     else
       return nil -- No route information available
     end
@@ -175,16 +174,12 @@ function DotNetParser:parse_content(content, file_path, line_number, column)
   elseif endpoint_path:match "^api/" then
     -- Path starting with api/ - treat as absolute
     final_path = "/" .. endpoint_path
+  elseif endpoint_path == base_path then
+    -- If endpoint_path is the same as base_path, don't double-combine
+    final_path = endpoint_path:match "^/" and endpoint_path or "/" .. endpoint_path
   else
     -- Relative path - combine with base path
-    local base_path = self:extract_base_path(file_path, line_number)
-
-    -- If endpoint_path is the same as base_path, don't combine
-    if endpoint_path == base_path then
-      final_path = "/" .. endpoint_path
-    else
-      final_path = self:_combine_paths(base_path, endpoint_path)
-    end
+    final_path = self:_combine_paths(base_path, endpoint_path)
   end
 
   -- Create endpoint for each method
@@ -228,6 +223,11 @@ end
 ---Validates if content contains .NET attributes
 function DotNetParser:is_content_valid_for_parsing(content)
   if not Parser.is_content_valid_for_parsing(self, content) then
+    return false
+  end
+
+  -- Skip commented code (/* */ style comments)
+  if self:_is_commented_code(content) then
     return false
   end
 
@@ -279,6 +279,14 @@ function DotNetParser:_is_dotnet_attribute_content(content)
     -- Also match controller method patterns without attributes
     or content:match "public%s+.*%s+%w+%s*%("
     or content:match "public%s+async%s+.*%s+%w+%s*%("
+end
+
+---Checks if content is inside a block comment
+function DotNetParser:_is_commented_code(content)
+  -- Check for /* */ style comments - look for content that starts with /* or contains */
+  -- This is a simple check - more sophisticated parsing could be done if needed
+  local trimmed = content:gsub("^%s+", "")
+  return trimmed:match "^/%*" or content:match "%*/" or content:match "/%*.*%*/"
 end
 
 ---Calculates correct column position for attribute start
