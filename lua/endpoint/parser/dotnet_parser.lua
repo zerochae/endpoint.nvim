@@ -117,7 +117,15 @@ end
 ---Checks if attribute definition spans multiple lines
 function DotNetParser:_is_multiline_attribute(content)
   -- Check if content has attribute start but no closing parenthesis
-  return (content:match "%[Http%w+%(%s*$" or content:match "%[Route%(%s*$" or content:match "app%.Map%w+%(%s*$" or content:match "endpoints%.Map%w+%(%s*$")
+  -- Also check if content contains attribute but doesn't have a complete path on the same line
+  local has_attribute_start = content:match "%[Http%w+%(" or content:match "%[Route%(" or content:match "app%.Map%w+%(" or content:match "endpoints%.Map%w+%("
+  if not has_attribute_start then
+    return false
+  end
+
+  -- If it has the attribute but doesn't have both opening and closing quotes with content, it's likely multiline
+  local has_complete_path = content:match "%[Http%w+%([\"']([^\"']+)[\"']%)" or content:match "%[Route%([\"']([^\"']+)[\"']%)"
+  return not has_complete_path
 end
 
 ---Extracts HTTP method from .NET attribute content
@@ -144,13 +152,15 @@ function DotNetParser:parse_content(content, file_path, line_number, column)
   -- Get base path for combination
   local base_path = self:extract_base_path(file_path, line_number)
 
+  -- DEBUG: Only use base path for truly empty HTTP method attributes (like [HttpGet] without any path)
   if not endpoint_path or endpoint_path == "" then
-    -- For HTTP method attributes without explicit paths, use base path if meaningful
-    if base_path and base_path ~= "" then
+    -- Check if this is truly a standalone attribute without path (like [HttpGet] vs [HttpGet("path")])
+    local is_standalone_attribute = content:match "%[Http%w+%]" and not content:match "%[Http%w+%("
+    if is_standalone_attribute and base_path and base_path ~= "" then
       -- Use base path for standalone HTTP method attributes like [HttpGet] without path
       endpoint_path = base_path
     else
-      return nil -- No route information available
+      return nil -- No route information available - this shouldn't happen for [HttpGet("path")] patterns
     end
   end
 
