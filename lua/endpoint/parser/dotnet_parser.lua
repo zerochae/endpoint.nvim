@@ -26,6 +26,11 @@ end
 
 ---Extracts endpoint path from .NET attribute content
 function DotNetParser:extract_endpoint_path(content, file_path, line_number)
+  -- CRITICAL: Check for comments first to avoid processing commented code
+  if self:_is_commented_code(content, file_path, line_number) then
+    return nil
+  end
+
   -- Use multiline extraction for better accuracy
   if file_path and line_number then
     local path, end_line = self:_extract_path_multiline(file_path, line_number, content)
@@ -141,18 +146,21 @@ end
 
 ---Override parse_content to add .NET-specific metadata and handle absolute paths
 function DotNetParser:parse_content(content, file_path, line_number, column)
+  -- Clean up multiline artifacts from ripgrep before processing
+  local cleaned_content = self:_clean_multiline_content(content)
+
   -- Only process if this looks like .NET attribute content
-  if not self:is_content_valid_for_parsing(content) then
+  if not self:is_content_valid_for_parsing(cleaned_content) then
     return nil
   end
 
   -- Additional check for commented code with file context
-  if self:_is_commented_code(content, file_path, line_number) then
+  if self:_is_commented_code(cleaned_content, file_path, line_number) then
     return nil
   end
 
   -- Skip class-level Route attributes - they are for basepath, not endpoints
-  if self:_is_class_level_route(content, file_path, line_number) then
+  if self:_is_class_level_route(cleaned_content, file_path, line_number) then
     return nil
   end
 
@@ -248,7 +256,7 @@ function DotNetParser:is_content_valid_for_parsing(content)
     return false
   end
 
-  -- Filter out content that contains unwanted multiline artifacts
+  -- Filter out content that contains unwanted multiline artifacts (minimal filtering)
   if self:_contains_unwanted_artifacts(content) then
     return false
   end
@@ -303,45 +311,70 @@ function DotNetParser:_is_dotnet_attribute_content(content)
     or content:match "public%s+async%s+.*%s+%w+%s*%("
 end
 
+---Cleans up multiline content from ripgrep artifacts
+function DotNetParser:_clean_multiline_content(content)
+  -- Aggressively clean multiline ripgrep artifacts
+  local clean_content = content
+
+  -- Strategy 1: Look for attribute patterns and stop at their natural end
+
+  -- Pattern 1: [HttpX("path")] - find the closing of the attribute
+  local attr_with_path = clean_content:match("(%[Http%w+%([^%)]*%))")
+  if attr_with_path then
+    return attr_with_path
+  end
+
+  -- Pattern 2: [HttpX] - bare attribute
+  local bare_attr = clean_content:match("(%[Http%w+%])")
+  if bare_attr then
+    return bare_attr
+  end
+
+  -- Pattern 3: [Route("path")] - find the closing of the route attribute
+  local route_attr = clean_content:match("(%[Route%([^%)]*%)%])")
+  if route_attr then
+    return route_attr
+  end
+
+  -- Strategy 2: If we can't find a clean pattern, aggressively truncate
+
+  -- Cut at first occurrence of patterns that indicate we've gone too far
+  local cut_patterns = {
+    "%] %[",  -- Multiple attributes on separate lines
+    "%]%s*public",  -- Reached method definition
+    "%]%s*{",  -- Reached method body
+    "%] %w+",  -- Reached other attributes like [Authorize]
+    "%)%] %[",  -- End of one attribute, start of another
+  }
+
+  for _, pattern in ipairs(cut_patterns) do
+    local cut_pos = clean_content:find(pattern)
+    if cut_pos then
+      clean_content = clean_content:sub(1, cut_pos) -- Include the ]
+      break
+    end
+  end
+
+  -- Final fallback: if we still have artifacts, cut at first ] followed by non-whitespace
+  local bracket_pos = clean_content:find("%][^%s]")
+  if bracket_pos then
+    clean_content = clean_content:sub(1, bracket_pos)
+  end
+
+  return clean_content
+end
+
 ---Checks if content contains unwanted multiline artifacts that should be filtered
 function DotNetParser:_contains_unwanted_artifacts(content)
-  -- Filter out content that contains closing brackets followed by other attributes
-  -- These are usually ripgrep multiline artifacts
+  -- Only filter obvious artifacts, let the improved regex patterns do the work
+
+  -- Filter out content that contains multiple attributes (ripgrep artifact)
   if content:match "%]%s*%[" then
     return true
   end
 
-  -- Filter out content that contains method declarations (these shouldn't be in attribute matches)
-  if content:match "public%s+" then
-    return true
-  end
-
-  -- Filter out content that contains other common attribute artifacts
-  if content:match "%]%s*%)" then
-    return true
-  end
-
-  -- Filter out content that contains partial method signatures or attributes
-  if content:match "ActionResult" or content:match "Task<" or content:match "IActionResult" then
-    return true
-  end
-
-  -- Filter out content that contains attribute names that shouldn't be endpoints
-  if content:match "Consumes" or content:match "Produces" or content:match "Authorize" or content:match "ProducesResponseType" then
-    return true
-  end
-
-  -- Filter out content with excessive punctuation (artifacts)
-  local punct_count = 0
-  for _ in content:gmatch "[%]%)%(%[]" do
-    punct_count = punct_count + 1
-  end
-  if punct_count > 3 then
-    return true
-  end
-
-  -- Filter out content that looks like it contains variable declarations or parameters
-  if content:match "%w+%s+%w+%s*=" or content:match "int%s+%w+" or content:match "string%s+%w+" then
+  -- Filter out content that contains method signatures (shouldn't be in attribute matches)
+  if content:match "public%s+.*%s+%w+%s*%(" then
     return true
   end
 
@@ -396,7 +429,7 @@ function DotNetParser:_is_commented_code(content, file_path, line_number)
     return true
   end
 
-  -- For multiline search results with file context, check if we're inside a /* */ block
+  -- CRITICAL: Check if the actual file line is commented
   if file_path and line_number then
     local file = io.open(file_path, "r")
     if file then
@@ -405,6 +438,15 @@ function DotNetParser:_is_commented_code(content, file_path, line_number)
         table.insert(lines, line)
       end
       file:close()
+
+      -- Check if the specific line starts with // comment
+      local actual_line = lines[line_number]
+      if actual_line then
+        local line_trimmed = actual_line:gsub("^%s+", "")
+        if line_trimmed:match "^//" then
+          return true  -- This line is commented
+        end
+      end
 
       -- Look backwards to see if we're inside a comment block
       local in_comment_block = false
@@ -532,9 +574,11 @@ end
 
 ---Extracts route information from .NET patterns (multiline-aware)
 function DotNetParser:_extract_route_info(content, file_path, line_number)
-  -- For multiline attributes, we need to get the complete content first
-  local full_content = content
-  if self:_is_multiline_attribute(content) and file_path and line_number then
+  -- Clean the content first to avoid malformed parsing
+  local cleaned_content = self:_clean_multiline_content(content)
+  local method_from_content = nil
+
+  if file_path and line_number then
     local file = io.open(file_path, "r")
     if file then
       local lines = {}
@@ -543,49 +587,44 @@ function DotNetParser:_extract_route_info(content, file_path, line_number)
       end
       file:close()
 
-      -- Read the next few lines to get the complete attribute
-      for i = line_number + 1, math.min(line_number + 15, #lines) do
-        local next_line = lines[i]
-        if next_line then
-          full_content = full_content .. " " .. next_line:gsub("^%s+", ""):gsub("%s+$", "")
-          -- Stop when we hit the closing parenthesis and bracket
-          if next_line:match "%s*%)%s*$" then
-            break
+      -- For [HttpGet] or [HttpPost] (without parentheses), look for nearby [Route(...)]
+      if cleaned_content:match "%[Http(%w+)%]$" then
+        method_from_content = cleaned_content:match "%[Http(%w+)%]"
+
+        -- Look for [Route(...)] in surrounding lines
+        for i = math.max(1, line_number - 5), math.min(#lines, line_number + 5) do
+          local line = lines[i]
+          if line and line:match "%[Route%(" then
+            -- Read multiple lines to get complete Route attribute
+            local route_content = line
+            for j = i + 1, math.min(i + 5, #lines) do
+              local next_line = lines[j]
+              if next_line then
+                route_content = route_content .. " " .. next_line:gsub("^%s+", ""):gsub("%s+$", "")
+                if next_line:match "%s*%)%s*$" then
+                  break
+                end
+              end
+            end
+
+            local route_path = route_content:match "%[Route%([^%)]*[\"']([^\"']+)[\"']"
+            if route_path then
+              return method_from_content, route_path
+            end
           end
         end
       end
     end
   end
 
-  -- DEBUG: Try to extract path regardless of multiline detection
-  -- This is to catch cases where our multiline detection might be wrong
-  if file_path and line_number and not content:match "%[Http%w+%([\"']([^\"']+)[\"']" then
-    local file = io.open(file_path, "r")
-    if file then
-      local lines = {}
-      for line in file:lines() do
-        table.insert(lines, line)
-      end
-      file:close()
-
-      -- Always try to read a few lines ahead for any [HttpX( pattern
-      for i = line_number + 1, math.min(line_number + 5, #lines) do
-        local next_line = lines[i]
-        if next_line then
-          full_content = full_content .. " " .. next_line:gsub("^%s+", ""):gsub("%s+$", "")
-        end
-      end
-    end
-  end
-
   -- Pattern 1: Attribute-based routing - [HttpGet("/path")]
-  local method, path = full_content:match "%[Http(%w+)%([^%)]*[\"']([^\"']+)[\"']"
+  local method, path = cleaned_content:match "%[Http(%w+)%([^%)]*[\"']([^\"']+)[\"']"
   if method and path then
     return method, path
   end
 
   -- Pattern 2: Attribute-based routing without path - [HttpGet] (only if no Route in same context)
-  method = full_content:match "%[Http(%w+)%]"
+  method = cleaned_content:match "%[Http(%w+)%]"
   if method then
     -- Only process standalone HTTP methods if we're sure there's no Route attribute
     -- This will be handled by class-level Route logic
@@ -593,19 +632,19 @@ function DotNetParser:_extract_route_info(content, file_path, line_number)
   end
 
   -- Pattern 3: Minimal API - app.MapGet("/path", ...)
-  method, path = full_content:match "app%.Map(%w+)%([\"']([^\"']+)[\"']"
+  method, path = cleaned_content:match "app%.Map(%w+)%([\"']([^\"']+)[\"']"
   if method and path then
     return method, path
   end
 
   -- Pattern 4: Endpoint routing - endpoints.MapGet("/path", ...)
-  method, path = full_content:match "endpoints%.Map(%w+)%([\"']([^\"']+)[\"']"
+  method, path = cleaned_content:match "endpoints%.Map(%w+)%([\"']([^\"']+)[\"']"
   if method and path then
     return method, path
   end
 
   -- Pattern 5: Route builder - .Get("/path")
-  method, path = full_content:match "%.(%w+)%([\"']([^\"']+)[\"']"
+  method, path = cleaned_content:match "%.(%w+)%([\"']([^\"']+)[\"']"
   if method and path and method:match "^(Get|Post|Put|Delete|Patch)$" then
     return method, path
   end
@@ -651,28 +690,28 @@ end
 
 ---Extracts path from .NET attributes
 function DotNetParser:_extract_path_from_attributes(content)
-  -- Try various attribute patterns
-  local path = content:match "%[Http%w+%([\"']([^\"']+)[\"']"
+  -- Try various attribute patterns (support multiline)
+  local path = content:match "%[Http%w+%([^)]*[\"']([^\"']*)[\"']"
   if path then
     return path
   end
 
-  path = content:match "%[Route%([\"']([^\"']+)[\"']"
+  path = content:match "%[Route%([^)]*[\"']([^\"']*)[\"']"
   if path then
     return path
   end
 
-  path = content:match "app%.Map%w+%([\"']([^\"']+)[\"']"
+  path = content:match "app%.Map%w+%([^)]*[\"']([^\"']*)[\"']"
   if path then
     return path
   end
 
-  path = content:match "endpoints%.Map%w+%([\"']([^\"']+)[\"']"
+  path = content:match "endpoints%.Map%w+%([^)]*[\"']([^\"']*)[\"']"
   if path then
     return path
   end
 
-  path = content:match "%.%w+%([\"']([^\"']+)[\"']"
+  path = content:match "%.%w+%([^)]*[\"']([^\"']*)[\"']"
   if path then
     return path
   end
