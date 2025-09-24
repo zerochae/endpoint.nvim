@@ -256,12 +256,16 @@ end
 
 ---Post-processes endpoints to remove duplicates and clean up
 function Framework:_post_process_endpoints(endpoints)
-  -- Remove duplicates based on method + path only (ignore file/line differences)
+  -- Remove duplicates based on method + path + file (preserve endpoints from different files)
   local seen = {}
   local unique_endpoints = {}
 
   for _, endpoint in ipairs(endpoints) do
-    local key = string.format("%s:%s", endpoint.method or "", endpoint.endpoint_path or "")
+    local key = string.format("%s:%s:%s",
+      endpoint.method or "",
+      endpoint.endpoint_path or "",
+      endpoint.file_path or ""
+    )
 
     if not seen[key] then
       seen[key] = true
