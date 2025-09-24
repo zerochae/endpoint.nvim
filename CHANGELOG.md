@@ -1,5 +1,26 @@
 # Changelog
 
+## [2.5.0](https://github.com/zerochae/endpoint.nvim/compare/v2.4.0...v2.5.0) (2025-09-24)
+
+
+### Features
+
+* complete DotNet multiline annotation support with comprehensive fixes ([7162f3e](https://github.com/zerochae/endpoint.nvim/commit/7162f3edefc839281159addc9cdc50c6f736bce9))
+* complete FastAPI multiline support and resolve DotNet parsing artifacts ([751ada7](https://github.com/zerochae/endpoint.nvim/commit/751ada71257f9843a47117c768dec6ab8cabebae))
+* implement comprehensive DotNet multiline attribute support ([d96853d](https://github.com/zerochae/endpoint.nvim/commit/d96853d10221ec665264c3db703beeb7602fd6ae))
+
+
+### Bug Fixes
+
+* enhance comment filtering with file context awareness ([fb556f0](https://github.com/zerochae/endpoint.nvim/commit/fb556f0e905b622f0758167c574702b0cfe26dc5))
+* filter DotNet multiline artifacts and improve search patterns ([b4f1ccd](https://github.com/zerochae/endpoint.nvim/commit/b4f1ccde23de6f9299898c6361a5c66a513e2523))
+* improve DotNet multiline attribute detection and path extraction logic ([89d128d](https://github.com/zerochae/endpoint.nvim/commit/89d128d3e6822515ac761d1ab88f285b4475a2f3))
+* improve DotNet multiline attribute parsing and comment filtering ([03a3222](https://github.com/zerochae/endpoint.nvim/commit/03a3222a934de29717d2cf8d5305f6123136c7a0))
+* resolve critical DotNet parser path extraction and comment filtering issues ([99162e0](https://github.com/zerochae/endpoint.nvim/commit/99162e07ee8aa33d108cdb0569be29cb20913184))
+* resolve DotNet parser path combination and commented code issues ([299e88b](https://github.com/zerochae/endpoint.nvim/commit/299e88b5c4026f3f40241e36046d8b1a7db93098))
+* simplify DotNet path combination logic for proper endpoint display ([f814c11](https://github.com/zerochae/endpoint.nvim/commit/f814c11a363ac018a7d76bfe2b4562c271e8024f))
+* strengthen DotNet multiline artifact filtering with comprehensive checks ([581fc70](https://github.com/zerochae/endpoint.nvim/commit/581fc70d912be645688c8656bec85022a5960e20))
+
 ## [2.4.0](https://github.com/zerochae/endpoint.nvim/compare/v2.3.0...v2.4.0) (2025-09-24)
 
 
