@@ -312,14 +312,36 @@ function DotNetParser:_contains_unwanted_artifacts(content)
   end
 
   -- Filter out content that contains method declarations (these shouldn't be in attribute matches)
-  if content:match "public%s+.*%s+%w+%s*%(.*%)" then
+  if content:match "public%s+" then
     return true
   end
 
-  -- Filter out content with too many closing brackets or parentheses
-  local _, bracket_count = content:gsub("%]", "")
-  local _, paren_count = content:gsub("%)", "")
-  if bracket_count > 2 or paren_count > 2 then
+  -- Filter out content that contains other common attribute artifacts
+  if content:match "%]%s*%)" then
+    return true
+  end
+
+  -- Filter out content that contains partial method signatures or attributes
+  if content:match "ActionResult" or content:match "Task<" or content:match "IActionResult" then
+    return true
+  end
+
+  -- Filter out content that contains attribute names that shouldn't be endpoints
+  if content:match "Consumes" or content:match "Produces" or content:match "Authorize" or content:match "ProducesResponseType" then
+    return true
+  end
+
+  -- Filter out content with excessive punctuation (artifacts)
+  local punct_count = 0
+  for _ in content:gmatch "[%]%)%(%[]" do
+    punct_count = punct_count + 1
+  end
+  if punct_count > 3 then
+    return true
+  end
+
+  -- Filter out content that looks like it contains variable declarations or parameters
+  if content:match "%w+%s+%w+%s*=" or content:match "int%s+%w+" or content:match "string%s+%w+" then
     return true
   end
 
