@@ -26,44 +26,106 @@ end
 
 ---Extracts endpoint path from .NET attribute content
 function DotNetParser:extract_endpoint_path(content, file_path, line_number)
-  -- Use _extract_route_info for better accuracy
-  local _, endpoint_path = self:_extract_route_info(content, file_path, line_number)
-  if endpoint_path then
-    -- If the path starts with '/', it's an absolute path and shouldn't be combined with base path
-    if endpoint_path:match "^/" then
-      return endpoint_path
-    else
-      return endpoint_path
+  -- Use multiline extraction for better accuracy
+  if file_path and line_number then
+    local path, end_line = self:_extract_path_multiline(file_path, line_number, content)
+    if path then
+      -- Store end_line_number for highlighting
+      self._last_end_line_number = end_line
+      return path
     end
+  end
+
+  -- Fallback to single line extraction
+  self._last_end_line_number = nil
+  return self:_extract_path_single_line(content)
+end
+
+---Extracts path from single line content
+function DotNetParser:_extract_path_single_line(content)
+  -- Use _extract_route_info for better accuracy
+  local _, endpoint_path = self:_extract_route_info(content)
+  if endpoint_path then
+    return endpoint_path
   end
 
   -- Fallback to attribute extraction
   local path = self:_extract_path_from_attributes(content)
   if path then
-    -- Same logic for fallback path
-    if path:match "^/" then
-      return path
-    else
-      return path
-    end
+    return path
   end
 
   return nil
 end
 
----Extracts HTTP method from .NET attribute content
-function DotNetParser:extract_method(content, file_path, line_number)
-  local method = self:_extract_method_from_attributes(content)
-  if method then
-    return method:upper()
+---Extracts path handling multiline attributes
+function DotNetParser:_extract_path_multiline(file_path, start_line, content)
+  -- First try single line extraction
+  local path = self:_extract_path_single_line(content)
+  if path then
+    return path, nil  -- Single line, no end_line
   end
 
-  -- If no method found in current line and we have file context, check surrounding lines
-  if file_path and line_number then
-    method = self:_extract_method_from_surrounding_lines(file_path, line_number)
-    if method then
-      return method:upper()
+  -- If it's a multiline attribute, read the file to find the complete attribute
+  if self:_is_multiline_attribute(content) then
+    local file = io.open(file_path, "r")
+    if not file then
+      return nil, nil
     end
+
+    local lines = {}
+    for line in file:lines() do
+      table.insert(lines, line)
+    end
+    file:close()
+
+    -- Read the next few lines to find the complete attribute
+    local multiline_content = content
+    local extracted_path = nil
+    local attribute_end_line = nil
+
+    for i = start_line + 1, math.min(start_line + 15, #lines) do
+      local next_line = lines[i]
+      if next_line then
+        multiline_content = multiline_content .. " " .. next_line:gsub("^%s+", ""):gsub("%s+$", "")
+
+        -- Try to extract path from accumulated content (but don't return yet)
+        if not extracted_path then
+          extracted_path = self:_extract_path_single_line(multiline_content)
+        end
+
+        -- If we hit closing parenthesis followed by closing bracket, this is the end
+        if next_line:match "%s*%)%s*$" then
+          attribute_end_line = i
+          break
+        end
+      end
+    end
+
+    -- Return the path and the actual end line of the attribute
+    if extracted_path and attribute_end_line then
+      return extracted_path, attribute_end_line
+    elseif extracted_path then
+      -- Fallback: use last processed line if no closing parenthesis found
+      return extracted_path, math.min(start_line + 10, #lines)
+    end
+  end
+
+  return nil, nil
+end
+
+---Checks if attribute definition spans multiple lines
+function DotNetParser:_is_multiline_attribute(content)
+  -- Check if content has attribute start but no closing parenthesis
+  return (content:match "%[Http%w+%(%s*$" or content:match "%[Route%(%s*$" or content:match "app%.Map%w+%(%s*$" or content:match "endpoints%.Map%w+%(%s*$")
+end
+
+---Extracts HTTP method from .NET attribute content
+function DotNetParser:extract_method(content, file_path, line_number)
+  -- Use multiline-aware extraction
+  local methods = self:_extract_methods_multiline(content, file_path, line_number)
+  if #methods > 0 then
+    return methods[1]:upper() -- Return first method
   end
 
   return "GET" -- Default fallback
@@ -76,15 +138,8 @@ function DotNetParser:parse_content(content, file_path, line_number, column)
     return nil
   end
 
+  -- Extract path (this will handle multiline extraction and set end_line_number)
   local endpoint_path = self:extract_endpoint_path(content, file_path, line_number)
-  local method = self:extract_method(content, file_path, line_number)
-
-  -- Require both endpoint path and method to be present
-  if not endpoint_path or not method then
-    return nil
-  end
-
-  -- If endpoint path is empty, check if there's a class-level Route attribute
   if not endpoint_path or endpoint_path == "" then
     -- For HTTP method attributes without explicit paths, check if there's a meaningful base path
     local base_path = self:extract_base_path(file_path, line_number)
@@ -99,6 +154,18 @@ function DotNetParser:parse_content(content, file_path, line_number, column)
       return nil -- No route information available
     end
   end
+
+  -- Extract all methods using multiline-aware extraction
+  local methods = self:_extract_methods_multiline(content, file_path, line_number)
+  if #methods == 0 then
+    methods = { "GET" }
+  end
+
+  -- Store end_line_number before creating endpoints
+  local end_line_number = self._last_end_line_number
+
+  -- Calculate correct column position for attribute start
+  local correct_column = self:_calculate_attribute_column(content, file_path, line_number, column)
 
   -- Handle path combination logic
   local final_path
@@ -120,22 +187,42 @@ function DotNetParser:parse_content(content, file_path, line_number, column)
     end
   end
 
-  local endpoint = {
-    method = method:upper(),
-    endpoint_path = final_path,
-    file_path = file_path,
-    line_number = line_number,
-    column = column,
-    display_value = method:upper() .. " " .. final_path,
-    confidence = self:get_parsing_confidence(content),
-    tags = { "csharp", "dotnet", "attribute" },
-    metadata = self:create_metadata("attribute", {
-      attribute_type = self:_detect_attribute_type(content),
-      has_route_template = self:_has_route_template(content),
-    }, content),
-  }
+  -- Create endpoint for each method
+  local endpoints = {}
+  for _, method in ipairs(methods) do
+    local endpoint = {
+      method = method:upper(),
+      endpoint_path = final_path,
+      file_path = file_path,
+      line_number = line_number,
+      column = correct_column,
+      display_value = method:upper() .. " " .. final_path,
+      confidence = self:get_parsing_confidence(content),
+      tags = { "csharp", "dotnet", "attribute" },
+      metadata = self:create_metadata("attribute", {
+        attribute_type = self:_detect_attribute_type(content),
+        has_route_template = self:_has_route_template(content),
+        methods_count = #methods,
+      }, content),
+    }
 
-  return endpoint
+    -- Add end_line_number if multiline
+    if end_line_number then
+      endpoint.end_line_number = end_line_number
+    end
+
+    table.insert(endpoints, endpoint)
+  end
+
+  -- Clean up stored end_line_number
+  self._last_end_line_number = nil
+
+  -- Return single endpoint if only one method, multiple if more
+  if #endpoints == 1 then
+    return endpoints[1]
+  end
+
+  return endpoints
 end
 
 ---Validates if content contains .NET attributes
@@ -192,6 +279,107 @@ function DotNetParser:_is_dotnet_attribute_content(content)
     -- Also match controller method patterns without attributes
     or content:match "public%s+.*%s+%w+%s*%("
     or content:match "public%s+async%s+.*%s+%w+%s*%("
+end
+
+---Calculates correct column position for attribute start
+function DotNetParser:_calculate_attribute_column(content, file_path, line_number, ripgrep_column)
+  -- ripgrep in multiline mode often returns column 1, so we need to calculate the actual position
+  if ripgrep_column and ripgrep_column > 1 then
+    return ripgrep_column -- Trust ripgrep if it gives a meaningful column
+  end
+
+  -- Read the actual line to find the attribute start position
+  local file = io.open(file_path, "r")
+  if not file then
+    return 1
+  end
+
+  local current_line = 1
+  for line in file:lines() do
+    if current_line == line_number then
+      file:close()
+      -- Find the position of [ character (1-based)
+      local bracket_pos = line:find("%[Http%w+") or line:find("%[Route%(") or line:find("app%.Map%w+%(") or line:find("endpoints%.Map%w+%(")
+      if bracket_pos then
+        return bracket_pos
+      end
+      break
+    end
+    current_line = current_line + 1
+  end
+  file:close()
+
+  return 1 -- Fallback
+end
+
+---Extracts HTTP methods using multiline-aware extraction
+function DotNetParser:_extract_methods_multiline(content, file_path, line_number)
+  -- First try single line extraction
+  local methods = {}
+  local method = self:_extract_method_from_attributes(content)
+  if method then
+    table.insert(methods, method)
+  end
+
+  -- Check for multiple HTTP method attributes on same line/multiline block
+  for http_method in content:gmatch "%[Http(%w+)%]" do
+    if not vim.tbl_contains(methods, http_method) then
+      table.insert(methods, http_method)
+    end
+  end
+
+  for http_method in content:gmatch "%[Http(%w+)%(" do
+    if not vim.tbl_contains(methods, http_method) then
+      table.insert(methods, http_method)
+    end
+  end
+
+  if #methods > 0 then
+    return methods
+  end
+
+  -- If it's a multiline attribute, use the complete attribute content
+  if self:_is_multiline_attribute(content) and file_path and line_number then
+    local file = io.open(file_path, "r")
+    if not file then
+      return {}
+    end
+
+    local lines = {}
+    for line in file:lines() do
+      table.insert(lines, line)
+    end
+    file:close()
+
+    -- Read the attribute content across multiple lines
+    local multiline_content = content
+    for i = line_number + 1, math.min(line_number + 15, #lines) do
+      local next_line = lines[i]
+      if next_line then
+        multiline_content = multiline_content .. " " .. next_line:gsub("^%s+", ""):gsub("%s+$", "")
+
+        -- Try to extract methods from accumulated content
+        local extracted_method = self:_extract_method_from_attributes(multiline_content)
+        if extracted_method and not vim.tbl_contains(methods, extracted_method) then
+          table.insert(methods, extracted_method)
+        end
+
+        -- Also check for additional HTTP method attributes
+        for http_method in next_line:gmatch "%[Http(%w+)%]" do
+          if not vim.tbl_contains(methods, http_method) then
+            table.insert(methods, http_method)
+          end
+        end
+
+        -- If we hit method declaration or closing parenthesis, stop
+        if next_line:match "public%s+" or next_line:match "%s*%)%s*$" then
+          break
+        end
+      end
+    end
+  end
+
+  return methods
 end
 
 ---Extracts route information from .NET patterns

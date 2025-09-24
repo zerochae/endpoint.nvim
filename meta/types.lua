@@ -244,13 +244,21 @@
 ---@field private _combine_paths fun(self: endpoint.FastApiParser, base?: string, endpoint?: string): string
 
 ---@class endpoint.DotNetParser : endpoint.Parser
+---@field private _last_end_line_number number|nil
 ---@field private _is_dotnet_attribute_content fun(self: endpoint.DotNetParser, content: string): boolean
 ---@field private _extract_route_info fun(self: endpoint.DotNetParser, content: string, file_path: string, line_number: number): string|nil, string|nil
 ---@field private _extract_path_from_attributes fun(self: endpoint.DotNetParser, content: string): string|nil
+---@field private _extract_path_single_line fun(self: endpoint.DotNetParser, content: string): string|nil
+---@field private _extract_path_multiline fun(self: endpoint.DotNetParser, file_path: string, start_line: number, content: string): string|nil, number|nil
+---@field private _is_multiline_attribute fun(self: endpoint.DotNetParser, content: string): boolean
+---@field private _extract_methods_multiline fun(self: endpoint.DotNetParser, content: string, file_path: string, line_number: number): string[]
 ---@field private _extract_method_from_attributes fun(self: endpoint.DotNetParser, content: string): string|nil
+---@field private _extract_method_from_surrounding_lines fun(self: endpoint.DotNetParser, file_path: string, line_number: number): string|nil
 ---@field private _detect_attribute_type fun(self: endpoint.DotNetParser, content: string): string
 ---@field private _has_route_template fun(self: endpoint.DotNetParser, content: string): boolean
 ---@field private _get_controller_base_path fun(self: endpoint.DotNetParser, file_path: string, line_number: number): string
+---@field private _replace_controller_token fun(self: endpoint.DotNetParser, route_path: string, file_path: string, line_number: number): string
+---@field private _calculate_attribute_column fun(self: endpoint.DotNetParser, content: string, file_path: string, line_number: number, ripgrep_column: number): number
 ---@field private _combine_paths fun(self: endpoint.DotNetParser, base?: string, endpoint?: string): string
 
 ---@class endpoint.KtorParser : endpoint.Parser
