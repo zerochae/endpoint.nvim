@@ -47,16 +47,26 @@ function Parser:combine_paths(base_path, endpoint_path)
     return base_path
   end
 
-  -- Remove trailing slash from base and leading slash from endpoint
-  base_path = base_path:gsub("/$", "")
-  endpoint_path = endpoint_path:gsub("^/", "")
-
-  -- Handle root endpoint case
-  if endpoint_path == "" then
-    return base_path
+  -- Special case: both paths are root "/"
+  if base_path == "/" and endpoint_path == "/" then
+    return "/"
   end
 
-  return base_path .. "/" .. endpoint_path
+  -- Remove trailing slash from base and leading slash from endpoint
+  local clean_base = base_path:gsub("/$", "")
+  local clean_endpoint = endpoint_path:gsub("^/", "")
+
+  -- Handle root endpoint case
+  if clean_endpoint == "" then
+    return clean_base == "" and "/" or clean_base
+  end
+
+  -- If base becomes empty after removing trailing slash, it was root
+  if clean_base == "" then
+    return "/" .. clean_endpoint
+  end
+
+  return clean_base .. "/" .. clean_endpoint
 end
 
 ---Parses content to extract endpoint information (unified implementation)
