@@ -154,7 +154,7 @@ describe("ReactRouterFramework", function()
     it("should create framework instance successfully", function()
       local instance = ReactRouterFramework:new()
       assert.is_not_nil(instance)
-      assert.equals("react_router", instance.name)
+      assert.equals("react_router", instance:get_name())
     end)
 
     it("should have parser and detector ready", function()

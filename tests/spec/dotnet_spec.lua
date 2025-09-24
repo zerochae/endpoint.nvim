@@ -150,7 +150,7 @@ describe("DotnetFramework", function()
     it("should create framework instance successfully", function()
       local instance = DotnetFramework:new()
       assert.is_not_nil(instance)
-      assert.equals("dotnet", instance.name)
+      assert.equals("dotnet", instance:get_name())
     end)
 
     it("should have parser and detector ready", function()

@@ -69,4 +69,3 @@ M.common_file_patterns = {
 }
 
 return M
-

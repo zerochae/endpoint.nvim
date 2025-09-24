@@ -11,6 +11,10 @@ local default_config = {
       snacks = {}, -- Snacks-specific options
       vim_ui_select = {}, -- vim.ui.select-specific options
     },
+    -- Previewer configuration
+    previewer = {
+      enable_highlighting = true, -- Enable syntax highlighting in previewer
+    },
   },
 
   -- UI configuration (new structure)
@@ -72,7 +76,6 @@ end
 -- Migrate old configuration to new structure
 local function migrate_config(config)
   local migrated = vim.deepcopy(config)
-
 
   -- Handle picker + picker_opts -> picker.type + picker.options migration
   if config.picker and type(config.picker) == "string" then

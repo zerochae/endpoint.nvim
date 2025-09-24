@@ -1,6 +1,13 @@
-local M = {}
+---@class endpoint.Themes
+local Themes = {}
+Themes.__index = Themes
 
-function M.get_method_color(method, config)
+function Themes:new()
+  local themes = setmetatable({}, self)
+  return themes
+end
+
+function Themes:get_method_color(method, config)
   -- Support both new and old config structure for backward compatibility
   local colors = config.ui.methods and vim.tbl_map(function(m)
     return m.color
@@ -10,10 +17,10 @@ function M.get_method_color(method, config)
     return colors[method]
   end
 
-  return M.DEFAULT_METHOD_COLORS[method] or "TelescopeResultsIdentifier"
+  return self.DEFAULT_METHOD_COLORS[method] or "TelescopeResultsIdentifier"
 end
 
-function M.get_method_icon(method, config)
+function Themes:get_method_icon(method, config)
   if not config.ui.show_icons then
     return ""
   end
@@ -27,17 +34,17 @@ function M.get_method_icon(method, config)
     return icons[method]
   end
 
-  return M.DEFAULT_METHOD_ICONS[method] or "⚪"
+  return self.DEFAULT_METHOD_ICONS[method] or "⚪"
 end
 
-function M.get_method_text(method, config)
+function Themes:get_method_text(method, config)
   if not config.ui.show_method then
     return ""
   end
   return method
 end
 
-M.DEFAULT_METHOD_COLORS = {
+Themes.DEFAULT_METHOD_COLORS = {
   GET = "TelescopeResultsNumber",
   POST = "TelescopeResultsConstant",
   PUT = "TelescopeResultsKeyword",
@@ -53,7 +60,7 @@ M.DEFAULT_METHOD_COLORS = {
   PARTIAL_UPDATE = "TelescopeResultsFunction", -- Same as PATCH
   DESTROY = "TelescopeResultsSpecialChar", -- Same as DELETE
 }
-M.DEFAULT_METHOD_ICONS = {
+Themes.DEFAULT_METHOD_ICONS = {
   GET = "📥",
   POST = "📤",
   PUT = "✏️",
@@ -70,4 +77,4 @@ M.DEFAULT_METHOD_ICONS = {
   DESTROY = "🗑️", -- Same as DELETE
 }
 
-return M
+return Themes

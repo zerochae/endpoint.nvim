@@ -181,7 +181,7 @@ describe("SpringFramework", function()
     it("should create framework instance successfully", function()
       local instance = SpringFramework:new()
       assert.is_not_nil(instance)
-      assert.equals("spring", instance.name)
+      assert.equals("spring", instance:get_name())
     end)
 
     it("should have parser and detector ready", function()

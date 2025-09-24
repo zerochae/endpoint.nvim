@@ -1,3 +1,5 @@
+local Themes = require "endpoint.core.Themes"
+
 ---@class endpoint.Picker
 local Picker = {}
 Picker.__index = Picker
@@ -5,6 +7,7 @@ Picker.__index = Picker
 function Picker:new(name)
   local picker = setmetatable({}, self)
   picker.name = name or "base"
+  picker.themes = Themes:new()
   return picker
 end
 
@@ -36,6 +39,12 @@ end
 
 function Picker:_format_endpoint_display(endpoint)
   return endpoint.display_value or (endpoint.method .. " " .. endpoint.endpoint_path)
+end
+
+function Picker:_format_endpoint_with_theme(endpoint, config)
+  local method_icon = self.themes:get_method_icon(endpoint.method, config)
+  local endpoint_display = self:_format_endpoint_display(endpoint)
+  return string.format("%s %s", method_icon, endpoint_display)
 end
 
 function Picker:_navigate_to_endpoint(endpoint)

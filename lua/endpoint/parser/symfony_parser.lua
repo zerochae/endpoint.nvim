@@ -30,24 +30,27 @@ function SymfonyParser:extract_base_path(file_path, line_number)
 end
 
 ---Extracts endpoint path from Symfony annotation content
-function SymfonyParser:extract_endpoint_path(content, file_path, line_number)
+function SymfonyParser:extract_endpoint_path(content, _, _)
+  -- Handle multiline patterns by normalizing whitespace
+  local normalized_content = content:gsub("%s+", " "):gsub("[\r\n]+", " ")
+
   -- Skip controller-level @Route (without methods parameter)
-  if self:_is_controller_level_route(content) then
+  if self:_is_controller_level_route(normalized_content) then
     return nil
   end
 
-  -- Try different path extraction patterns
-  local path = self:_extract_path_from_php8_attributes(content)
+  -- Try different path extraction patterns with normalized content
+  local path = self:_extract_path_from_php8_attributes(normalized_content)
   if path then
     return path
   end
 
-  path = self:_extract_path_from_annotations(content)
+  path = self:_extract_path_from_annotations(normalized_content)
   if path then
     return path
   end
 
-  path = self:_extract_path_from_docblock(content)
+  path = self:_extract_path_from_docblock(normalized_content)
   if path then
     return path
   end
@@ -57,8 +60,11 @@ end
 
 ---Extracts HTTP method from Symfony annotation content
 function SymfonyParser:extract_method(content)
+  -- Handle multiline patterns by normalizing whitespace
+  local normalized_content = content:gsub("%s+", " "):gsub("[\r\n]+", " ")
+
   -- Try to extract from methods parameter
-  local methods = self:_extract_methods_from_annotation(content)
+  local methods = self:_extract_methods_from_annotation(normalized_content)
   if #methods > 0 then
     return methods[1] -- Return first method
   end
@@ -69,13 +75,16 @@ end
 
 ---Override parse_content to handle multiple HTTP methods in Symfony
 function SymfonyParser:parse_content(content, file_path, line_number, column)
+  -- Handle multiline patterns by normalizing whitespace
+  local normalized_content = content:gsub("%s+", " "):gsub("[\r\n]+", " ")
+
   -- Only process if this looks like Symfony annotation
   if not self:is_content_valid_for_parsing(content) then
     return nil
   end
 
   -- Skip controller-level routes
-  if self:_is_controller_level_route(content) then
+  if self:_is_controller_level_route(normalized_content) then
     return nil
   end
 
@@ -89,8 +98,8 @@ function SymfonyParser:parse_content(content, file_path, line_number, column)
   local base_path = self:extract_base_path(file_path, line_number)
   local full_path = self:_combine_paths(base_path, endpoint_path)
 
-  -- Extract all methods (can be multiple)
-  local methods = self:_extract_methods_from_annotation(content)
+  -- Extract all methods (can be multiple) with normalized content
+  local methods = self:_extract_methods_from_annotation(normalized_content)
   if #methods == 0 then
     methods = { "GET" }
   end
@@ -108,7 +117,7 @@ function SymfonyParser:parse_content(content, file_path, line_number, column)
       confidence = self:get_parsing_confidence(content),
       tags = { "php", "symfony", "route" },
       metadata = self:create_metadata("route", {
-        annotation_type = self:_detect_annotation_type(content),
+        annotation_type = self:_detect_annotation_type(normalized_content),
         methods_count = #methods,
       }, content),
     })
@@ -307,9 +316,11 @@ end
 
 ---Checks if content looks like Symfony Route annotation
 function SymfonyParser:_is_symfony_route_content(content)
-  return content:match "#%[Route%("
-    or content:match "@Route%("
-    or content:match "\\* @Route%("
+  -- Handle multiline patterns by normalizing whitespace
+  local normalized_content = content:gsub("%s+", " "):gsub("[\r\n]+", " ")
+
+  return normalized_content:match "#%[Route%(" or normalized_content:match "@Route%(" or normalized_content:match "\\* @Route%("
 end
 
 return SymfonyParser
+

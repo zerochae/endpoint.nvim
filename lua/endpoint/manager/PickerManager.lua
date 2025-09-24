@@ -15,10 +15,14 @@ end
 ---Registers default pickers
 function PickerManager:_register_default_pickers()
   -- Register built-in pickers
+  local TelescopePicker = require "endpoint.pickers.telescope"
+  local VimUiSelectPicker = require "endpoint.pickers.vim_ui_select"
+  local SnacksPicker = require "endpoint.pickers.snacks"
+
   self.available_pickers = {
-    telescope = require "endpoint.pickers.telescope",
-    vim_ui_select = require "endpoint.pickers.vim_ui_select",
-    snacks = require "endpoint.pickers.snacks",
+    telescope = TelescopePicker:new(),
+    vim_ui_select = VimUiSelectPicker:new(),
+    snacks = SnacksPicker:new(),
   }
 end
 
@@ -40,7 +44,7 @@ end
 ---Checks if a picker is available
 function PickerManager:is_picker_available(picker_name)
   local picker_instance = self.available_pickers[picker_name]
-  return picker_instance and picker_instance.is_available and picker_instance.is_available() or false
+  return picker_instance and picker_instance.is_available and picker_instance:is_available() or false
 end
 
 ---Gets the best available picker with fallback

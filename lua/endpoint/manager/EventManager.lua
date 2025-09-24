@@ -23,7 +23,7 @@ function EventManager:add_event_listener(event_type, listener_callback, listener
   local event_listener_entry = {
     callback_function = listener_callback,
     execution_priority = listener_priority or 0,
-    registration_timestamp = vim.loop.hrtime(),
+    registration_timestamp = vim.fn.localtime(),
   }
 
   table.insert(self.event_listeners[event_type], event_listener_entry)
@@ -155,4 +155,3 @@ EventManager.EVENT_TYPES = {
 }
 
 return EventManager
-

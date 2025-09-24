@@ -27,10 +27,10 @@ end
 ---Extracts endpoint path from .NET attribute content
 function DotNetParser:extract_endpoint_path(content, file_path, line_number)
   -- Use _extract_route_info for better accuracy
-  local http_method, endpoint_path = self:_extract_route_info(content, file_path, line_number)
+  local _, endpoint_path = self:_extract_route_info(content, file_path, line_number)
   if endpoint_path then
     -- If the path starts with '/', it's an absolute path and shouldn't be combined with base path
-    if endpoint_path:match("^/") then
+    if endpoint_path:match "^/" then
       return endpoint_path
     else
       return endpoint_path
@@ -41,7 +41,7 @@ function DotNetParser:extract_endpoint_path(content, file_path, line_number)
   local path = self:_extract_path_from_attributes(content)
   if path then
     -- Same logic for fallback path
-    if path:match("^/") then
+    if path:match "^/" then
       return path
     else
       return path
@@ -90,22 +90,22 @@ function DotNetParser:parse_content(content, file_path, line_number, column)
     local base_path = self:extract_base_path(file_path, line_number)
     if base_path and base_path ~= "" then
       -- Only use base path if it contains actual route information (not just controller name)
-      if base_path:match("^api/") or base_path:match("^/api/") then
-        endpoint_path = base_path  -- Use controller base path
+      if base_path:match "^api/" or base_path:match "^/api/" then
+        endpoint_path = base_path -- Use controller base path
       else
-        return nil  -- Base path is just controller name, not useful for routing
+        return nil -- Base path is just controller name, not useful for routing
       end
     else
-      return nil  -- No route information available
+      return nil -- No route information available
     end
   end
 
   -- Handle path combination logic
   local final_path
-  if endpoint_path:match("^/") then
+  if endpoint_path:match "^/" then
     -- Absolute path - use as is
     final_path = endpoint_path
-  elseif endpoint_path:match("^api/") then
+  elseif endpoint_path:match "^api/" then
     -- Path starting with api/ - treat as absolute
     final_path = "/" .. endpoint_path
   else
@@ -506,4 +506,3 @@ function DotNetParser:_combine_paths(base, endpoint)
 end
 
 return DotNetParser
-

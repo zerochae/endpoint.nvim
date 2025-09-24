@@ -6,8 +6,7 @@ VimUiSelectPicker.__index = VimUiSelectPicker
 
 ---Creates a new VimUiSelectPicker instance
 function VimUiSelectPicker:new()
-  local vim_ui_select_picker = setmetatable({}, self)
-  vim_ui_select_picker.name = "vim_ui_select"
+  local vim_ui_select_picker = setmetatable(Picker:new "vim_ui_select", self)
   return vim_ui_select_picker
 end
 
@@ -45,21 +44,4 @@ function VimUiSelectPicker:_create_select_config(opts)
   return vim.tbl_deep_extend("force", default_config, opts)
 end
 
--- Create and return singleton instance for backward compatibility
-local vim_ui_select_picker = VimUiSelectPicker:new()
-
----@class endpoint.pickers.vim_ui_select
-local M = {}
-
----Check if vim.ui.select is available (always true - built into Neovim)
-function M.is_available()
-  return vim_ui_select_picker:is_available()
-end
-
----Show endpoints in vim.ui.select
-function M.show(endpoints, opts)
-  return vim_ui_select_picker:show(endpoints, opts)
-end
-
-return M
-
+return VimUiSelectPicker

@@ -11,6 +11,7 @@
 ---@field file_path string Source file path
 ---@field line_number number Line number in source file
 ---@field column number Column number in source file
+---@field end_line_number? number End line number in source file
 ---@field display_value string Display text for UI (e.g., "GET /api/users")
 ---@field confidence? number Confidence score (0.0-1.0), defaults to 1.0
 ---@field tags? string[] Framework-specific tags (e.g., {"api", "spring"})
@@ -47,6 +48,10 @@
 ---@field type "telescope" | "vim_ui_select" | "snacks"
 ---@field options table
 
+-- Previewer configuration (new structure)
+---@class endpoint.picker.previewer.config
+---@field enable_highlighting boolean
+
 -- Controller Name Extractor Configuration
 ---@class endpoint.controller_extractor
 ---@field pattern string Lua pattern to match file paths
@@ -56,6 +61,7 @@
 ---@class endpoint.config
 ---@field cache? endpoint.cache.config -- New structure
 ---@field picker? endpoint.picker.config -- New structure
+---@field previewer? endpoint.picker.previewer.config -- New structure
 ---@field ui endpoint.ui.config
 ---@field frameworks? table
 ---@field cache_mode? "none" | "session" | "persistent" -- Legacy (deprecated)
@@ -76,7 +82,7 @@
 -- Base Framework Class
 ---@class Framework : endpoint.Framework
 ---@class endpoint.Framework
----@field protected name string Framework name
+---@field name string Framework name
 ---@field protected config table Framework configuration
 ---@field protected detector endpoint.Detector
 ---@field protected parser endpoint.Parser
@@ -86,7 +92,7 @@
 ---@field _initialize fun(self: endpoint.Framework)
 ---@field detect fun(self: endpoint.Framework): boolean
 ---@field parse fun(self: endpoint.Framework, content: string, file_path: string, line_number: number, column: number): endpoint.entry|nil
----@field get_search_cmd fun(self: endpoint.Framework): string
+---@field get_search_cmd fun(self: endpoint.Framework, method?: string): string
 ---@field scan fun(self: endpoint.Framework, options?: table): endpoint.entry[]
 ---@field _search_and_parse fun(self: endpoint.Framework, scan_options?: table): endpoint.entry[]
 ---@field _parse_result_line fun(self: endpoint.Framework, result_line: string): endpoint.entry[]
@@ -102,12 +108,14 @@
 ---@class Picker : endpoint.Picker
 ---@class endpoint.Picker
 ---@field protected name string
+---@field protected themes endpoint.Themes
 ---@field new fun(self: endpoint.Picker, name?: string): endpoint.Picker
 ---@field is_available fun(self: endpoint.Picker): boolean
 ---@field show fun(self: endpoint.Picker, endpoints?: endpoint.entry[], opts?: table)
 ---@field get_name fun(self: endpoint.Picker): string
 ---@field _validate_endpoints fun(self: endpoint.Picker, endpoints: endpoint.entry[]): boolean
 ---@field _format_endpoint_display fun(self: endpoint.Picker, endpoint: endpoint.entry): string
+---@field _format_endpoint_with_theme fun(self: endpoint.Picker, endpoint: endpoint.entry, config: table): string
 ---@field _navigate_to_endpoint fun(self: endpoint.Picker, endpoint: endpoint.entry)
 
 -- ========================================
@@ -171,6 +179,27 @@
 ---@field private _is_root_path_mapping fun(self: endpoint.SpringParser, content: string): boolean
 ---@field private _extract_method_from_specific_mapping fun(self: endpoint.SpringParser, content: string): string|nil
 ---@field private _extract_method_from_request_mapping fun(self: endpoint.SpringParser, content: string): string|nil
+---@field private _extract_methods_from_request_mapping fun(self: endpoint.SpringParser, content: string): string[]
+---@field private _looks_like_incomplete_spring_annotation fun(self: endpoint.SpringParser, content: string): boolean
+---@field private _get_extended_annotation_content fun(self: endpoint.SpringParser, file_path: string, start_line: number): string|nil, number|nil, number|nil
+
+---@class endpoint.Highlighter
+---@field highlight_ns number
+---@field new fun(self: endpoint.Highlighter, namespace_name: string): endpoint.Highlighter
+---@field is_highlighting_enabled fun(self: endpoint.Highlighter, config: table): boolean
+---@field clear_highlights fun(self: endpoint.Highlighter, bufnr: number)
+---@field highlight_line_range fun(self: endpoint.Highlighter, bufnr: number, start_line: number, start_col: number, end_line?: number, highlight_group?: string)
+---@field highlight_endpoint fun(self: endpoint.Highlighter, bufnr: number, endpoint: table, highlight_group?: string)
+---@field highlight_component_definition fun(self: endpoint.Highlighter, bufnr: number, endpoint: table, highlight_group?: string)
+---@field calculate_highlight_length fun(self: endpoint.Highlighter, entry: table, method_icon: string, method_text: string): number
+
+---@class endpoint.Themes
+---@field DEFAULT_METHOD_COLORS table<string, string>
+---@field DEFAULT_METHOD_ICONS table<string, string>
+---@field new fun(self: endpoint.Themes): endpoint.Themes
+---@field get_method_color fun(self: endpoint.Themes, method: string, config: table): string
+---@field get_method_icon fun(self: endpoint.Themes, method: string, config: table): string
+---@field get_method_text fun(self: endpoint.Themes, method: string, config: table): string
 
 ---@class endpoint.SymfonyParser : endpoint.Parser
 ---@field private _read_file_lines fun(self: endpoint.SymfonyParser, file_path: string, line_number: number): string[]|nil
@@ -210,7 +239,7 @@
 
 ---@class endpoint.DotNetParser : endpoint.Parser
 ---@field private _is_dotnet_attribute_content fun(self: endpoint.DotNetParser, content: string): boolean
----@field private _extract_route_info fun(self: endpoint.DotNetParser, content: string): string|nil, string|nil
+---@field private _extract_route_info fun(self: endpoint.DotNetParser, content: string, file_path: string, line_number: number): string|nil, string|nil
 ---@field private _extract_path_from_attributes fun(self: endpoint.DotNetParser, content: string): string|nil
 ---@field private _extract_method_from_attributes fun(self: endpoint.DotNetParser, content: string): string|nil
 ---@field private _detect_attribute_type fun(self: endpoint.DotNetParser, content: string): string
@@ -219,14 +248,11 @@
 ---@field private _combine_paths fun(self: endpoint.DotNetParser, base?: string, endpoint?: string): string
 
 ---@class endpoint.KtorParser : endpoint.Parser
----@field private _is_ktor_routing_content fun(self: endpoint.KtorParser, content: string): boolean
----@field private _extract_route_info fun(self: endpoint.KtorParser, content: string, file_path?: string, line_number?: number): string|nil, string|nil
----@field private _extract_path_from_content fun(self: endpoint.KtorParser, content: string): string|nil
----@field private _extract_method_from_content fun(self: endpoint.KtorParser, content: string): string|nil
----@field private _detect_routing_type fun(self: endpoint.KtorParser, content: string): string
----@field private _has_route_parameters fun(self: endpoint.KtorParser, path?: string): boolean
+---@field private _is_valid_http_method fun(self: endpoint.KtorParser, method?: string): boolean
 ---@field private _get_full_path fun(self: endpoint.KtorParser, path: string, file_path?: string, line_number?: number): string
 ---@field private _extract_base_paths_from_file fun(self: endpoint.KtorParser, file_path: string, target_line: number): string[]
+---@field private _looks_like_incomplete_ktor_routing fun(self: endpoint.KtorParser, content: string): boolean
+---@field private _get_extended_routing_content fun(self: endpoint.KtorParser, initial_content: string, file_path?: string, start_line?: number): string|nil
 
 ---@class endpoint.ServletParser : endpoint.Parser
 ---@field private _is_servlet_content fun(self: endpoint.ServletParser, content: string): boolean
@@ -234,8 +260,8 @@
 ---@field private _extract_servlet_method fun(self: endpoint.ServletParser, content: string): string|nil
 ---@field private _detect_servlet_type fun(self: endpoint.ServletParser, content: string): string
 ---@field private _has_web_xml_mapping fun(self: endpoint.ServletParser, file_path: string): boolean
----@field private _find_servlet_mapping_for_file fun(self: endpoint.ServletParser, java_file_path: string): string|nil
----@field private _find_webservlet_annotation_for_file fun(self: endpoint.ServletParser, java_file_path: string): string|nil
+---@field private _find_servlet_mapping_for_file fun(self: endpoint.ServletParser, java_file_path: string): string[]|nil
+---@field private _find_webservlet_annotation_paths_for_file fun(self: endpoint.ServletParser, java_file_path: string): string[]|nil
 ---@field private _extract_servlet_class_path fun(self: endpoint.ServletParser, content: string): string|nil
 
 ---@class endpoint.ReactRouterParser : endpoint.Parser
@@ -254,9 +280,9 @@
 ---@field private cached_endpoints endpoint.entry[]
 ---@field private cache_timestamp number
 ---@field new fun(self: endpoint.CacheManager): endpoint.CacheManager
----@field is_valid fun(self: endpoint.CacheManager): boolean
----@field get_endpoints fun(self: endpoint.CacheManager): endpoint.entry[]
----@field save_endpoints fun(self: endpoint.CacheManager, endpoints: endpoint.entry[])
+---@field is_valid fun(self: endpoint.CacheManager, method: string?): boolean
+---@field get_endpoints fun(self: endpoint.CacheManager, method: string?): endpoint.entry[]
+---@field save_endpoints fun(self: endpoint.CacheManager, endpoints: endpoint.entry[], method: string?)
 ---@field clear fun(self: endpoint.CacheManager)
 ---@field get_stats fun(self: endpoint.CacheManager): table
 
@@ -295,6 +321,25 @@
 ---@field private cache_manager endpoint.CacheManager
 ---@field private picker_manager endpoint.PickerManager
 ---@field private _initialized boolean
+---@field new fun(self: endpoint.EndpointManager): endpoint.EndpointManager
+---@field setup fun(self: endpoint.EndpointManager, user_config: table?)
+---@field register_all_frameworks fun(self: endpoint.EndpointManager)
+---@field register_framework fun(self: endpoint.EndpointManager, framework_instance: endpoint.Framework)
+---@field unregister_framework fun(self: endpoint.EndpointManager, framework_name: string): boolean
+---@field get_registered_frameworks fun(self: endpoint.EndpointManager): endpoint.Framework[]
+---@field detect_project_frameworks fun(self: endpoint.EndpointManager): endpoint.Framework[]
+---@field scan_all_endpoints fun(self: endpoint.EndpointManager, scan_options: table?): endpoint.entry[]
+---@field scan_with_framework fun(self: endpoint.EndpointManager, framework_name: string, scan_options: table?): endpoint.entry[]
+---@field get_event_manager fun(self: endpoint.EndpointManager): endpoint.EventManager
+---@field add_event_listener fun(self: endpoint.EndpointManager, event_type: string, listener_callback: function, listener_priority: number?)
+---@field remove_event_listener fun(self: endpoint.EndpointManager, event_type: string, listener_callback: function): boolean
+---@field get_framework_info fun(self: endpoint.EndpointManager): table[]
+---@field clear_all_frameworks fun(self: endpoint.EndpointManager): number
+---@field find fun(self: endpoint.EndpointManager, opts: table?)
+---@field clear_cache fun(self: endpoint.EndpointManager)
+---@field show_cache_stats fun(self: endpoint.EndpointManager)
+---@field _ensure_initialized fun(self: endpoint.EndpointManager)
+---@field _show_with_picker fun(self: endpoint.EndpointManager, endpoints: endpoint.entry[], opts: table?)
 
 -- ========================================
 -- CONCRETE FRAMEWORK IMPLEMENTATIONS
@@ -335,11 +380,12 @@
 -- ========================================
 
 ---@class endpoint.TelescopePicker : endpoint.Picker
----@field private telescope_available boolean
----@field private highlight_ns integer
+---@field telescope_available boolean
+---@field highlighter endpoint.Highlighter
 
 ---@class endpoint.SnacksPicker : endpoint.Picker
----@field private snacks_available boolean
+---@field snacks_available boolean
+---@field highlighter endpoint.Highlighter
 
 ---@class endpoint.VimUiSelectPicker : endpoint.Picker
 

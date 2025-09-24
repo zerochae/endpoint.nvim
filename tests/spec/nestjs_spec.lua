@@ -211,7 +211,7 @@ async createNewUser(
     it("should create framework instance successfully", function()
       local instance = NestjsFramework:new()
       assert.is_not_nil(instance)
-      assert.equals("nestjs", instance.name)
+      assert.equals("nestjs", instance:get_name())
     end)
 
     it("should have parser and detector ready", function()

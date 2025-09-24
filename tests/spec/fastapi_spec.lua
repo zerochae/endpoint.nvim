@@ -156,7 +156,7 @@ describe("FastapiFramework", function()
     it("should create framework instance successfully", function()
       local instance = FastapiFramework:new()
       assert.is_not_nil(instance)
-      assert.equals("fastapi", instance.name)
+      assert.equals("fastapi", instance:get_name())
     end)
 
     it("should have parser and detector ready", function()

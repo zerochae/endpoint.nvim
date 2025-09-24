@@ -144,7 +144,7 @@ describe("FRAMEWORK_NAMEFramework", function()
     it("should create framework instance successfully", function()
       local instance = FrameworkClass:new()
       assert.is_not_nil(instance)
-      assert.equals("FRAMEWORK_NAME", instance.name)
+      assert.equals("FRAMEWORK_NAME", instance:get_name())
     end)
 
     it("should have parser and detector ready", function()

@@ -170,7 +170,6 @@ function ServletParser:parse_content(content, file_path, line_number, column)
   return endpoints
 end
 
-
 ---Validates if content contains Servlet patterns
 function ServletParser:is_content_valid_for_parsing(content)
   if not Parser.is_content_valid_for_parsing(self, content) then
@@ -214,33 +213,36 @@ end
 
 ---Checks if content looks like Servlet content
 function ServletParser:_is_servlet_content(content)
-  -- Check for servlet method implementations with proper regex
-  if content:match "void%s+do[A-Z]%w*%s*%(" then
+  -- Handle multiline patterns by normalizing whitespace
+  local normalized_content = content:gsub("%s+", " "):gsub("[\r\n]+", " ")
+
+  -- Check for servlet method implementations with proper regex or multiline equivalent
+  if normalized_content:match "void%s+do[A-Z]%w*%s*%(" then
     return true
   end
 
-  -- Check specifically for doXxx patterns
-  if content:match "do(Get|Post|Put|Delete|Patch|Options|Head)%s*%(" then
+  -- Check specifically for doXxx patterns or multiline equivalent
+  if normalized_content:match "do(Get|Post|Put|Delete|Patch|Options|Head)%s*%(" then
     return true
   end
 
   -- Check for web.xml servlet patterns
-  if content:match "<servlet%-class>" or content:match "<url%-pattern>" then
+  if normalized_content:match "<servlet%-class>" or normalized_content:match "<url%-pattern>" then
     return true
   end
 
   -- Check for servlet-related XML tags in servlet-mapping context
-  if content:match "<servlet%-name>" or content:match "<servlet%-mapping>" then
+  if normalized_content:match "<servlet%-name>" or normalized_content:match "<servlet%-mapping>" then
     return true
   end
 
-  -- Check for @WebServlet annotations (for test compatibility)
-  if content:match "@WebServlet" then
+  -- Check for @WebServlet annotations (for test compatibility) or multiline equivalent
+  if normalized_content:match "@WebServlet" then
     return true
   end
 
-  -- Check for servlet interface or inheritance patterns
-  if content:match "extends%s+HttpServlet" or content:match "implements%s+Servlet" then
+  -- Check for servlet interface or inheritance patterns or multiline equivalent
+  if normalized_content:match "extends%s+HttpServlet" or normalized_content:match "implements%s+Servlet" then
     return true
   end
 
@@ -251,8 +253,11 @@ end
 function ServletParser:_extract_webservlet_paths(content)
   local paths = {}
 
-  -- @WebServlet annotation with urlPatterns (array) - match everything between braces
-  local urlPatterns = content:match "urlPatterns%s*=%s*{([^}]+)}"
+  -- Handle multiline patterns by normalizing whitespace
+  local normalized_content = content:gsub("%s+", " "):gsub("[\r\n]+", " ")
+
+  -- @WebServlet annotation with urlPatterns (array) - match everything between braces or multiline equivalent
+  local urlPatterns = normalized_content:match "urlPatterns%s*=%s*{([^}]+)}"
   if urlPatterns then
     -- Extract all quoted strings from the array
     for path in urlPatterns:gmatch '"([^"]+)"' do
@@ -260,9 +265,9 @@ function ServletParser:_extract_webservlet_paths(content)
     end
   end
 
-  -- @WebServlet annotation with value attribute (array) - match everything between braces
+  -- @WebServlet annotation with value attribute (array) - match everything between braces or multiline equivalent
   if #paths == 0 then
-    local value = content:match "@WebServlet%(.*value[^=]*=%s*{([^}]+)}"
+    local value = normalized_content:match "@WebServlet%(.*value[^=]*=%s*{([^}]+)}"
     if value then
       for path in value:gmatch '"([^"]+)"' do
         table.insert(paths, path)
@@ -270,25 +275,25 @@ function ServletParser:_extract_webservlet_paths(content)
     end
   end
 
-  -- @WebServlet annotation with urlPatterns (single string)
+  -- @WebServlet annotation with urlPatterns (single string) or multiline equivalent
   if #paths == 0 then
-    local path = content:match '@WebServlet%(.*urlPatterns[^=]*=%s*"([^"]+)"'
+    local path = normalized_content:match '@WebServlet%(.*urlPatterns[^=]*=%s*"([^"]+)"'
     if path then
       table.insert(paths, path)
     end
   end
 
-  -- @WebServlet annotation with value attribute (single string)
+  -- @WebServlet annotation with value attribute (single string) or multiline equivalent
   if #paths == 0 then
-    local path = content:match '@WebServlet%(.*value[^=]*=%s*"([^"]+)"'
+    local path = normalized_content:match '@WebServlet%(.*value[^=]*=%s*"([^"]+)"'
     if path then
       table.insert(paths, path)
     end
   end
 
-  -- @WebServlet simple form (single path)
+  -- @WebServlet simple form (single path) or multiline equivalent
   if #paths == 0 then
-    local path = content:match '@WebServlet%s*%(%s*"([^"]+)"'
+    local path = normalized_content:match '@WebServlet%s*%(%s*"([^"]+)"'
     if path then
       table.insert(paths, path)
     end
@@ -299,7 +304,10 @@ end
 
 ---Extracts HTTP method from Servlet method names
 function ServletParser:_extract_servlet_method(content)
-  -- doGet, doPost, etc. method signatures with various access modifiers
+  -- Handle multiline patterns by normalizing whitespace
+  local normalized_content = content:gsub("%s+", " "):gsub("[\r\n]+", " ")
+
+  -- doGet, doPost, etc. method signatures with various access modifiers or multiline equivalent
   local patterns = {
     "public%s+void%s+do(%w+)%s*%(",
     "protected%s+void%s+do(%w+)%s*%(",
@@ -308,8 +316,8 @@ function ServletParser:_extract_servlet_method(content)
     "do(%w+)%s*%(", -- simple method call pattern
   }
 
-  for i, pattern in ipairs(patterns) do
-    local method_name = content:match(pattern)
+  for _, pattern in ipairs(patterns) do
+    local method_name = normalized_content:match(pattern)
     if method_name then
       -- Validate it's a known HTTP method
       local upper_method = method_name:upper()
@@ -357,6 +365,8 @@ function ServletParser:_has_web_xml_mapping()
 end
 
 ---Finds servlet mapping path for a Java servlet file
+---@param java_file_path string
+---@return string[]|nil
 function ServletParser:_find_servlet_mapping_for_file(java_file_path)
   -- Extract class name from file path
   local class_name = java_file_path:match "([^/]+)%.java$"
@@ -427,13 +437,9 @@ function ServletParser:_find_servlet_mapping_for_file(java_file_path)
   return #url_patterns > 0 and url_patterns or nil
 end
 
----Finds @WebServlet annotation path for a Java servlet file (backward compatibility)
-function ServletParser:_find_webservlet_annotation_for_file(java_file_path)
-  local paths = self:_find_webservlet_annotation_paths_for_file(java_file_path)
-  return paths and paths[1] or nil
-end
-
 ---Finds @WebServlet annotation paths for a Java servlet file
+---@param java_file_path string
+---@return string[]|nil
 function ServletParser:_find_webservlet_annotation_paths_for_file(java_file_path)
   -- Try multiple path variations
   local paths_to_try = {

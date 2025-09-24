@@ -45,6 +45,11 @@ function Framework:_setup_detector_and_parser()
   end
 end
 
+---Initialize framework components (called lazily)
+function Framework:_initialize()
+  self:_setup_detector_and_parser()
+end
+
 ---Detects if this framework is present in the current project (unified implementation)
 function Framework:detect()
   if not self.detector then
