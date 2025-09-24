@@ -170,16 +170,28 @@ end
 
 ---Handle preview callback for highlighting and cursor positioning
 function TelescopePicker:_handle_preview_callback(bufnr, endpoint, picker_self, preview_line, preview_col)
+  local config_module = require "endpoint.config"
+  local config = config_module.get()
+  local enable_highlighting = config.picker and config.picker.previewer and config.picker.previewer.enable_highlighting
+
+  -- Default to true if not configured
+  if enable_highlighting == nil then
+    enable_highlighting = true
+  end
+
   -- Clear previous highlights first
   vim.api.nvim_buf_clear_namespace(bufnr, self.highlight_ns, 0, -1)
 
-  if endpoint.component_file_path and endpoint.component_name then
-    self:_highlight_component_definition(bufnr, endpoint)
-  else
-    self:_highlight_endpoint_line(bufnr, preview_line, preview_col, endpoint.end_line_number)
+  -- Only apply highlighting if enabled in config
+  if enable_highlighting then
+    if endpoint.component_file_path and endpoint.component_name then
+      self:_highlight_component_definition(bufnr, endpoint)
+    else
+      self:_highlight_endpoint_line(bufnr, preview_line, preview_col, endpoint.end_line_number)
+    end
   end
 
-  -- Set cursor and center
+  -- Set cursor and center (always enabled)
   self:_set_preview_cursor(picker_self, preview_line, preview_col)
 end
 

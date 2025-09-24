@@ -11,6 +11,10 @@ local default_config = {
       snacks = {}, -- Snacks-specific options
       vim_ui_select = {}, -- vim.ui.select-specific options
     },
+    -- Previewer configuration
+    previewer = {
+      enable_highlighting = true, -- Enable syntax highlighting in previewer
+    },
   },
 
   -- UI configuration (new structure)

@@ -105,18 +105,32 @@ end
 
 ---Create picker configuration
 function SnacksPicker:_create_picker_config(items, opts)
+  local config_module = require "endpoint.config"
+  local config = config_module.get()
+  local enable_highlighting = config.picker and config.picker.previewer and config.picker.previewer.enable_highlighting
+
+  -- Default to true if not configured
+  if enable_highlighting == nil then
+    enable_highlighting = true
+  end
+
   local default_config = {
     source = "Endpoint ",
     items = items,
     prompt = "Endpoints ",
     format = "text", -- Keep simple format for now
-    preview = "file", -- Back to simple working preview
+    preview = enable_highlighting and "file" or false, -- Disable preview if highlighting is disabled
     matcher = {
       fuzzy = true,
       smartcase = true,
       file_pos = true, -- Support patterns like `file:line:col`
     },
   }
+
+  -- If highlighting is disabled but user still wants preview, use simple file preview without highlighting
+  if not enable_highlighting and opts and opts.preview then
+    default_config.preview = "file"
+  end
 
   -- Merge user picker_opts with defaults (user options override defaults)
   return vim.tbl_deep_extend("force", default_config, opts or {})
