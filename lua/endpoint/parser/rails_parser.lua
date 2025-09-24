@@ -28,8 +28,11 @@ end
 
 ---Extracts endpoint path from Rails content
 function RailsParser:extract_endpoint_path(content, file_path, line_number)
-  -- Extract path from explicit routes: get '/path', post '/path', etc.
-  local path = content:match "['\"]([^'\"]+)['\"]"
+  -- Handle multiline patterns by normalizing whitespace
+  local normalized_content = content:gsub("%s+", " "):gsub("[\r\n]+", " ")
+
+  -- Extract path from explicit routes: get '/path', post '/path', etc. or multiline equivalent
+  local path = normalized_content:match "['\"]([^'\"]+)['\"]"
   if path then
     return path
   end
@@ -39,8 +42,8 @@ function RailsParser:extract_endpoint_path(content, file_path, line_number)
     return nil -- Skip member/collection routes - they should be handled by resources processing
   end
 
-  -- Pattern for member/collection routes: get :action_name
-  local action_name = content:match ":([%w_]+)"
+  -- Pattern for member/collection routes: get :action_name or multiline equivalent
+  local action_name = normalized_content:match ":([%w_]+)"
   if action_name then
     return "/" .. action_name
   end
@@ -137,8 +140,11 @@ end
 
 ---Extracts HTTP method from Rails route content
 function RailsParser:_extract_http_method(content)
+  -- Handle multiline patterns by normalizing whitespace
+  local normalized_content = content:gsub("%s+", " "):gsub("[\r\n]+", " ")
+
   -- Match HTTP verbs at the start of line followed by space (with optional leading whitespace)
-  local route_method = content:match "^%s*(%w+)%s+"
+  local route_method = normalized_content:match "^%s*(%w+)%s+"
   if route_method then
     -- Only accept valid HTTP verbs
     local valid_methods = {
@@ -155,8 +161,8 @@ function RailsParser:_extract_http_method(content)
     end
   end
 
-  -- Special case for root routes
-  if content:match "root%s" then
+  -- Special case for root routes or multiline equivalent
+  if normalized_content:match "root%s" then
     return "GET"
   end
 
@@ -843,20 +849,23 @@ end
 
 ---Checks if content looks like Rails routing or controller code
 function RailsParser:_is_rails_content(content)
-  return content:match "Rails%.application%.routes%.draw"
-    or content:match "^%s*get%s" -- HTTP verbs must be at start of line (with optional whitespace)
-    or content:match "^%s*post%s"
-    or content:match "^%s*put%s"
-    or content:match "^%s*delete%s"
-    or content:match "^%s*patch%s"
-    or content:match "^%s*head%s"
-    or content:match "^%s*options%s"
-    or content:match "resources%s" -- Resources can be anywhere
-    or content:match "resource%s"
-    or content:match "namespace%s"
-    or content:match "scope%s"
-    or content:match "root%s"
-    or content:match "def%s+[%w_]+" -- Method definitions
+  -- Handle multiline patterns by normalizing whitespace
+  local normalized_content = content:gsub("%s+", " "):gsub("[\r\n]+", " ")
+
+  return normalized_content:match "Rails%.application%.routes%.draw"
+    or normalized_content:match "^%s*get%s" -- HTTP verbs must be at start of line (with optional whitespace)
+    or normalized_content:match "^%s*post%s"
+    or normalized_content:match "^%s*put%s"
+    or normalized_content:match "^%s*delete%s"
+    or normalized_content:match "^%s*patch%s"
+    or normalized_content:match "^%s*head%s"
+    or normalized_content:match "^%s*options%s"
+    or normalized_content:match "resources%s" -- Resources can be anywhere
+    or normalized_content:match "resource%s"
+    or normalized_content:match "namespace%s"
+    or normalized_content:match "scope%s"
+    or normalized_content:match "root%s"
+    or normalized_content:match "def%s+[%w_]+" -- Method definitions
 end
 
 ---Checks if a controller has resources defined in routes.rb

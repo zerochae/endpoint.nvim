@@ -172,6 +172,9 @@
 ---@field private _is_root_path_mapping fun(self: endpoint.SpringParser, content: string): boolean
 ---@field private _extract_method_from_specific_mapping fun(self: endpoint.SpringParser, content: string): string|nil
 ---@field private _extract_method_from_request_mapping fun(self: endpoint.SpringParser, content: string): string|nil
+---@field private _extract_methods_from_request_mapping fun(self: endpoint.SpringParser, content: string): string[]
+---@field private _looks_like_incomplete_spring_annotation fun(self: endpoint.SpringParser, content: string): boolean
+---@field private _get_extended_annotation_content fun(self: endpoint.SpringParser, file_path: string, start_line: number): string|nil, number|nil, number|nil
 
 ---@class endpoint.SymfonyParser : endpoint.Parser
 ---@field private _read_file_lines fun(self: endpoint.SymfonyParser, file_path: string, line_number: number): string[]|nil

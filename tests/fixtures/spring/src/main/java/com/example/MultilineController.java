@@ -7,7 +7,7 @@ import java.util.List;
 import java.util.Map;
 
 @RestController
-@RequestMapping("/api/v1")
+@RequestMapping("/api/multiline")
 public class MultilineController {
 
     // Test case 1: Simple multiline @GetMapping

@@ -10,6 +10,9 @@ import kotlinx.serialization.Serializable
 // Test case 1: Simple multiline route definitions
 fun Application.configureMultilineRouting() {
     routing {
+      route(
+        "/api/multiline"
+      ){
         // Test case 1: Simple multiline get route
         get(
             "/users/{id}"
@@ -165,6 +168,7 @@ fun Application.configureMultilineRouting() {
             val userId = call.parameters["id"]
             // WebSocket handling logic would go here
             send("Connected to notifications for user $userId")
+        }
         }
     }
 }

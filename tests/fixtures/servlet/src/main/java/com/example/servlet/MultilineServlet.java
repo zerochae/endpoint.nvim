@@ -11,7 +11,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 
 // Test case 1: Simple multiline @WebServlet annotation
 @WebServlet(
-    urlPatterns = "/users/*"
+    urlPatterns = "/multiline/*"
 )
 public class MultilineServlet extends HttpServlet {
     private final ObjectMapper objectMapper = new ObjectMapper();
