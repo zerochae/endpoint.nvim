@@ -286,7 +286,18 @@ function DotNetParser:_is_commented_code(content)
   -- Check for /* */ style comments - look for content that starts with /* or contains */
   -- This is a simple check - more sophisticated parsing could be done if needed
   local trimmed = content:gsub("^%s+", "")
-  return trimmed:match "^/%*" or content:match "%*/" or content:match "/%*.*%*/"
+
+  -- Check if line starts with /* or is inside a block comment
+  if trimmed:match "^/%*" or content:match "%*/" or content:match "/%*.*%*/" then
+    return true
+  end
+
+  -- Check if this looks like it's inside a comment block (starts with * and whitespace)
+  if trimmed:match "^%*%s" then
+    return true
+  end
+
+  return false
 end
 
 ---Calculates correct column position for attribute start
@@ -390,16 +401,41 @@ function DotNetParser:_extract_methods_multiline(content, file_path, line_number
   return methods
 end
 
----Extracts route information from .NET patterns
+---Extracts route information from .NET patterns (multiline-aware)
 function DotNetParser:_extract_route_info(content, file_path, line_number)
+  -- For multiline attributes, we need to get the complete content first
+  local full_content = content
+  if self:_is_multiline_attribute(content) and file_path and line_number then
+    local file = io.open(file_path, "r")
+    if file then
+      local lines = {}
+      for line in file:lines() do
+        table.insert(lines, line)
+      end
+      file:close()
+
+      -- Read the next few lines to get the complete attribute
+      for i = line_number + 1, math.min(line_number + 10, #lines) do
+        local next_line = lines[i]
+        if next_line then
+          full_content = full_content .. " " .. next_line:gsub("^%s+", ""):gsub("%s+$", "")
+          -- Stop when we hit the closing parenthesis
+          if next_line:match "%s*%)%s*$" then
+            break
+          end
+        end
+      end
+    end
+  end
+
   -- Pattern 1: Attribute-based routing - [HttpGet("/path")]
-  local method, path = content:match "%[Http(%w+)%([\"']([^\"']+)[\"']"
+  local method, path = full_content:match "%[Http(%w+)%([\"']([^\"']+)[\"']"
   if method and path then
     return method, path
   end
 
   -- Pattern 2: Attribute-based routing without path - [HttpGet] (only if no Route in same context)
-  method = content:match "%[Http(%w+)%]"
+  method = full_content:match "%[Http(%w+)%]"
   if method then
     -- Only process standalone HTTP methods if we're sure there's no Route attribute
     -- This will be handled by class-level Route logic
@@ -407,19 +443,19 @@ function DotNetParser:_extract_route_info(content, file_path, line_number)
   end
 
   -- Pattern 3: Minimal API - app.MapGet("/path", ...)
-  method, path = content:match "app%.Map(%w+)%([\"']([^\"']+)[\"']"
+  method, path = full_content:match "app%.Map(%w+)%([\"']([^\"']+)[\"']"
   if method and path then
     return method, path
   end
 
   -- Pattern 4: Endpoint routing - endpoints.MapGet("/path", ...)
-  method, path = content:match "endpoints%.Map(%w+)%([\"']([^\"']+)[\"']"
+  method, path = full_content:match "endpoints%.Map(%w+)%([\"']([^\"']+)[\"']"
   if method and path then
     return method, path
   end
 
   -- Pattern 5: Route builder - .Get("/path")
-  method, path = content:match "%.(%w+)%([\"']([^\"']+)[\"']"
+  method, path = full_content:match "%.(%w+)%([\"']([^\"']+)[\"']"
   if method and path and method:match "^(Get|Post|Put|Delete|Patch)$" then
     return method, path
   end
