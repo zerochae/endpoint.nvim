@@ -174,11 +174,8 @@ function DotNetParser:parse_content(content, file_path, line_number, column)
   elseif endpoint_path:match "^api/" then
     -- Path starting with api/ - treat as absolute
     final_path = "/" .. endpoint_path
-  elseif endpoint_path == base_path then
-    -- If endpoint_path is the same as base_path, don't double-combine
-    final_path = endpoint_path:match "^/" and endpoint_path or "/" .. endpoint_path
   else
-    -- Relative path - combine with base path
+    -- Always combine relative paths with base path
     final_path = self:_combine_paths(base_path, endpoint_path)
   end
 
