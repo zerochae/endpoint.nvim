@@ -215,8 +215,8 @@ Configuration Options:~
 
     picker.type (string): UI picker interface. Options:
         "telescope"     - Use Telescope interface (default)
-        "vim_ui_select" - Use native vim.ui.select
-        "snacks"        - Use Snacks.nvim picker
+        "vim_ui_select" - Use native vim.ui.select with smart filtering for large lists
+        "snacks"        - Use Snacks.nvim picker with file preview and line highlighting
 
     picker.options (table): Picker-specific configuration options.
         telescope (table): Options passed to Telescope picker (themes, previewer, etc.)

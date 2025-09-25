@@ -121,7 +121,7 @@ require("endpoint").setup({
 ⚠️ **Important**: You must set `picker.type` to match your installed picker!
 
 - **Telescope**: `picker.type = "telescope"` - Rich fuzzy search with preview
-- **vim.ui.select**: `picker.type = "vim_ui_select"` - Native Neovim interface, works with dressing.nvim
+- **vim.ui.select**: `picker.type = "vim_ui_select"` - Native Neovim interface with smart filtering for large lists
 - **Snacks**: `picker.type = "snacks"` - Modern picker with file preview and line highlighting
 
 ```lua
