@@ -1,18 +1,20 @@
 local Picker = require "endpoint.core.Picker"
 local Highlighter = require "endpoint.core.Highlighter"
+local Themes = require "endpoint.core.Themes"
 
 ---@class endpoint.VimUiSelectPicker
-local VimUiSelectPicker = Picker:new "vim_ui_select"
+local VimUiSelectPicker = setmetatable({}, { __index = Picker })
 VimUiSelectPicker.__index = VimUiSelectPicker
 
 ---Creates a new VimUiSelectPicker instance
 function VimUiSelectPicker:new()
-  local vim_ui_select_picker = setmetatable({}, VimUiSelectPicker)
-  vim_ui_select_picker.highlighter = Highlighter:new "endpoint_vim_ui_select_highlight"
-  -- Check if dressing.nvim is available for enhanced theming
-  vim_ui_select_picker.has_dressing = pcall(require, "dressing")
+  local vim_ui_select_picker = setmetatable({
+    name = "vim_ui_select",
+    themes = Themes:new(),
+    highlighter = Highlighter:new "endpoint_vim_ui_select_highlight",
+    has_dressing = pcall(require, "dressing"),
+  }, self)
 
-  -- Register custom_kind with dressing.nvim if available
   if vim_ui_select_picker.has_dressing then
     vim_ui_select_picker:_register_dressing_custom_kind()
   end

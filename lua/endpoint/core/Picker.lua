@@ -1,15 +1,6 @@
-local Themes = require "endpoint.core.Themes"
-
 ---@class endpoint.Picker
 local Picker = {}
 Picker.__index = Picker
-
-function Picker:new(name)
-  local picker = setmetatable({}, self)
-  picker.name = name or "base"
-  picker.themes = Themes:new()
-  return picker
-end
 
 function Picker:is_available()
   error "is_available() must be implemented by subclass"
