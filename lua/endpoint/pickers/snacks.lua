@@ -3,12 +3,12 @@ local Highlighter = require "endpoint.core.Highlighter"
 local log = require "endpoint.utils.log"
 
 ---@class endpoint.SnacksPicker
-local SnacksPicker = setmetatable({}, { __index = Picker })
+local SnacksPicker = Picker:new "snacks"
 SnacksPicker.__index = SnacksPicker
 
 ---Creates a new SnacksPicker instance
 function SnacksPicker:new()
-  local snacksPicker = setmetatable(Picker:new "snacks", self)
+  local snacksPicker = setmetatable({}, SnacksPicker)
   snacksPicker.snacks_available = pcall(require, "snacks")
   snacksPicker.highlighter = Highlighter:new "endpoint_snacks_highlight"
   return snacksPicker
