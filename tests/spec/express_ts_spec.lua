@@ -390,4 +390,68 @@ describe("Express TypeScript Support", function()
       assert.is_true(confidence >= 0.9)
     end)
   end)
+
+  describe("Comment Filtering", function()
+    it("should have comment patterns configured", function()
+      local config = framework:get_config()
+      assert.is_table(config.comment_patterns)
+      assert.is_true(#config.comment_patterns > 0)
+
+      -- Check for TypeScript comment patterns
+      local patterns = config.comment_patterns
+      local has_single_line = false
+      local has_block_start = false
+      local has_block_inside = false
+
+      for _, pattern in ipairs(patterns) do
+        if pattern == "^//" then
+          has_single_line = true
+        end
+        if pattern == "^/%*" then
+          has_block_start = true
+        end
+        if pattern == "^%*" then
+          has_block_inside = true
+        end
+      end
+
+      assert.is_true(has_single_line, "Should have single line comment pattern")
+      assert.is_true(has_block_start, "Should have block comment start pattern")
+      assert.is_true(has_block_inside, "Should have block comment inside pattern")
+    end)
+
+    it("should filter out single-line commented endpoints", function()
+      local commented_content = '// app.get<{}, MessageResponse>("/commented", (req, res) => {'
+      local result = framework:parse(commented_content, "test.ts", 1, 1)
+      assert.is_nil(result, "Single-line commented endpoint should be filtered out")
+    end)
+
+    it("should filter out block commented endpoints", function()
+      local commented_content = '* router.post<{}, ApiResponse<User>>("/block-commented", (req, res) => {'
+      local result = framework:parse(commented_content, "test.ts", 1, 1)
+      assert.is_nil(result, "Block commented endpoint should be filtered out")
+    end)
+
+    it("should allow active endpoints", function()
+      local active_content = 'app.get<{}, MessageResponse>("/active", (req, res) => {'
+      local result = framework:parse(active_content, "test.ts", 1, 1)
+      assert.is_not_nil(result, "Active endpoint should be parsed")
+      assert.equals("GET", result.method)
+      assert.equals("/active", result.endpoint_path)
+    end)
+
+    it("should filter various TypeScript comment styles", function()
+      local test_cases = {
+        '// app.get<{}, MessageResponse>("/single-line", (req, res) => {',
+        '    // router.post<{}, ApiResponse<User>>("/indented", (req, res) => {',
+        '/* app.put<{ id: string }, ApiResponse<User>>("/block-start", (req, res) => { */',
+        '* delete<{ id: string }, MessageResponse>("/block-inside", (req, res) => {',
+      }
+
+      for _, commented_content in ipairs(test_cases) do
+        local result = framework:parse(commented_content, "test.ts", 1, 1)
+        assert.is_nil(result, "Should filter: " .. commented_content)
+      end
+    end)
+  end)
 end)

@@ -146,6 +146,70 @@ describe("DotnetFramework", function()
     end)
   end)
 
+  describe("Comment Filtering", function()
+    it("should have comment patterns configured", function()
+      local config = framework:get_config()
+      assert.is_table(config.comment_patterns)
+      assert.is_true(#config.comment_patterns > 0)
+
+      -- Check for C# comment patterns
+      local patterns = config.comment_patterns
+      local has_single_line = false
+      local has_block_start = false
+      local has_block_inside = false
+
+      for _, pattern in ipairs(patterns) do
+        if pattern == "^//" then
+          has_single_line = true
+        end
+        if pattern == "^/%*" then
+          has_block_start = true
+        end
+        if pattern == "^%*" then
+          has_block_inside = true
+        end
+      end
+
+      assert.is_true(has_single_line, "Should have single line comment pattern")
+      assert.is_true(has_block_start, "Should have block comment start pattern")
+      assert.is_true(has_block_inside, "Should have block comment inside pattern")
+    end)
+
+    it("should filter out single-line commented endpoints", function()
+      local commented_content = '// [HttpGet("/commented")]'
+      local result = framework:parse(commented_content, "test.cs", 1, 1)
+      assert.is_nil(result, "Single-line commented endpoint should be filtered out")
+    end)
+
+    it("should filter out block commented endpoints", function()
+      local commented_content = '* [HttpPost("/block-commented")]'
+      local result = framework:parse(commented_content, "test.cs", 1, 1)
+      assert.is_nil(result, "Block commented endpoint should be filtered out")
+    end)
+
+    it("should allow active endpoints", function()
+      local active_content = '[HttpGet("/active")]'
+      local result = framework:parse(active_content, "test.cs", 1, 1)
+      assert.is_not_nil(result, "Active endpoint should be parsed")
+      assert.equals("GET", result.method)
+      assert.equals("/active", result.endpoint_path)
+    end)
+
+    it("should filter various C# comment styles", function()
+      local test_cases = {
+        '// [HttpGet("/single-line")]',
+        '    // [HttpPost("/indented")]',
+        '/* [HttpPut("/block-start")] */',
+        '* [HttpDelete("/block-inside")]',
+      }
+
+      for _, commented_content in ipairs(test_cases) do
+        local result = framework:parse(commented_content, "test.cs", 1, 1)
+        assert.is_nil(result, "Should filter: " .. commented_content)
+      end
+    end)
+  end)
+
   describe("Integration Tests", function()
     it("should create framework instance successfully", function()
       local instance = DotnetFramework:new()

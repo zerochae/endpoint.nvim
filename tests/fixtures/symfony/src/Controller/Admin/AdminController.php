@@ -15,11 +15,11 @@ final class AdminController extends AbstractController
         return new Response('Admin Dashboard');
     }
 
-    #[Route('/users', name: 'admin_users_list', methods: ['GET'])]
-    public function usersList(): Response
-    {
-        return new Response('Admin Users List');
-    }
+    /* #[Route('/users', name: 'admin_users_list', methods: ['GET'])] */
+    /* public function usersList(): Response */
+    /* { */
+    /*     return new Response('Admin Users List'); */
+    /* } */
 
     #[Route('/users/{id}/delete', name: 'admin_user_delete', methods: ['DELETE'])]
     public function deleteUser(int $id): Response

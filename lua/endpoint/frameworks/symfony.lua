@@ -17,6 +17,7 @@ function SymfonyFramework:new()
       DELETE = { "#\\[Route\\(.*methods.*DELETE", "@Route\\(.*methods.*DELETE", "\\* @Route\\(.*methods.*DELETE" },
       PATCH = { "#\\[Route\\(.*methods.*PATCH", "@Route\\(.*methods.*PATCH", "\\* @Route\\(.*methods.*PATCH" },
     },
+    comment_patterns = { "^//", "^/%*", "^%*", "^#[^%[]" },
     search_options = { "--case-sensitive", "--type", "php", "-U", "--multiline-dotall" },
     controller_extractors = {
       { pattern = "([^/]+)%.php$" },

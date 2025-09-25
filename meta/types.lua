@@ -43,6 +43,11 @@
 ---@class endpoint.cache.config
 ---@field mode "none" | "session" | "persistent"
 
+-- Comment filtering configuration (new structure)
+---@class endpoint.comment_filtering.config
+---@field enabled boolean Enable comment filtering globally
+---@field per_language table<string, boolean> Per-language filtering settings
+
 -- Picker configuration (new structure)
 ---@class endpoint.picker.config
 ---@field type "telescope" | "vim_ui_select" | "snacks"
@@ -63,6 +68,7 @@
 ---@field picker? endpoint.picker.config -- New structure
 ---@field previewer? endpoint.picker.previewer.config -- New structure
 ---@field ui endpoint.ui.config
+---@field comment_filtering? endpoint.comment_filtering.config -- New structure
 ---@field frameworks? table
 ---@field cache_mode? "none" | "session" | "persistent" -- Legacy (deprecated)
 ---@field picker_opts? table -- Legacy (deprecated)
@@ -154,6 +160,7 @@
 ---@field is_content_valid_for_parsing fun(self: endpoint.Parser, content_to_validate?: string): boolean
 ---@field get_parsing_confidence fun(self: endpoint.Parser, content_to_analyze?: string): number
 ---@field create_metadata fun(self: endpoint.Parser, route_type: string, extra_metadata?: table, content?: string): table
+---@field is_commented_line fun(self: endpoint.Parser, content: string, file_path?: string, line_number?: number, comment_patterns?: table): boolean
 
 
 ---@class endpoint.RailsParser : endpoint.Parser
@@ -200,6 +207,13 @@
 ---@field get_method_color fun(self: endpoint.Themes, method: string, config: table): string
 ---@field get_method_icon fun(self: endpoint.Themes, method: string, config: table): string
 ---@field get_method_text fun(self: endpoint.Themes, method: string, config: table): string
+
+---@class endpoint.Parser
+---@field parser_name string
+---@field framework_name string
+---@field language string
+---@field is_commented_line fun(self: endpoint.Parser, content: string, file_path?: string, line_number?: number, comment_patterns?: string[]): boolean
+---@field private _is_inside_block_comment fun(self: endpoint.Parser, lines: string[], line_number: number): boolean
 
 ---@class endpoint.SymfonyParser : endpoint.Parser
 ---@field private _last_end_line_number number|nil

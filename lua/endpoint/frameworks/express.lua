@@ -35,6 +35,7 @@ function ExpressFramework:new()
         "^[^/]*router\\.patch\\s*<",
       },
     },
+    comment_patterns = { "^//", "^/%*", "^%*" },
     search_options = { "--type", "js", "--type", "ts", "-U", "--multiline-dotall" },
     controller_extractors = {
       {

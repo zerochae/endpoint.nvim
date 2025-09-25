@@ -125,7 +125,7 @@ describe("NestjsFramework", function()
     end)
 
     it("should parse decorators without path", function()
-      local content = '@Get()'
+      local content = "@Get()"
       local result = parser:parse_content(content, "users.controller.ts", 1, 1)
 
       if result then
@@ -134,7 +134,7 @@ describe("NestjsFramework", function()
     end)
 
     it("should parse @Query decorators", function()
-      local content = '@Query(() => [User])\n  async findAll(): Promise<User[]> {'
+      local content = "@Query(() => [User])\n  async findAll(): Promise<User[]> {"
       local result = parser:parse_content(content, "users.resolver.ts", 1, 1)
 
       if result then
@@ -144,7 +144,8 @@ describe("NestjsFramework", function()
     end)
 
     it("should parse @Mutation decorators", function()
-      local content = '@Mutation(() => User)\n  async createUser(@Args("input") input: CreateUserInput): Promise<User> {'
+      local content =
+        '@Mutation(() => User)\n  async createUser(@Args("input") input: CreateUserInput): Promise<User> {'
       local result = parser:parse_content(content, "users.resolver.ts", 1, 1)
 
       if result then
@@ -192,18 +193,81 @@ async createNewUser(
 
   describe("Controller Name Extraction", function()
     it("should extract controller name from TypeScript file", function()
-      local controller_name = framework:getControllerName("src/users/users.controller.ts")
+      local controller_name = framework:getControllerName "src/users/users.controller.ts"
       assert.is_not_nil(controller_name)
     end)
 
     it("should extract controller name from JavaScript file", function()
-      local controller_name = framework:getControllerName("src/users/users.controller.js")
+      local controller_name = framework:getControllerName "src/users/users.controller.js"
       assert.is_not_nil(controller_name)
     end)
 
     it("should handle nested controller paths", function()
-      local controller_name = framework:getControllerName("src/modules/users/users.controller.ts")
+      local controller_name = framework:getControllerName "src/modules/users/users.controller.ts"
       assert.is_not_nil(controller_name)
+    end)
+  end)
+
+  describe("Comment Filtering", function()
+    it("should have TypeScript comment patterns configured", function()
+      local config = framework:get_config()
+      assert.is_table(config.comment_patterns)
+      assert.is_true(#config.comment_patterns > 0)
+
+      -- Check for TypeScript comment patterns
+      local patterns = config.comment_patterns
+      local has_single_line = false
+      local has_block_start = false
+      local has_block_inside = false
+
+      for _, pattern in ipairs(patterns) do
+        if pattern == "^//" then
+          has_single_line = true
+        end
+        if pattern == "^/%*" then
+          has_block_start = true
+        end
+        if pattern == "^%*" then
+          has_block_inside = true
+        end
+      end
+
+      assert.is_true(has_single_line, "Should have single line comment pattern")
+      assert.is_true(has_block_start, "Should have block comment start pattern")
+      assert.is_true(has_block_inside, "Should have block comment inside pattern")
+    end)
+
+    it("should filter out single-line commented endpoints", function()
+      local commented_content = '// @Get("/commented")'
+      local result = framework:parse(commented_content, "test.ts", 1, 1)
+      assert.is_nil(result, "Single-line commented endpoint should be filtered out")
+    end)
+
+    it("should filter out block commented endpoints", function()
+      local commented_content = '* @Post("/block-commented")'
+      local result = framework:parse(commented_content, "test.ts", 1, 1)
+      assert.is_nil(result, "Block commented endpoint should be filtered out")
+    end)
+
+    it("should allow active endpoints", function()
+      local active_content = '@Get("/active")'
+      local result = framework:parse(active_content, "test.ts", 1, 1)
+      assert.is_not_nil(result, "Active endpoint should be parsed")
+      assert.equals("GET", result.method)
+    end)
+
+    it("should filter various TypeScript comment styles", function()
+      local test_cases = {
+        '// @Get("/single-line")',
+        '    // @Post("/indented")',
+        '/* @Put("/block-start") */',
+        '* @Delete("/block-inside")',
+      }
+
+      for _, commented_content in ipairs(test_cases) do
+        local result = framework:parse(commented_content, "test.ts", 1, 1)
+        assert.is_nil(result, "Should filter: " .. commented_content)
+      end
     end)
   end)
 
@@ -250,79 +314,79 @@ describe("NestjsParser", function()
 
   describe("Endpoint Path Extraction", function()
     it("should extract simple paths", function()
-      local path = parser:extract_endpoint_path('@Get("/users")')
+      local path = parser:extract_endpoint_path '@Get("/users")'
       assert.equals("/users", path)
     end)
 
     it("should extract paths with parameters", function()
-      local path = parser:extract_endpoint_path('@Get("/users/:id")')
+      local path = parser:extract_endpoint_path '@Get("/users/:id")'
       assert.equals("/users/:id", path)
     end)
 
     it("should handle single quotes", function()
-      local path = parser:extract_endpoint_path("@Get('/users')")
+      local path = parser:extract_endpoint_path "@Get('/users')"
       assert.equals("/users", path)
     end)
 
     it("should handle empty decorators", function()
-      local path = parser:extract_endpoint_path("@Get()")
+      local path = parser:extract_endpoint_path "@Get()"
       assert.is_true(path == nil or path == "" or type(path) == "string")
     end)
 
     it("should extract GraphQL query names from function names", function()
-      local path = parser:extract_endpoint_path('@Query(() => [User])\n  async findAllUsers(): Promise<User[]> {')
+      local path = parser:extract_endpoint_path "@Query(() => [User])\n  async findAllUsers(): Promise<User[]> {"
       assert.equals("findAllUsers", path)
     end)
 
     it("should extract GraphQL mutation names from custom name options", function()
-      local path = parser:extract_endpoint_path('@Mutation(() => User, { name: "createUser" })')
+      local path = parser:extract_endpoint_path '@Mutation(() => User, { name: "createUser" })'
       assert.equals("createUser", path)
     end)
 
     it("should extract GraphQL query names with single quotes", function()
-      local path = parser:extract_endpoint_path("@Query(() => [User], { name: 'users' })")
+      local path = parser:extract_endpoint_path "@Query(() => [User], { name: 'users' })"
       assert.equals("users", path)
     end)
 
     it("should handle GraphQL decorators without explicit names", function()
-      local path = parser:extract_endpoint_path('@Query(() => User)\n  async getUser(): Promise<User> {')
+      local path = parser:extract_endpoint_path "@Query(() => User)\n  async getUser(): Promise<User> {"
       assert.equals("getUser", path)
     end)
   end)
 
   describe("HTTP Method Extraction", function()
     it("should extract GET from @Get", function()
-      local method = parser:extract_method('@Get("/users")')
+      local method = parser:extract_method '@Get("/users")'
       assert.equals("GET", method)
     end)
 
     it("should extract POST from @Post", function()
-      local method = parser:extract_method('@Post("/users")')
+      local method = parser:extract_method '@Post("/users")'
       assert.equals("POST", method)
     end)
 
     it("should extract PUT from @Put", function()
-      local method = parser:extract_method('@Put("/users/:id")')
+      local method = parser:extract_method '@Put("/users/:id")'
       assert.equals("PUT", method)
     end)
 
     it("should extract DELETE from @Delete", function()
-      local method = parser:extract_method('@Delete("/users/:id")')
+      local method = parser:extract_method '@Delete("/users/:id")'
       assert.equals("DELETE", method)
     end)
 
     it("should extract PATCH from @Patch", function()
-      local method = parser:extract_method('@Patch("/users/:id")')
+      local method = parser:extract_method '@Patch("/users/:id")'
       assert.equals("PATCH", method)
     end)
 
     it("should extract QUERY from @Query", function()
-      local method = parser:extract_method('@Query(() => [User])')
+      local method = parser:extract_method "@Query(() => [User])"
       assert.equals("QUERY", method)
     end)
 
     it("should extract MUTATION from @Mutation", function()
-      local method = parser:extract_method('@Mutation(() => User)')
+      local method = parser:extract_method "@Mutation(() => User)"
       assert.equals("MUTATION", method)
     end)
   end)

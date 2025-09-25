@@ -17,6 +17,7 @@ function KtorFramework:new()
       DELETE = { "delete\\s*\\(", "delete\\s*\\{", "delete<.*>\\s*\\(" },
       PATCH = { "patch\\s*\\(", "patch\\s*\\{", "patch<.*>\\s*\\(" },
     },
+    comment_patterns = { "^//", "^/%*", "^%*" },
     search_options = { "--case-sensitive", "--type", "kotlin", "-U", "--multiline-dotall" },
     controller_extractors = {
       {

@@ -145,4 +145,90 @@ function Parser:create_metadata(route_type, extra_metadata, content)
   return metadata
 end
 
+function Parser:is_commented_line(content, file_path, line_number, comment_patterns)
+  if not comment_patterns or #comment_patterns == 0 then
+    return false -- No comment patterns defined, don't filter
+  end
+
+  local trimmed = content:gsub("^%s+", "")
+
+  -- Check if content starts with any comment pattern
+  for _, pattern in ipairs(comment_patterns) do
+    if trimmed:match(pattern) then
+      return true
+    end
+  end
+
+  -- Check for block comment context if file context is provided
+  if file_path and line_number then
+    local file = io.open(file_path, "r")
+    if file then
+      local lines = {}
+      for line in file:lines() do
+        table.insert(lines, line)
+      end
+      file:close()
+
+      -- Check if we're inside a block comment
+      if self:_is_inside_block_comment(lines, line_number) then
+        return true
+      end
+
+      local actual_line = lines[line_number]
+      if actual_line then
+        local line_trimmed = actual_line:gsub("^%s+", "")
+        for _, pattern in ipairs(comment_patterns) do
+          if line_trimmed:match(pattern) then
+            return true
+          end
+        end
+      end
+    end
+  end
+
+  return false
+end
+
+function Parser:_is_inside_block_comment(lines, line_number)
+  if not lines or line_number < 1 or line_number > #lines then
+    return false
+  end
+
+  -- Check backwards for block comment state
+  local in_block_comment = false
+  for i = 1, line_number do
+    local line = lines[i]
+    local pos = 1
+
+    while pos <= #line do
+      -- Look for block comment start
+      local start_pos = line:find("/%*", pos)
+      local end_pos = line:find("%*/", pos)
+
+      -- Handle same line start and end
+      if start_pos and end_pos and start_pos < end_pos then
+        -- Block comment starts and ends on same line
+        pos = end_pos + 2
+      elseif start_pos and (not end_pos or start_pos < end_pos) then
+        -- Block comment starts
+        in_block_comment = true
+        if end_pos then
+          in_block_comment = false
+          pos = end_pos + 2
+        else
+          break
+        end
+      elseif end_pos and (not start_pos or end_pos < start_pos) then
+        -- Block comment ends
+        in_block_comment = false
+        pos = end_pos + 2
+      else
+        break
+      end
+    end
+  end
+
+  return in_block_comment
+end
+
 return Parser

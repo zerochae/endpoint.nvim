@@ -17,6 +17,7 @@ function ServletFramework:new()
       DELETE = { "doDelete" },
       PATCH = { "doPatch" },
     },
+    comment_patterns = { "^//", "^/%*", "^%*" },
     search_options = { "--case-sensitive", "--type", "java", "-U", "--multiline-dotall" },
     controller_extractors = {
       { pattern = "([^/]+)%.java$" },

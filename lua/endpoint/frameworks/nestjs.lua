@@ -21,6 +21,7 @@ function NestJsFramework:new()
       QUERY = { "@Query\\s*\\(", "@Resolver.*@Query" },
       MUTATION = { "@Mutation\\s*\\(", "@Resolver.*@Mutation" },
     },
+    comment_patterns = { "^//", "^/%*", "^%*" },
     search_options = { "--case-sensitive", "--type", "ts" },
     controller_extractors = {
       {

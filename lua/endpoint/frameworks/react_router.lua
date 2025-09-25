@@ -13,6 +13,7 @@ function ReactRouterFramework:new()
     patterns = {
       ROUTE = { "Route", "path:" }, -- React Router doesn't use HTTP methods
     },
+    comment_patterns = { "^//", "^/%*", "^%*" },
     search_options = { "--case-sensitive", "--type", "js" },
     controller_extractors = {
       { pattern = "([^/]+)%.[jt]sx?$" },

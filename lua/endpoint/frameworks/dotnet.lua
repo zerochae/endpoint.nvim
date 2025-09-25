@@ -17,6 +17,7 @@ function DotNetFramework:new()
       DELETE = { "\\[HttpDelete\\]", "\\[HttpDelete\\(", "app\\.MapDelete", "endpoints\\.MapDelete", "\\.Delete\\(" },
       PATCH = { "\\[HttpPatch\\]", "\\[HttpPatch\\(", "app\\.MapPatch", "endpoints\\.MapPatch", "\\.Patch\\(" },
     },
+    comment_patterns = { "^//", "^/%*", "^%*" },
     search_options = { "--case-sensitive", "--type", "csharp", "-U", "--multiline-dotall" },
     controller_extractors = {
       { pattern = "([^/]+)%.cs$" },

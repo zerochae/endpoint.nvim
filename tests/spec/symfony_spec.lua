@@ -102,10 +102,8 @@ describe("SymfonyFramework", function()
       local content = "#[Route('/users', methods: ['GET'])]"
       local result = parser:parse_content(content, "UserController.php", 1, 1)
 
-      if result then
-        assert.equals("GET", result.method)
-        assert.equals("/users", result.endpoint_path)
-      end
+      assert.equals("GET", result.method)
+      assert.equals("/users", result.endpoint_path)
     end)
 
     it("should parse endpoints with parameters", function()
@@ -130,13 +128,90 @@ describe("SymfonyFramework", function()
 
   describe("Controller Name Extraction", function()
     it("should extract controller name from PHP file", function()
-      local controller_name = framework:getControllerName("src/Controller/UserController.php")
+      local controller_name = framework:getControllerName "src/Controller/UserController.php"
       assert.is_not_nil(controller_name)
     end)
 
     it("should handle nested controller paths", function()
-      local controller_name = framework:getControllerName("src/Controller/Admin/UserController.php")
+      local controller_name = framework:getControllerName "src/Controller/Admin/UserController.php"
       assert.is_not_nil(controller_name)
+    end)
+  end)
+
+  describe("Comment Filtering", function()
+    it("should have comment patterns configured", function()
+      local config = framework:get_config()
+      assert.is_table(config.comment_patterns)
+      assert.is_true(#config.comment_patterns > 0)
+
+      -- Check for PHP comment patterns
+      local patterns = config.comment_patterns
+      local has_single_line = false
+      local has_block_start = false
+      local has_block_inside = false
+      local has_hash_comment = false
+
+      for _, pattern in ipairs(patterns) do
+        if pattern == "^//" then
+          has_single_line = true
+        end
+        if pattern == "^/%*" then
+          has_block_start = true
+        end
+        if pattern == "^%*" then
+          has_block_inside = true
+        end
+        if pattern == "^#[^%[]" then
+          has_hash_comment = true
+        end
+      end
+
+      assert.is_true(has_single_line, "Should have single line comment pattern")
+      assert.is_true(has_block_start, "Should have block comment start pattern")
+      assert.is_true(has_block_inside, "Should have block comment inside pattern")
+      assert.is_true(has_hash_comment, "Should have hash comment pattern (excluding PHP attributes)")
+    end)
+
+    it("should filter out single-line commented endpoints", function()
+      local commented_content = '// #[Route("/commented", methods: ["GET"])]'
+      local result = framework:parse(commented_content, "test.php", 1, 1)
+      assert.is_nil(result, "Single-line commented endpoint should be filtered out")
+    end)
+
+    it("should filter out block commented endpoints", function()
+      local commented_content = '* #[Route("/block-commented", methods: ["POST"])]'
+      local result = framework:parse(commented_content, "test.php", 1, 1)
+      assert.is_nil(result, "Block commented endpoint should be filtered out")
+    end)
+
+    it("should filter out hash commented endpoints", function()
+      local commented_content = '# This is a hash comment'
+      local result = framework:parse(commented_content, "test.php", 1, 1)
+      assert.is_nil(result, "Hash commented endpoint should be filtered out")
+    end)
+
+    it("should allow active endpoints", function()
+      local active_content = '#[Route("/active", methods: ["GET"])]'
+      local result = framework:parse(active_content, "test.php", 1, 1)
+
+      assert.is_not_nil(result)
+      assert.equals("GET", result.method)
+      assert.equals("/active", result.endpoint_path)
+    end)
+
+    it("should filter various PHP comment styles", function()
+      local test_cases = {
+        '// #[Route("/single-line", methods: ["GET"])]',
+        '    // #[Route("/indented", methods: ["POST"])]',
+        '/* #[Route("/block-start", methods: ["PUT"])] */',
+        '# Route is commented out',
+        -- Note: Block comment middle lines (starting with *) are not fully supported yet
+      }
+
+      for _, commented_content in ipairs(test_cases) do
+        local result = framework:parse(commented_content, "test.php", 1, 1)
+        assert.is_nil(result, "Should filter: " .. commented_content)
+      end
     end)
   end)
 
@@ -183,28 +258,28 @@ describe("SymfonyParser", function()
 
   describe("Endpoint Path Extraction", function()
     it("should extract simple paths from attributes", function()
-      local path = parser:extract_endpoint_path('#[Route("/users")]')
+      local path = parser:extract_endpoint_path '#[Route("/users")]'
       if path then
         assert.equals("/users", path)
       end
     end)
 
     it("should extract paths with parameters", function()
-      local path = parser:extract_endpoint_path('#[Route("/users/{id}")]')
+      local path = parser:extract_endpoint_path '#[Route("/users/{id}")]'
       if path then
         assert.equals("/users/{id}", path)
       end
     end)
 
     it("should handle single quotes", function()
-      local path = parser:extract_endpoint_path("#[Route('/users')]")
+      local path = parser:extract_endpoint_path "#[Route('/users')]"
       if path then
         assert.equals("/users", path)
       end
     end)
 
     it("should extract paths from annotations", function()
-      local path = parser:extract_endpoint_path('@Route("/users")')
+      local path = parser:extract_endpoint_path '@Route("/users")'
       if path then
         assert.equals("/users", path)
       end
@@ -213,32 +288,32 @@ describe("SymfonyParser", function()
 
   describe("HTTP Method Extraction", function()
     it("should extract GET from methods array", function()
-      local method = parser:extract_method('#[Route("/users", methods: ["GET"])]')
+      local method = parser:extract_method '#[Route("/users", methods: ["GET"])]'
       assert.equals("GET", method)
     end)
 
     it("should extract POST from methods array", function()
-      local method = parser:extract_method('#[Route("/users", methods: ["POST"])]')
+      local method = parser:extract_method '#[Route("/users", methods: ["POST"])]'
       assert.equals("POST", method)
     end)
 
     it("should extract PUT from methods array", function()
-      local method = parser:extract_method('#[Route("/users/{id}", methods: ["PUT"])]')
+      local method = parser:extract_method '#[Route("/users/{id}", methods: ["PUT"])]'
       assert.equals("PUT", method)
     end)
 
     it("should extract DELETE from methods array", function()
-      local method = parser:extract_method('#[Route("/users/{id}", methods: ["DELETE"])]')
+      local method = parser:extract_method '#[Route("/users/{id}", methods: ["DELETE"])]'
       assert.equals("DELETE", method)
     end)
 
     it("should extract PATCH from methods array", function()
-      local method = parser:extract_method('#[Route("/users/{id}", methods: ["PATCH"])]')
+      local method = parser:extract_method '#[Route("/users/{id}", methods: ["PATCH"])]'
       assert.equals("PATCH", method)
     end)
 
     it("should handle annotation syntax", function()
-      local method = parser:extract_method('@Route("/users", methods={"GET"})')
+      local method = parser:extract_method '@Route("/users", methods={"GET"})'
       if method then
         assert.equals("GET", method)
       end
@@ -276,3 +351,4 @@ describe("SymfonyParser", function()
     end)
   end)
 end)
+

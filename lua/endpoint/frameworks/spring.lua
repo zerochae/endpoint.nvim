@@ -17,6 +17,7 @@ function SpringFramework:new()
       DELETE = { "@DeleteMapping", "@RequestMapping.*method.*=.*DELETE" },
       PATCH = { "@PatchMapping", "@RequestMapping.*method.*=.*PATCH" },
     },
+    comment_patterns = { "^//", "^/%*", "^%*" },
     search_options = { "--case-sensitive", "--type", "java", "-U", "--multiline-dotall" },
     controller_extractors = {
       { pattern = "([^/]+)%.java$" },

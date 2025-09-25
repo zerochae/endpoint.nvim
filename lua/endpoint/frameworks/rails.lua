@@ -50,6 +50,7 @@ function RailsFramework:new()
         "def\\s+unlike",
       },
     },
+    comment_patterns = { "^#" },
     search_options = { "--type", "ruby", "-U", "--multiline-dotall" },
     controller_extractors = {
       { pattern = "controllers/(.*)_controller%.rb$" },

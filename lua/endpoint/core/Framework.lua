@@ -3,6 +3,7 @@ local Framework = {}
 Framework.__index = Framework
 
 local log = require "endpoint.utils.log"
+local config = require "endpoint.config"
 
 ---Creates a new Framework instance
 function Framework:new(name, config)
@@ -70,6 +71,13 @@ function Framework:parse(content, file_path, line_number, column)
 
   if not self.parser then
     return nil
+  end
+
+  -- Check for commented code before parsing
+  if self:_should_filter_comments() and self.config.comment_patterns and #self.config.comment_patterns > 0 then
+    if self.parser:is_commented_line(content, file_path, line_number, self.config.comment_patterns) then
+      return nil -- Skip commented code
+    end
   end
 
   local parsed_endpoint = self.parser:parse_content(content, file_path, line_number, column)
@@ -261,11 +269,7 @@ function Framework:_post_process_endpoints(endpoints)
   local unique_endpoints = {}
 
   for _, endpoint in ipairs(endpoints) do
-    local key = string.format("%s:%s:%s",
-      endpoint.method or "",
-      endpoint.endpoint_path or "",
-      endpoint.file_path or ""
-    )
+    local key = string.format("%s:%s:%s", endpoint.method or "", endpoint.endpoint_path or "", endpoint.file_path or "")
 
     if not seen[key] then
       seen[key] = true
@@ -310,6 +314,29 @@ function Framework:is_instance_of(framework_class)
     mt = getmetatable(mt)
   end
   return false
+end
+
+---Checks if comment filtering should be enabled for this framework
+function Framework:_should_filter_comments()
+  local user_config = config.get()
+
+  -- Check global comment filtering setting
+  if not user_config.comment_filtering or not user_config.comment_filtering.enabled then
+    return false
+  end
+
+  -- Check per-language setting
+  if user_config.comment_filtering.per_language then
+    local framework_language = self.parser and self.parser.language
+    if framework_language then
+      local language_enabled = user_config.comment_filtering.per_language[framework_language]
+      -- If language setting exists, use it; otherwise default to true (enabled)
+      return language_enabled ~= false
+    end
+  end
+
+  -- Default to enabled if no specific setting found
+  return true
 end
 
 return Framework

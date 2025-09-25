@@ -17,6 +17,7 @@ function FastApiFramework:new()
       DELETE = { "@app\\.delete", "@router\\.delete" },
       PATCH = { "@app\\.patch", "@router\\.patch" },
     },
+    comment_patterns = { "^#" },
     search_options = { "--case-sensitive", "--type", "py", "-U", "--multiline-dotall" },
     controller_extractors = {
       {

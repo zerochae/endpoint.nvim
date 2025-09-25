@@ -36,6 +36,21 @@ local default_config = {
     mode = "session", -- "none", "session", "persistent"
   },
 
+  -- Comment filtering configuration
+  comment_filtering = {
+    enabled = true, -- Enable comment filtering by default
+    per_language = {
+      python = true,      -- FastAPI, Django
+      typescript = true,  -- NestJS
+      javascript = true,  -- Express
+      csharp = true,      -- DotNet
+      java = true,        -- Spring, Servlet
+      kotlin = true,      -- Ktor
+      php = true,         -- Symfony
+      ruby = true,        -- Rails
+    },
+  },
+
   -- Framework-specific configuration
   frameworks = {
     rails = {

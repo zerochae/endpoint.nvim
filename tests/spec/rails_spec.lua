@@ -139,6 +139,51 @@ describe("RailsFramework", function()
     end)
   end)
 
+  describe("Comment Filtering", function()
+    it("should have comment patterns configured", function()
+      local config = framework:get_config()
+      assert.is_table(config.comment_patterns)
+      assert.is_true(#config.comment_patterns > 0)
+
+      -- Check for Ruby comment pattern
+      local has_hash = false
+      for _, pattern in ipairs(config.comment_patterns) do
+        if pattern == "^#" then
+          has_hash = true
+          break
+        end
+      end
+      assert.is_true(has_hash, "Should have Ruby hash comment pattern")
+    end)
+
+    it("should filter out commented endpoints", function()
+      local commented_content = '# def index'
+      local result = framework:parse(commented_content, "app/controllers/users_controller.rb", 1, 1)
+      assert.is_nil(result, "Commented endpoint should be filtered out")
+    end)
+
+    it("should allow active endpoints", function()
+      local active_content = 'def index'
+      local result = framework:parse(active_content, "app/controllers/users_controller.rb", 1, 1)
+      assert.is_not_nil(result, "Active endpoint should be parsed")
+      assert.equals("GET", result.method)
+      assert.equals("/users", result.endpoint_path)
+    end)
+
+    it("should filter various Ruby comment styles", function()
+      local test_cases = {
+        '# def index',
+        '    # def create',
+        '#def update'
+      }
+
+      for _, commented_content in ipairs(test_cases) do
+        local result = framework:parse(commented_content, "app/controllers/users_controller.rb", 1, 1)
+        assert.is_nil(result, "Should filter: " .. commented_content)
+      end
+    end)
+  end)
+
   describe("Integration Tests", function()
     it("should create framework instance successfully", function()
       local instance = RailsFramework:new()
