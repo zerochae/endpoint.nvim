@@ -21,7 +21,7 @@
 | **React Router** | JavaScript | `^//`, `^/*`, `^*` | ✅ Complete |
 | **FastAPI** | Python | `^#` | ✅ Complete |
 | **Rails** | Ruby | `^#` | ✅ Complete |
-| **Symfony** | PHP | `^//`, `^/*`, `^*`, `^#[^[]` | ✅ Complete |
+| **Symfony** | PHP | `^//`, `^/*`, `^*`, `^#[^[]` | ⚠️ Partial |
 | **DotNet** | C# | `^//`, `^/*`, `^*` | ✅ Complete |
 
 ### 3. Special Implementation Notes
@@ -74,17 +74,23 @@
 
 ## 🔧 Known Issues & Limitations
 
-### 1. **Block Comment Middle Lines**
+### 1. **Symfony Issues** ⚠️
+- **Block Comments**: Multiline block comments (`/* ... */`) still appearing in search results
+- **Column Highlighting**: Still starting from column 0 instead of correct position in some cases
+- **Framework Parse**: `framework:parse()` returns nil for some valid content scenarios
+- **Status**: Partially working - PHP attributes filtering works, but block comments and highlighting need fixes
+
+### 2. **Block Comment Middle Lines**
 - **Issue**: Lines starting with `*` inside block comments may not always be detected
 - **Current**: Basic pattern matching for `^*`
 - **Limitation**: Complex nested scenarios not fully covered
 
-### 2. **Performance Considerations**
+### 3. **Performance Considerations**
 - **File I/O**: Comment filtering reads files for context detection
 - **Impact**: Minimal performance impact in normal usage
 - **Optimization**: Could cache file contents for repeated checks
 
-### 3. **Edge Cases**
+### 4. **Edge Cases**
 - **String Literals**: Comments inside string literals not handled
 - **Conditional Comments**: Language-specific conditional comments not covered
 - **Mixed Content**: Lines with both code and comments use simple pattern matching
@@ -139,16 +145,23 @@ COMMENT_FILTERING_STATUS.md    # This status file
 - Performance benchmarking
 - Integration tests with real-world codebases
 
-## 🏁 Current Status: **COMPLETE**
+## 🏁 Current Status: **MOSTLY COMPLETE**
 
-The comment filtering system is fully functional across all supported frameworks. Users can now:
+The comment filtering system is functional across 10 out of 11 supported frameworks. Users can now:
 
-1. **Filter commented endpoints** automatically across all languages
-2. **Configure filtering** globally or per-language
-3. **Handle complex scenarios** including block comments and PHP attributes
-4. **Test thoroughly** with comprehensive fixtures and specs
+1. **Filter commented endpoints** automatically across most languages ✅
+2. **Configure filtering** globally or per-language ✅
+3. **Handle simple comment scenarios** for all frameworks ✅
+4. **Test thoroughly** with comprehensive fixtures and specs ✅
 
-The implementation successfully prevents commented-out endpoint code from appearing in search results while maintaining full compatibility with existing functionality.
+### **Working Frameworks**:
+Spring, Servlet, Ktor, NestJS, Express, Express TS, React Router, FastAPI, Rails, DotNet
+
+### **Partially Working**:
+Symfony (PHP attributes work, but block comments and column highlighting still have issues)
+
+### **Next Priority**:
+Fix Symfony block comment filtering and column highlighting issues
 
 ---
 *Generated: 2025-01-27*
