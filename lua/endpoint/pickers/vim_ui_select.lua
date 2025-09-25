@@ -57,8 +57,19 @@ function VimUiSelectPicker:_create_select_config(opts)
   local config_module = require "endpoint.config"
   local config = config_module.get()
 
+  -- Get default prompt from config or fallback
+  local default_prompt = "Endpoint: "
+  if
+    config.picker
+    and config.picker.options
+    and config.picker.options.vim_ui_select
+    and config.picker.options.vim_ui_select.prompt
+  then
+    default_prompt = config.picker.options.vim_ui_select.prompt
+  end
+
   local default_config = {
-    prompt = "Endpoint: ",
+    prompt = default_prompt,
     format_item = function(item)
       -- Use themed format if icons are enabled (works with dressing + telescope backend)
       if config.ui and config.ui.show_icons ~= false then
@@ -222,21 +233,20 @@ end
 
 ---Register custom_kind with dressing.nvim for method highlighting
 function VimUiSelectPicker:_register_dressing_custom_kind()
-  local dressing_select_telescope = require "dressing.select.telescope"
+  local ok, dressing_select_telescope = pcall(require, "dressing.select.telescope")
+  if not ok then
+    return
+  end
 
   -- Check if custom_kind table exists and extend it
   if dressing_select_telescope.custom_kind then
     dressing_select_telescope.custom_kind.endpoint_select = function(opts, defaults, items)
-      local entry_display = require "telescope.pickers.entry_display"
-      local finders = require "telescope.finders"
-      local displayer
+      local entry_display_ok = pcall(require, "telescope.pickers.entry_display")
+      local finders_ok, finders = pcall(require, "telescope.finders")
 
-      local function make_display(entry)
-        local display_text = opts.format_item(entry.value)
-        local columns = {
-          display_text,
-        }
-        return displayer(columns)
+      if not entry_display_ok or not finders_ok then
+        -- Fallback: telescope not available, skip custom kind
+        return
       end
 
       local entries = {}
@@ -273,19 +283,17 @@ function VimUiSelectPicker:_register_dressing_custom_kind()
         })
       end
 
-      displayer = entry_display.create {
-        separator = " ",
-        items = {
-          { width = text_width },
-        },
-      }
-
       defaults.finder = finders.new_table {
         results = entries,
         entry_maker = function(item)
           return item
         end,
       }
+
+      -- Apply prompt from opts to defaults if provided
+      if opts.prompt then
+        defaults.prompt_title = opts.prompt
+      end
     end
   end
 end
