@@ -137,6 +137,8 @@
 ---@field add_manifest_files fun(self: endpoint.Detector, additional_manifest_files: string[])
 ---@field get_required_dependencies fun(self: endpoint.Detector): string[]
 ---@field get_manifest_files fun(self: endpoint.Detector): string[]
+---@field _should_check_submodules fun(self: endpoint.Detector): boolean
+---@field _find_submodule_manifest_files fun(self: endpoint.Detector): string[]
 
 
 -- Parsing Pattern
