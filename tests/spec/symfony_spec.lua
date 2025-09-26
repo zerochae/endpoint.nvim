@@ -119,11 +119,11 @@ describe("SymfonyFramework", function()
     end)
 
     it("should parse multiline Route attributes", function()
-      local multiline_content = [[#[Route(
-        path: '/posts/{postId}/comments',
-        name: 'comment.create',
-        methods: ['POST'],
-    )]]]
+      local multiline_content = "#[Route(\n" ..
+        "        path: '/posts/{postId}/comments',\n" ..
+        "        name: 'comment.create',\n" ..
+        "        methods: ['POST'],\n" ..
+        "    )]"
       local result = parser:parse_content(multiline_content, "CommentController.php", 1, 1)
 
       -- Should work with multiline support
@@ -133,11 +133,11 @@ describe("SymfonyFramework", function()
     end)
 
     it("should parse multiline Route with named arguments in different order", function()
-      local multiline_content = [[#[Route(
-        name: 'comment.update',
-        methods: ['PUT'],
-        path: '/posts/{postId}/comments/{commentId}',
-    )]]]
+      local multiline_content = "#[Route(\n" ..
+        "        name: 'comment.update',\n" ..
+        "        methods: ['PUT'],\n" ..
+        "        path: '/posts/{postId}/comments/{commentId}',\n" ..
+        "    )]"
       local result = parser:parse_content(multiline_content, "CommentController.php", 1, 1)
 
       -- Should work with multiline support and named arguments
@@ -239,10 +239,10 @@ describe("SymfonyParser", function()
     end)
 
     it("should extract paths from multiline attributes", function()
-      local multiline_path = [[#[Route(
-        path: '/posts/{postId}/comments',
-        methods: ['POST']
-    )]]]
+      local multiline_path = "#[Route(\n" ..
+        "        path: '/posts/{postId}/comments',\n" ..
+        "        methods: ['POST']\n" ..
+        "    )]"
       local path = parser:extract_endpoint_path(multiline_path)
       -- Should work with multiline support and named parameters
       assert.equals("/posts/{postId}/comments", path)
@@ -295,22 +295,22 @@ describe("SymfonyParser", function()
     end)
 
     it("should extract methods from multiline attributes", function()
-      local multiline_method = [[#[Route(
-        name: 'comment.create',
-        methods: ['POST'],
-        path: '/posts/{postId}/comments'
-    )]]]
+      local multiline_method = "#[Route(\n" ..
+        "        name: 'comment.create',\n" ..
+        "        methods: ['POST'],\n" ..
+        "        path: '/posts/{postId}/comments'\n" ..
+        "    )]"
       local method = parser:extract_method(multiline_method)
       -- Should work with multiline support
       assert.equals("POST", method)
     end)
 
     it("should handle named arguments in different order (multiline)", function()
-      local mixed_order = [[#[Route(
-        methods: ['GET'],
-        path: '/posts/{postId}/comments',
-        name: 'comment.list'
-    )]]]
+      local mixed_order = "#[Route(\n" ..
+        "        methods: ['GET'],\n" ..
+        "        path: '/posts/{postId}/comments',\n" ..
+        "        name: 'comment.list'\n" ..
+        "    )]"
       local method = parser:extract_method(mixed_order)
       -- Should work with multiline support
       assert.equals("GET", method)
