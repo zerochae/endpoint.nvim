@@ -58,6 +58,7 @@ A powerful Neovim plugin for quickly finding and navigating web framework API en
     -- Choose one or more pickers (all optional):
     "nvim-telescope/telescope.nvim", -- For telescope picker
     "folke/snacks.nvim",            -- For snacks picker
+    "stevearc/dressing.nvim",       -- Enhances vim.ui.select with telescope backend
     -- vim.ui.select picker works without dependencies
   },
   cmd = { "Endpoint", "EndpointRefresh" },
@@ -77,7 +78,12 @@ require("endpoint").setup({
     options = {
       telescope = {},     -- Telescope-specific options
       snacks = {},        -- Snacks-specific options
-      vim_ui_select = {}, -- vim.ui.select-specific options
+      vim_ui_select = {   -- vim.ui.select-specific options
+        enable_filter = false,        -- Enable filtering for large lists
+        filter_threshold = 20,        -- Show filter prompt when endpoints > threshold
+        filter_prompt = "Filter: ",   -- Custom filter prompt
+        show_filter_examples = true,  -- Show filter examples in prompt
+      },
     },
     -- Previewer configuration
     previewer = {
@@ -121,7 +127,7 @@ require("endpoint").setup({
 ⚠️ **Important**: You must set `picker.type` to match your installed picker!
 
 - **Telescope**: `picker.type = "telescope"` - Rich fuzzy search with preview
-- **vim.ui.select**: `picker.type = "vim_ui_select"` - Native Neovim interface with smart filtering for large lists
+- **vim.ui.select**: `picker.type = "vim_ui_select"` - Native Neovim interface with smart filtering, enhanced by dressing.nvim
 - **Snacks**: `picker.type = "snacks"` - Modern picker with file preview and line highlighting
 
 ```lua
@@ -143,6 +149,26 @@ require("endpoint").setup({
   config = function()
     require("endpoint").setup({
       picker = { type = "telescope" }
+    })
+  end,
+}
+
+-- If you use vim.ui.select with dressing.nvim
+{
+  "zerochae/endpoint.nvim",
+  dependencies = { "stevearc/dressing.nvim" },
+  config = function()
+    require("endpoint").setup({
+      picker = {
+        type = "vim_ui_select",
+        options = {
+          vim_ui_select = {
+            enable_filter = true,
+            filter_threshold = 20,
+            filter_prompt = "Filter endpoints: ",
+          }
+        }
+      }
     })
   end,
 }
