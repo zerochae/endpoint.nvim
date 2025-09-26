@@ -11,11 +11,11 @@ function SymfonyFramework:new()
     file_extensions = { "*.php" },
     exclude_patterns = { "**/vendor", "**/var", "**/cache" },
     patterns = {
-      GET = { "#\\[Route\\(.*methods.*GET", "@Route\\(.*methods.*GET", "\\* @Route\\(.*methods.*GET" },
-      POST = { "#\\[Route\\(.*methods.*POST", "@Route\\(.*methods.*POST", "\\* @Route\\(.*methods.*POST" },
-      PUT = { "#\\[Route\\(.*methods.*PUT", "@Route\\(.*methods.*PUT", "\\* @Route\\(.*methods.*PUT" },
-      DELETE = { "#\\[Route\\(.*methods.*DELETE", "@Route\\(.*methods.*DELETE", "\\* @Route\\(.*methods.*DELETE" },
-      PATCH = { "#\\[Route\\(.*methods.*PATCH", "@Route\\(.*methods.*PATCH", "\\* @Route\\(.*methods.*PATCH" },
+      GET = { "#\\[Route\\([^\\]]*methods[^\\]]*GET", "@Route\\(.*methods.*GET", "\\* @Route\\([^)]*methods[^)]*GET", "\\* @Route\\([\\s\\S]*?methods[\\s\\S]*?GET" },
+      POST = { "#\\[Route\\([^\\]]*methods[^\\]]*POST", "@Route\\(.*methods.*POST", "\\* @Route\\([^)]*methods[^)]*POST", "\\* @Route\\([\\s\\S]*?methods[\\s\\S]*?POST" },
+      PUT = { "#\\[Route\\([^\\]]*methods[^\\]]*PUT", "@Route\\(.*methods.*PUT", "\\* @Route\\([^)]*methods[^)]*PUT", "\\* @Route\\([\\s\\S]*?methods[\\s\\S]*?PUT" },
+      DELETE = { "#\\[Route\\([^\\]]*methods[^\\]]*DELETE", "@Route\\(.*methods.*DELETE", "\\* @Route\\([^)]*methods[^)]*DELETE", "\\* @Route\\([\\s\\S]*?methods[\\s\\S]*?DELETE" },
+      PATCH = { "#\\[Route\\([^\\]]*methods[^\\]]*PATCH", "@Route\\(.*methods.*PATCH", "\\* @Route\\([^)]*methods[^)]*PATCH", "\\* @Route\\([\\s\\S]*?methods[\\s\\S]*?PATCH" },
     },
     search_options = { "--case-sensitive", "--type", "php", "-U", "--multiline-dotall" },
     controller_extractors = {

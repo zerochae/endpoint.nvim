@@ -117,6 +117,34 @@ describe("SymfonyFramework", function()
         assert.equals("/users/{id}/posts/{postId}", result.endpoint_path)
       end
     end)
+
+    it("should parse multiline Route attributes", function()
+      local multiline_content = [[#[Route(
+        path: '/posts/{postId}/comments',
+        name: 'comment.create',
+        methods: ['POST'],
+    )]]]
+      local result = parser:parse_content(multiline_content, "CommentController.php", 1, 1)
+
+      -- Should work with multiline support
+      assert.is_not_nil(result)
+      assert.equals("POST", result.method)
+      assert.equals("/posts/{postId}/comments", result.endpoint_path)
+    end)
+
+    it("should parse multiline Route with named arguments in different order", function()
+      local multiline_content = [[#[Route(
+        name: 'comment.update',
+        methods: ['PUT'],
+        path: '/posts/{postId}/comments/{commentId}',
+    )]]]
+      local result = parser:parse_content(multiline_content, "CommentController.php", 1, 1)
+
+      -- Should work with multiline support and named arguments
+      assert.is_not_nil(result)
+      assert.equals("PUT", result.method)
+      assert.equals("/posts/{postId}/comments/{commentId}", result.endpoint_path)
+    end)
   end)
 
   describe("Search Command Generation", function()
@@ -209,6 +237,28 @@ describe("SymfonyParser", function()
         assert.equals("/users", path)
       end
     end)
+
+    it("should extract paths from multiline attributes", function()
+      local multiline_path = [[#[Route(
+        path: '/posts/{postId}/comments',
+        methods: ['POST']
+    )]]]
+      local path = parser:extract_endpoint_path(multiline_path)
+      -- Should work with multiline support and named parameters
+      assert.equals("/posts/{postId}/comments", path)
+    end)
+
+    it("should extract paths with named parameter syntax", function()
+      local named_path = '#[Route(path: "/api/users/{id}", methods: ["GET"])]'
+      local path = parser:extract_endpoint_path(named_path)
+      assert.equals("/api/users/{id}", path)
+    end)
+
+    it("should extract paths when path parameter comes after methods", function()
+      local mixed_order = '#[Route(name: "comment.update", methods: ["PUT"], path: "/posts/{postId}/comments/{commentId}")]'
+      local path = parser:extract_endpoint_path(mixed_order)
+      assert.equals("/posts/{postId}/comments/{commentId}", path)
+    end)
   end)
 
   describe("HTTP Method Extraction", function()
@@ -242,6 +292,28 @@ describe("SymfonyParser", function()
       if method then
         assert.equals("GET", method)
       end
+    end)
+
+    it("should extract methods from multiline attributes", function()
+      local multiline_method = [[#[Route(
+        name: 'comment.create',
+        methods: ['POST'],
+        path: '/posts/{postId}/comments'
+    )]]]
+      local method = parser:extract_method(multiline_method)
+      -- Should work with multiline support
+      assert.equals("POST", method)
+    end)
+
+    it("should handle named arguments in different order (multiline)", function()
+      local mixed_order = [[#[Route(
+        methods: ['GET'],
+        path: '/posts/{postId}/comments',
+        name: 'comment.list'
+    )]]]
+      local method = parser:extract_method(mixed_order)
+      -- Should work with multiline support
+      assert.equals("GET", method)
     end)
   end)
 
