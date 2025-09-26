@@ -111,10 +111,26 @@ function SymfonyParser:_extract_path_multiline(file_path, start_line, content)
           extracted_path = self:_extract_path_single_line(multiline_content)
         end
 
-        -- If we hit closing bracket followed by closing parenthesis, this is the end
-        if next_line:match "%s*%]%s*$" then
+        -- Check for different annotation ending patterns
+        -- PHP8+ attributes: )]
+        if next_line:match "%s*%]%s*$" or next_line:match "%s*%)%s*%]%s*$" then
           annotation_end_line = i
           break
+        end
+
+        -- DocBlock annotations: * ) and then */
+        if next_line:match "%s*%*%s*%)%s*$" then
+          -- Look for */ on current or next line
+          if next_line:match "%*/" then
+            annotation_end_line = i
+            break
+          elseif i + 1 <= #lines and lines[i + 1] and lines[i + 1]:match "%s*%*/" then
+            annotation_end_line = i + 1
+            break
+          else
+            annotation_end_line = i
+            break
+          end
         end
       end
     end
@@ -133,8 +149,23 @@ end
 
 ---Checks if annotation definition spans multiple lines
 function SymfonyParser:_is_multiline_annotation(content)
-  -- Check if content has annotation start but no closing bracket
-  return (content:match "#%[Route%(%s*$" or content:match "@Route%(%s*$" or content:match "\\* @Route%(%s*$")
+  -- Check if content has annotation start but no closing bracket/parenthesis
+  -- PHP8+ attributes: #[Route(
+  if content:match "#%[Route%(%s*$" or content:match "#%[Route%([^%]]*$" then
+    return true
+  end
+
+  -- Direct annotations: @Route(
+  if content:match "@Route%(%s*$" or content:match "@Route%([^)]*$" then
+    return true
+  end
+
+  -- DocBlock annotations: * @Route(
+  if content:match "\\*%s*@Route%(%s*$" or content:match "\\*%s*@Route%([^)]*$" then
+    return true
+  end
+
+  return false
 end
 
 ---Extracts HTTP method from Symfony annotation content
@@ -290,11 +321,33 @@ function SymfonyParser:_find_controller_level_route(lines, line_number)
     -- Check if this is a class declaration
     if line:match "class%s+%w+" then
       -- Look for @Route on this class or preceding lines (including docblocks)
-      for j = math.max(1, i - 10), i do
+      local multiline_content = ""
+      local in_multiline_route = false
+
+      for j = math.max(1, i - 15), i do
         local annotation_line = lines[j]
-        local base_path = self:_extract_controller_route_path(annotation_line)
-        if base_path then
-          return base_path
+
+        -- Check if we're starting a multiline Route attribute
+        if annotation_line:match "#%[Route%(%s*$" or annotation_line:match "#%[Route%(%s*[^%]]*$" then
+          in_multiline_route = true
+          multiline_content = annotation_line
+        elseif in_multiline_route then
+          multiline_content = multiline_content .. " " .. annotation_line:gsub("^%s+", ""):gsub("%s+$", "")
+          -- Check if we've reached the end of the attribute
+          if annotation_line:match "%s*%]%s*$" then
+            in_multiline_route = false
+            local base_path = self:_extract_controller_route_path(multiline_content)
+            if base_path then
+              return base_path
+            end
+            multiline_content = ""
+          end
+        else
+          -- Try single line extraction
+          local base_path = self:_extract_controller_route_path(annotation_line)
+          if base_path then
+            return base_path
+          end
         end
       end
       break
@@ -306,9 +359,15 @@ end
 
 ---Extracts path from controller-level @Route annotation
 function SymfonyParser:_extract_controller_route_path(annotation_line)
-  -- PHP 8+ attributes: #[Route('/api')]
+  -- PHP 8+ attributes: #[Route('/api')] (positional)
   local path = annotation_line:match "#%[Route%(%s*[\"']([^\"']+)[\"']"
   if path and not annotation_line:match "methods" then
+    return path
+  end
+
+  -- PHP 8+ attributes: #[Route(path: '/api')] (named parameter)
+  path = annotation_line:match "path%s*:%s*[\"']([^\"']+)[\"']"
+  if path and annotation_line:match "#%[Route%(" and not annotation_line:match "methods" then
     return path
   end
 
@@ -338,9 +397,21 @@ function SymfonyParser:_is_controller_level_route(content)
   return content:match "@Route%s*%(" or content:match "#%[Route%(" or content:match "\\* @Route%s*%("
 end
 
----Extracts path from PHP 8+ attributes: #[Route('/path')]
+---Extracts path from PHP 8+ attributes: #[Route('/path')] or #[Route(path: '/path')]
 function SymfonyParser:_extract_path_from_php8_attributes(content)
-  return content:match "#%[Route%(%s*[\"']([^\"']+)[\"']"
+  -- First try positional parameter: #[Route('/path')]
+  local path = content:match "#%[Route%(%s*[\"']([^\"']+)[\"']"
+  if path then
+    return path
+  end
+
+  -- Then try named parameter: #[Route(...path: '/path'...)] - anywhere in the attributes
+  path = content:match "path%s*:%s*[\"']([^\"']+)[\"']"
+  if path and content:match "#%[Route%(" then
+    return path
+  end
+
+  return nil
 end
 
 ---Extracts path from direct annotations: @Route("/path")
@@ -350,7 +421,22 @@ end
 
 ---Extracts path from docblock annotations: * @Route("/path")
 function SymfonyParser:_extract_path_from_docblock(content)
-  return content:match "\\* @Route%(%s*[\"']([^\"']+)[\"']"
+  -- Try single line: * @Route("/path")
+  local path = content:match "\\* @Route%(%s*[\"']([^\"']+)[\"']"
+  if path then
+    return path
+  end
+
+  -- Try multiline DocBlock: extract path from anywhere in the comment
+  if content:match "\\* @Route%(" then
+    -- Look for path anywhere in the normalized content
+    path = content:match "[\"']([^\"']*%/[^\"']*)[\"']"
+    if path then
+      return path
+    end
+  end
+
+  return nil
 end
 
 ---Extracts HTTP methods using multiline-aware extraction
@@ -387,8 +473,14 @@ function SymfonyParser:_extract_methods_multiline(content, file_path, line_numbe
           return extracted_methods
         end
 
-        -- If we hit closing bracket, stop
-        if next_line:match "%s*%]%s*$" then
+        -- Check for annotation ending patterns
+        -- PHP8+ attributes: )]
+        if next_line:match "%s*%]%s*$" or next_line:match "%s*%)%s*%]%s*$" then
+          break
+        end
+
+        -- DocBlock annotations: * ) and then */
+        if next_line:match "%s*%*%s*%)%s*$" or next_line:match "%s*%*/" then
           break
         end
       end
