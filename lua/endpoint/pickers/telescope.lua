@@ -1,15 +1,20 @@
 local Picker = require "endpoint.core.Picker"
 local Highlighter = require "endpoint.core.Highlighter"
+local Themes = require "endpoint.core.Themes"
 
----@class endpoint.TelescopePicker
+---@class endpoint.TelescopePicker : endpoint.Picker
 local TelescopePicker = setmetatable({}, { __index = Picker })
 TelescopePicker.__index = TelescopePicker
 
 ---Creates a new TelescopePicker instance
 function TelescopePicker:new()
-  local telescope_picker = setmetatable(Picker:new "telescope", self)
-  telescope_picker.telescope_available = pcall(require, "telescope")
-  telescope_picker.highlighter = Highlighter:new "endpoint_preview_highlight"
+  local telescope_picker = setmetatable({
+    name = "telescope",
+    themes = Themes:new(),
+    telescope_available = pcall(require, "telescope"),
+    highlighter = Highlighter:new "endpoint_telescope_highlight",
+  }, self)
+
   return telescope_picker
 end
 

@@ -46,7 +46,20 @@
 -- Picker configuration (new structure)
 ---@class endpoint.picker.config
 ---@field type "telescope" | "vim_ui_select" | "snacks"
----@field options table
+---@field options endpoint.picker.options
+
+-- Picker options configuration
+---@class endpoint.picker.options
+---@field telescope? table Options passed to Telescope picker
+---@field vim_ui_select? endpoint.picker.vim_ui_select.options Options for vim.ui.select picker
+---@field snacks? table Options passed to Snacks.nvim picker
+
+-- Vim UI Select picker options
+---@class endpoint.picker.vim_ui_select.options
+---@field filter_threshold? number Threshold for showing filter prompt (default: 20)
+---@field filter_prompt? string Custom filter prompt text
+---@field show_filter_examples? boolean Show filter examples in prompt (default: true)
+---@field enable_filter? boolean Enable filtering for large lists (default: false)
 
 -- Previewer configuration (new structure)
 ---@class endpoint.picker.previewer.config
@@ -413,6 +426,11 @@
 ---@field highlighter endpoint.Highlighter
 
 ---@class endpoint.VimUiSelectPicker : endpoint.Picker
+---@field highlighter endpoint.Highlighter
+---@field has_dressing boolean
+---@field _create_telescope_entry fun(self: endpoint.VimUiSelectPicker, item: endpoint.entry, config: table): table
+---@field _create_method_highlight_function fun(self: endpoint.VimUiSelectPicker): function
+---@field _register_dressing_custom_kind fun(self: endpoint.VimUiSelectPicker)
 
 -- ========================================
 -- UTILITY MODULES
