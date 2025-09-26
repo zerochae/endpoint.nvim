@@ -32,6 +32,7 @@ end
 function Detector:is_target_detected()
   -- If we have dependencies and manifest files, use dependency detection
   if self.required_dependencies and self.manifest_files then
+    -- First check root level manifest files
     for _, manifest_file_path in ipairs(self.manifest_files) do
       if fs.has_file { manifest_file_path } then
         if self:_check_manifest_file_for_dependencies(manifest_file_path) then
@@ -39,6 +40,17 @@ function Detector:is_target_detected()
         end
       end
     end
+
+    -- For Maven projects, also check submodules
+    if self:_should_check_submodules() then
+      local submodule_manifest_files = self:_find_submodule_manifest_files()
+      for _, submodule_manifest_path in ipairs(submodule_manifest_files) do
+        if self:_check_manifest_file_for_dependencies(submodule_manifest_path) then
+          return true
+        end
+      end
+    end
+
     return false
   end
 
@@ -131,6 +143,46 @@ end
 ---Gets the list of manifest files to search
 function Detector:get_manifest_files()
   return vim.deepcopy(self.manifest_files or {})
+end
+
+function Detector:_should_check_submodules()
+  if not self.manifest_files then
+    return false
+  end
+
+  -- Check if this is a Maven project
+  for _, manifest_file in ipairs(self.manifest_files) do
+    if manifest_file == "pom.xml" then
+      return fs.has_file { "pom.xml" }
+    end
+  end
+
+  return false
+end
+
+---Finds all submodule manifest files for Maven multi-module projects
+function Detector:_find_submodule_manifest_files()
+  local submodule_manifest_files = {}
+
+  -- Only proceed if root pom.xml exists
+  if not fs.has_file { "pom.xml" } then
+    return submodule_manifest_files
+  end
+
+  -- Use vim.fn.glob to find all pom.xml files in subdirectories
+  -- Pattern: */pom.xml finds pom.xml files one level deep (submodules)
+  local glob_pattern = "*/pom.xml"
+  local found_files = vim.fn.glob(glob_pattern, false, true)
+
+  if type(found_files) == "table" then
+    for _, file_path in ipairs(found_files) do
+      table.insert(submodule_manifest_files, file_path)
+    end
+  elseif type(found_files) == "string" and found_files ~= "" then
+    table.insert(submodule_manifest_files, found_files)
+  end
+
+  return submodule_manifest_files
 end
 
 return Detector

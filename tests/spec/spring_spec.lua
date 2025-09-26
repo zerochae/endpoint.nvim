@@ -1,13 +1,46 @@
+---@diagnostic disable: duplicate-set-field
 local SpringFramework = require "endpoint.frameworks.spring"
 local SpringParser = require "endpoint.parser.spring_parser"
+local fs = require "endpoint.utils.fs"
 
 describe("SpringFramework", function()
   local framework
   local parser
+  local original_has_file
+  local original_file_contains
+  local original_glob
+
+  local function mockFs(has_pom, has_spring_deps)
+    fs.has_file = function(files)
+      if type(files) == "table" and files[1] == "pom.xml" then
+        return has_pom
+      end
+      return false
+    end
+
+    fs.file_contains = function(filepath, pattern)
+      if filepath == "pom.xml" and pattern == "spring-boot" then
+        return has_spring_deps
+      end
+      return false
+    end
+  end
 
   before_each(function()
     framework = SpringFramework:new()
     parser = SpringParser:new()
+
+    -- Backup original functions
+    original_has_file = fs.has_file
+    original_file_contains = fs.file_contains
+    original_glob = vim.fn.glob
+  end)
+
+  after_each(function()
+    -- Restore original functions
+    fs.has_file = original_has_file
+    fs.file_contains = original_file_contains
+    vim.fn.glob = original_glob
   end)
 
   describe("Framework Detection", function()
@@ -49,13 +82,13 @@ describe("SpringFramework", function()
       local has_get_mapping = false
       local has_post_mapping = false
       for _, pattern in ipairs(config.patterns.GET) do
-        if pattern:match("@GetMapping") then
+        if pattern:match "@GetMapping" then
           has_get_mapping = true
           break
         end
       end
       for _, pattern in ipairs(config.patterns.POST) do
-        if pattern:match("@PostMapping") then
+        if pattern:match "@PostMapping" then
           has_post_mapping = true
           break
         end
@@ -81,15 +114,29 @@ describe("SpringFramework", function()
       local has_spring_boot = false
       local has_spring_web = false
       for _, dep in ipairs(config.detector.dependencies) do
-        if dep:match("spring%-boot") then
+        if dep:match "spring%-boot" then
           has_spring_boot = true
         end
-        if dep:match("spring%-web") then
+        if dep:match "spring%-web" then
           has_spring_web = true
         end
       end
       assert.is_true(has_spring_boot)
       assert.is_true(has_spring_web)
+    end)
+
+    it("should detect Maven project with Spring dependencies", function()
+      mockFs(true, true)
+
+      local detector = framework.detector
+      assert.is_true(detector:is_target_detected())
+    end)
+
+    it("should return false when no pom.xml exists", function()
+      mockFs(false, false)
+
+      local detector = framework.detector
+      assert.is_false(detector:is_target_detected())
     end)
   end)
 
@@ -162,17 +209,17 @@ describe("SpringFramework", function()
 
   describe("Controller Name Extraction", function()
     it("should extract controller name from Java file", function()
-      local controller_name = framework:getControllerName("src/main/java/com/example/UserController.java")
+      local controller_name = framework:getControllerName "src/main/java/com/example/UserController.java"
       assert.is_not_nil(controller_name)
     end)
 
     it("should extract controller name from Kotlin file", function()
-      local controller_name = framework:getControllerName("src/main/kotlin/com/example/UserController.kt")
+      local controller_name = framework:getControllerName "src/main/kotlin/com/example/UserController.kt"
       assert.is_not_nil(controller_name)
     end)
 
     it("should handle nested controller paths", function()
-      local controller_name = framework:getControllerName("src/main/java/com/example/admin/UserController.java")
+      local controller_name = framework:getControllerName "src/main/java/com/example/admin/UserController.java"
       assert.is_not_nil(controller_name)
     end)
   end)
@@ -219,59 +266,59 @@ describe("SpringParser", function()
 
   describe("Endpoint Path Extraction", function()
     it("should extract simple paths", function()
-      local path = parser:extract_endpoint_path('@GetMapping("/users")')
+      local path = parser:extract_endpoint_path '@GetMapping("/users")'
       assert.equals("/users", path)
     end)
 
     it("should extract paths with path variables", function()
-      local path = parser:extract_endpoint_path('@GetMapping("/users/{id}")')
+      local path = parser:extract_endpoint_path '@GetMapping("/users/{id}")'
       assert.equals("/users/{id}", path)
     end)
 
     it("should handle value parameter", function()
-      local path = parser:extract_endpoint_path('@GetMapping(value = "/users")')
+      local path = parser:extract_endpoint_path '@GetMapping(value = "/users")'
       assert.equals("/users", path)
     end)
 
     it("should handle path parameter", function()
-      local path = parser:extract_endpoint_path('@GetMapping(path = "/users")')
+      local path = parser:extract_endpoint_path '@GetMapping(path = "/users")'
       assert.equals("/users", path)
     end)
 
     it("should handle single quotes", function()
-      local path = parser:extract_endpoint_path("@GetMapping('/users')")
+      local path = parser:extract_endpoint_path "@GetMapping('/users')"
       assert.equals("/users", path)
     end)
   end)
 
   describe("HTTP Method Extraction", function()
     it("should extract GET from GetMapping", function()
-      local method = parser:extract_method('@GetMapping("/users")')
+      local method = parser:extract_method '@GetMapping("/users")'
       assert.equals("GET", method)
     end)
 
     it("should extract POST from PostMapping", function()
-      local method = parser:extract_method('@PostMapping("/users")')
+      local method = parser:extract_method '@PostMapping("/users")'
       assert.equals("POST", method)
     end)
 
     it("should extract PUT from PutMapping", function()
-      local method = parser:extract_method('@PutMapping("/users/{id}")')
+      local method = parser:extract_method '@PutMapping("/users/{id}")'
       assert.equals("PUT", method)
     end)
 
     it("should extract DELETE from DeleteMapping", function()
-      local method = parser:extract_method('@DeleteMapping("/users/{id}")')
+      local method = parser:extract_method '@DeleteMapping("/users/{id}")'
       assert.equals("DELETE", method)
     end)
 
     it("should extract PATCH from PatchMapping", function()
-      local method = parser:extract_method('@PatchMapping("/users/{id}")')
+      local method = parser:extract_method '@PatchMapping("/users/{id}")'
       assert.equals("PATCH", method)
     end)
 
     it("should extract method from RequestMapping", function()
-      local method = parser:extract_method('@RequestMapping(method = RequestMethod.GET)')
+      local method = parser:extract_method "@RequestMapping(method = RequestMethod.GET)"
       if method then
         assert.equals("GET", method)
       end
