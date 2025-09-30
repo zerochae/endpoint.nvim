@@ -1,18 +1,20 @@
 local Parser = require "endpoint.core.Parser"
+local class = require "endpoint.lib.middleclass"
 
 ---@class endpoint.SpringParser
-local SpringParser = setmetatable({}, { __index = Parser })
-SpringParser.__index = SpringParser
+local SpringParser = class("SpringParser", Parser)
 
 -- ========================================
 -- PUBLIC METHODS
 -- ========================================
 
 ---Creates a new SpringParser instance
-function SpringParser:new()
-  local spring_parser = Parser:new { parser_name = "spring_parser", framework_name = "spring", language = "java" }
-  setmetatable(spring_parser, self)
-  return spring_parser
+function SpringParser:initialize()
+  Parser.initialize(self, {
+    parser_name = "spring_parser",
+    framework_name = "spring",
+    language = "java",
+  })
 end
 
 ---Extracts base path from Spring controller file
@@ -112,7 +114,7 @@ function SpringParser:parse_content(content, file_path, line_number, column)
         -- Create multiple endpoints for each method
         local endpoints = {}
         local base_path = self:extract_base_path(file_path, line_number)
-        local endpoint_path = self:extract_endpoint_path(extended_content, file_path, line_number)
+        local endpoint_path = self:extract_endpoint_path(extended_content)
         local full_path = self:combine_paths(base_path, endpoint_path)
 
         for _, method in ipairs(methods) do
@@ -161,7 +163,7 @@ function SpringParser:parse_content(content, file_path, line_number, column)
           -- Create multiple endpoints for each method
           local endpoints = {}
           local base_path = self:extract_base_path(file_path, line_number)
-          local endpoint_path = self:extract_endpoint_path(extended_content, file_path, line_number)
+          local endpoint_path = self:extract_endpoint_path(extended_content)
           local full_path = self:combine_paths(base_path, endpoint_path)
 
           for _, method in ipairs(methods) do
@@ -456,7 +458,7 @@ function SpringParser:_get_extended_annotation_content(file_path, start_line)
   local start_column = nil
   local start_line_content = lines[start_line]
   if start_line_content then
-    local annotation_start = start_line_content:find("@%w*Mapping")
+    local annotation_start = start_line_content:find "@%w*Mapping"
     if annotation_start then
       start_column = annotation_start
     end

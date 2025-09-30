@@ -1,22 +1,20 @@
 local Parser = require "endpoint.core.Parser"
+local class = require "endpoint.lib.middleclass"
 
 ---@class endpoint.KtorParser
-local KtorParser = setmetatable({}, { __index = Parser })
-KtorParser.__index = KtorParser
+local KtorParser = class("KtorParser", Parser)
 
 -- ========================================
 -- PUBLIC METHODS
 -- ========================================
 
 ---Creates a new KtorParser instance
-function KtorParser:new()
-  local ktor_parser = Parser:new {
+function KtorParser:initialize()
+  Parser.initialize(self, {
     parser_name = "ktor_parser",
     framework_name = "ktor",
     language = "kotlin",
-  }
-  setmetatable(ktor_parser, self)
-  return ktor_parser
+  })
 end
 
 ---Extracts base path from Ktor routing file
@@ -78,7 +76,7 @@ function KtorParser:_extract_path_multiline(file_path, start_line, content)
   -- First try single line extraction
   local path = self:_extract_path_single_line(content)
   if path then
-    return path, nil  -- Single line, no end_line
+    return path, nil -- Single line, no end_line
   end
 
   -- If it's a multiline routing definition, read the file to find the path
@@ -104,7 +102,7 @@ function KtorParser:_extract_path_multiline(file_path, start_line, content)
         -- Try to extract path from accumulated content
         local extracted_path = self:_extract_path_single_line(multiline_content)
         if extracted_path then
-          return extracted_path, i  -- Return path and end line number
+          return extracted_path, i -- Return path and end line number
         end
 
         -- If we hit closing parenthesis followed by opening brace, stop and return end line
@@ -163,7 +161,7 @@ function KtorParser:parse_content(content, file_path, line_number, column)
   -- Add end_line_number if multiline
   if self._last_end_line_number then
     endpoint.end_line_number = self._last_end_line_number
-    self._last_end_line_number = nil  -- Clean up
+    self._last_end_line_number = nil -- Clean up
   end
 
   return endpoint
@@ -353,4 +351,3 @@ function KtorParser:is_content_valid_for_parsing(content_to_validate)
 end
 
 return KtorParser
-

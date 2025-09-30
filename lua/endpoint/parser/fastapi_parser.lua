@@ -1,22 +1,20 @@
 local Parser = require "endpoint.core.Parser"
+local class = require "endpoint.lib.middleclass"
 
 ---@class endpoint.FastApiParser
-local FastApiParser = setmetatable({}, { __index = Parser })
-FastApiParser.__index = FastApiParser
+local FastApiParser = class("FastApiParser", Parser)
 
 -- ========================================
 -- PUBLIC METHODS
 -- ========================================
 
 ---Creates a new FastApiParser instance
-function FastApiParser:new()
-  local fastapi_parser = Parser:new {
+function FastApiParser:initialize()
+  Parser.initialize(self, {
     parser_name = "fastapi_parser",
     framework_name = "fastapi",
     language = "python",
-  }
-  setmetatable(fastapi_parser, self)
-  return fastapi_parser
+  })
 end
 
 ---Extracts base path from FastAPI router file
@@ -149,7 +147,7 @@ function FastApiParser:_extract_path_multiline(file_path, start_line, content)
   -- First try single line extraction
   local path = self:_extract_path_single_line(content)
   if path then
-    return path, nil  -- Single line, no end_line
+    return path, nil -- Single line, no end_line
   end
 
   -- If it's a multiline decorator, read the file to find the path and end line

@@ -1,33 +1,31 @@
----@class endpoint.CacheManager
-local CacheManager = {}
-CacheManager.__index = CacheManager
+local class = require "endpoint.lib.middleclass"
 
-function CacheManager:new()
-  local cache_instance = setmetatable({}, self)
-  cache_instance.cached_endpoints = {}
-  cache_instance.cache_timestamps = {}
-  cache_instance.cache_mode = "session" -- Will be set by EndpointManager
-  return cache_instance
+---@class endpoint.Cache
+local Cache = class "Cache"
+
+function Cache:initialize()
+  self.cached_endpoints = {}
+  self.cache_timestamps = {}
+  self.cache_mode = "session"
 end
 
-function CacheManager:set_mode(mode)
+function Cache:set_mode(mode)
   self.cache_mode = mode
 end
 
-function CacheManager:_get_cache_key(method)
+function Cache:_get_cache_key(method)
   return method or "all"
 end
 
-function CacheManager:_get_cache_dir()
+function Cache:_get_cache_dir()
   return vim.fn.stdpath "cache" .. "/endpoint.nvim"
 end
 
-function CacheManager:_get_project_hash()
-  -- Use current working directory name as simple project identifier
-  return vim.fn.fnamemodify(vim.fn.getcwd(), ":t"):gsub("[^%w]", "_")
+function Cache:_get_project_hash()
+  return (vim.fn.fnamemodify(vim.fn.getcwd(), ":t"):gsub("[^%w]", "_"))
 end
 
-function CacheManager:_get_cache_file_path(method)
+function Cache:_get_cache_file_path(method)
   local cache_dir = self:_get_cache_dir()
   local project_hash = self:_get_project_hash()
   local cache_key = self:_get_cache_key(method)
@@ -40,24 +38,24 @@ function CacheManager:_get_cache_file_path(method)
   end
 end
 
-function CacheManager:_ensure_cache_dir()
+function Cache:_ensure_cache_dir()
   local cache_dir = self:_get_cache_dir()
   if vim.fn.isdirectory(cache_dir) == 0 then
     vim.fn.mkdir(cache_dir, "p")
   end
 end
 
-function CacheManager:is_valid(method)
+function Cache:is_valid(method)
   if self.cache_mode == "persistent" then
     local loaded_data = self:_load_from_disk(method)
     return loaded_data ~= nil and #loaded_data > 0
   else
     local cache_key = self:_get_cache_key(method)
-    return self.cached_endpoints[cache_key] and #self.cached_endpoints[cache_key] > 0
+    return self.cached_endpoints[cache_key] ~= nil and #self.cached_endpoints[cache_key] > 0
   end
 end
 
-function CacheManager:get_endpoints(method)
+function Cache:get_endpoints(method)
   if self.cache_mode == "persistent" then
     local endpoints = self:_load_from_disk(method)
     return endpoints or {}
@@ -67,7 +65,7 @@ function CacheManager:get_endpoints(method)
   end
 end
 
-function CacheManager:save_endpoints(endpoints, method)
+function Cache:save_endpoints(endpoints, method)
   local cache_key = self:_get_cache_key(method)
 
   -- Always save to memory for session access
@@ -80,7 +78,7 @@ function CacheManager:save_endpoints(endpoints, method)
   end
 end
 
-function CacheManager:_save_to_disk(endpoints, method)
+function Cache:_save_to_disk(endpoints, method)
   local success, err = pcall(function()
     self:_ensure_cache_dir()
     local file_path = self:_get_cache_file_path(method)
@@ -104,7 +102,7 @@ function CacheManager:_save_to_disk(endpoints, method)
   end
 end
 
-function CacheManager:_serialize_table(tbl)
+function Cache:_serialize_table(tbl)
   if type(tbl) ~= "table" then
     if type(tbl) == "string" then
       return string.format("%q", tbl)
@@ -132,7 +130,7 @@ function CacheManager:_serialize_table(tbl)
   return table.concat(parts)
 end
 
-function CacheManager:_load_from_disk(method)
+function Cache:_load_from_disk(method)
   local success, result = pcall(function()
     local file_path = self:_get_cache_file_path(method)
 
@@ -158,7 +156,7 @@ function CacheManager:_load_from_disk(method)
   end
 end
 
-function CacheManager:clear()
+function Cache:clear()
   self.cached_endpoints = {}
   self.cache_timestamps = {}
 
@@ -168,7 +166,7 @@ function CacheManager:clear()
   end
 end
 
-function CacheManager:_clear_disk_cache()
+function Cache:_clear_disk_cache()
   local success, err = pcall(function()
     local cache_dir = self:_get_cache_dir()
     local project_hash = self:_get_project_hash()
@@ -194,7 +192,7 @@ function CacheManager:_clear_disk_cache()
   end
 end
 
-function CacheManager:get_stats()
+function Cache:get_stats()
   local total_endpoints = 0
   for _, endpoints in pairs(self.cached_endpoints) do
     total_endpoints = total_endpoints + #endpoints
@@ -208,5 +206,5 @@ function CacheManager:get_stats()
   }
 end
 
--- Export the CacheManager class for OOP usage
-return CacheManager
+-- Export the Cache class for OOP usage
+return Cache

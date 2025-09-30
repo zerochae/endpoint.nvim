@@ -1,18 +1,12 @@
-local Highlighter = {}
-Highlighter.__index = Highlighter
+local class = require "endpoint.lib.middleclass"
 
----Creates a new highlighter instance with a namespace
----@param namespace_name string
----@return endpoint.Highlighter
-function Highlighter:new(namespace_name)
-  local highlighter = setmetatable({}, self)
-  highlighter.highlight_ns = vim.api.nvim_create_namespace(namespace_name)
-  return highlighter
+---@class endpoint.Highlighter
+local Highlighter = class "Highlighter"
+
+function Highlighter:initialize(namespace_name)
+  self.highlight_ns = vim.api.nvim_create_namespace(namespace_name)
 end
 
----Check if highlighting is enabled in config
----@param config table
----@return boolean
 function Highlighter:is_highlighting_enabled(config)
   local enable_highlighting = config.picker and config.picker.previewer and config.picker.previewer.enable_highlighting
 
@@ -24,18 +18,10 @@ function Highlighter:is_highlighting_enabled(config)
   return enable_highlighting
 end
 
----Clear all highlights in buffer
----@param bufnr number
 function Highlighter:clear_highlights(bufnr)
   vim.api.nvim_buf_clear_namespace(bufnr, self.highlight_ns, 0, -1)
 end
 
----Highlight a specific line range in buffer
----@param bufnr number
----@param start_line number (1-based)
----@param start_col number (1-based)
----@param end_line number|nil (1-based, optional)
----@param highlight_group string|nil
 function Highlighter:highlight_line_range(bufnr, start_line, start_col, end_line, highlight_group)
   highlight_group = highlight_group or "TelescopePreviewMatch"
 
@@ -58,28 +44,14 @@ function Highlighter:highlight_line_range(bufnr, start_line, start_col, end_line
   end
 end
 
----Highlight endpoint line(s) based on endpoint data
----@param bufnr number
----@param endpoint table
----@param highlight_group string|nil
 function Highlighter:highlight_endpoint(bufnr, endpoint, highlight_group)
   if not endpoint then
     return
   end
 
-  self:highlight_line_range(
-    bufnr,
-    endpoint.line_number,
-    endpoint.column,
-    endpoint.end_line_number,
-    highlight_group
-  )
+  self:highlight_line_range(bufnr, endpoint.line_number, endpoint.column, endpoint.end_line_number, highlight_group)
 end
 
----Highlight component definition in React Router components
----@param bufnr number
----@param endpoint table
----@param highlight_group string|nil
 function Highlighter:highlight_component_definition(bufnr, endpoint, highlight_group)
   if not endpoint.component_name then
     return
@@ -106,11 +78,6 @@ function Highlighter:highlight_component_definition(bufnr, endpoint, highlight_g
   end, 50)
 end
 
----Calculate highlight length for different display formats (for telescope entries)
----@param entry table
----@param method_icon string
----@param method_text string
----@return number
 function Highlighter:calculate_highlight_length(entry, method_icon, method_text)
   if entry.display_value and entry.display_value:match "%[.+#.+%]" then
     -- Rails controller#action annotation: highlight the entire "GET[controller#action]" part

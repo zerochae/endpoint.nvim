@@ -1,8 +1,8 @@
 local Parser = require "endpoint.core.Parser"
+local class = require "endpoint.lib.middleclass"
 
 ---@class endpoint.ExpressParser
-local ExpressParser = setmetatable({}, { __index = Parser })
-ExpressParser.__index = ExpressParser
+local ExpressParser = class("ExpressParser", Parser)
 
 -- Pattern definitions for different file types
 local js_patterns = {
@@ -32,7 +32,7 @@ local js_patterns = {
 
   -- Path extraction patterns
   path_extract = {
-    quoted = "['\"]([^'\"]+)['\"]",
+    quoted = "['\"`]([^'\"`]+)['\"`]",
   },
 
   -- Route type detection patterns
@@ -76,7 +76,7 @@ local ts_patterns = {
 
   -- Path extraction patterns (same as JS)
   path_extract = {
-    quoted = "['\"]([^'\"]+)['\"]",
+    quoted = "['\"`]([^'\"`]+)['\"`]",
   },
 
   -- Route type detection patterns
@@ -92,15 +92,13 @@ local ts_patterns = {
 -- ========================================
 
 ---Creates a new ExpressParser instance
-function ExpressParser:new()
-  local express_parser = Parser:new {
+function ExpressParser:initialize()
+  Parser.initialize(self, {
     parser_name = "express_parser",
     framework_name = "express",
     language = "javascript",
     supported_languages = { "javascript", "typescript" },
-  }
-  setmetatable(express_parser, self)
-  return express_parser
+  })
 end
 
 ---Extracts base path from Express router file

@@ -1,23 +1,19 @@
+local class = require "endpoint.lib.middleclass"
+
 ---@class endpoint.Parser
-local Parser = {}
-Parser.__index = Parser
+local Parser = class "Parser"
 
 ---Creates a new Parser instance with optional fields
-function Parser:new(fields)
-  local parser = setmetatable({}, self)
+function Parser:initialize(fields)
+  self.parser_name = "unknown_parser"
+  self.framework_name = "unknown"
+  self.language = "unknown"
 
-  parser.parser_name = "unknown_parser"
-  parser.framework_name = "unknown"
-  parser.language = "unknown"
-
-  -- Set fields if provided
   if fields then
     for key, value in pairs(fields) do
-      parser[key] = value
+      self[key] = value
     end
   end
-
-  return parser
 end
 
 ---Extracts base path from file (controller/class level)

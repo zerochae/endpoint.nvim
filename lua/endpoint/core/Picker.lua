@@ -1,6 +1,16 @@
+local class = require "endpoint.lib.middleclass"
+
 ---@class endpoint.Picker
-local Picker = {}
-Picker.__index = Picker
+local Picker = class "Picker"
+
+---Creates a new Picker instance with optional fields
+function Picker:initialize(fields)
+  if fields then
+    for key, value in pairs(fields) do
+      self[key] = value
+    end
+  end
+end
 
 function Picker:is_available()
   error "is_available() must be implemented by subclass"

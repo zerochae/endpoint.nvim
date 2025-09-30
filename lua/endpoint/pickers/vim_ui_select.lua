@@ -1,25 +1,23 @@
 local Picker = require "endpoint.core.Picker"
 local Highlighter = require "endpoint.core.Highlighter"
 local Themes = require "endpoint.core.Themes"
+local class = require "endpoint.lib.middleclass"
 
 ---@class endpoint.VimUiSelectPicker
-local VimUiSelectPicker = setmetatable({}, { __index = Picker })
-VimUiSelectPicker.__index = VimUiSelectPicker
+local VimUiSelectPicker = class("VimUiSelectPicker", Picker)
 
 ---Creates a new VimUiSelectPicker instance
-function VimUiSelectPicker:new()
-  local vim_ui_select_picker = setmetatable({
+function VimUiSelectPicker:initialize()
+  Picker.initialize(self, {
     name = "vim_ui_select",
     themes = Themes:new(),
     highlighter = Highlighter:new "endpoint_vim_ui_select_highlight",
     has_dressing = pcall(require, "dressing"),
-  }, self)
+  })
 
-  if vim_ui_select_picker.has_dressing then
-    vim_ui_select_picker:_register_dressing_custom_kind()
+  if self.has_dressing then
+    self:_register_dressing_custom_kind()
   end
-
-  return vim_ui_select_picker
 end
 
 ---Check if vim.ui.select is available (always true - built into Neovim)

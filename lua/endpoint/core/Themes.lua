@@ -1,11 +1,9 @@
----@class endpoint.Themes
-local Themes = {}
-Themes.__index = Themes
+local class = require "endpoint.lib.middleclass"
 
-function Themes:new()
-  local themes = setmetatable({}, self)
-  return themes
-end
+---@class endpoint.Themes
+local Themes = class "Themes"
+
+function Themes:initialize() end
 
 function Themes:get_method_color(method, config)
   -- Support both new and old config structure for backward compatibility
