@@ -3,7 +3,7 @@ local class = require "endpoint.lib.middleclass"
 local NestJsParser = require "endpoint.parser.nestjs_parser"
 
 ---@class endpoint.NestJsFramework
-local NestJsFramework = class('NestJsFramework', Framework)
+local NestJsFramework = class("NestJsFramework", Framework)
 
 ---Creates a new NestJsFramework instance
 function NestJsFramework:initialize()

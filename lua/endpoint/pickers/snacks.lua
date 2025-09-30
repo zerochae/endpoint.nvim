@@ -4,8 +4,8 @@ local Themes = require "endpoint.core.Themes"
 local log = require "endpoint.utils.log"
 local class = require "endpoint.lib.middleclass"
 
----@class endpoint.SnacksPicker : endpoint.Picker
-local SnacksPicker = class('SnacksPicker', Picker)
+---@class endpoint.SnacksPicker
+local SnacksPicker = class("SnacksPicker", Picker)
 
 ---Creates a new SnacksPicker instance
 function SnacksPicker:initialize()
@@ -13,7 +13,7 @@ function SnacksPicker:initialize()
     name = "snacks",
     themes = Themes:new(),
     snacks_available = pcall(require, "snacks"),
-    highlighter = Highlighter:new("endpoint_snacks_highlight"),
+    highlighter = Highlighter:new "endpoint_snacks_highlight",
   })
 end
 

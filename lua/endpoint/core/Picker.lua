@@ -1,7 +1,7 @@
 local class = require "endpoint.lib.middleclass"
 
 ---@class endpoint.Picker
-local Picker = class('Picker')
+local Picker = class "Picker"
 
 ---Creates a new Picker instance with optional fields
 function Picker:initialize(fields)

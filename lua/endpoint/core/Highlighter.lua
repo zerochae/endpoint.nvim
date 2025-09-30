@@ -1,7 +1,7 @@
 local class = require "endpoint.lib.middleclass"
 
 ---@class endpoint.Highlighter
-local Highlighter = class('Highlighter')
+local Highlighter = class "Highlighter"
 
 function Highlighter:initialize(namespace_name)
   self.highlight_ns = vim.api.nvim_create_namespace(namespace_name)
@@ -49,13 +49,7 @@ function Highlighter:highlight_endpoint(bufnr, endpoint, highlight_group)
     return
   end
 
-  self:highlight_line_range(
-    bufnr,
-    endpoint.line_number,
-    endpoint.column,
-    endpoint.end_line_number,
-    highlight_group
-  )
+  self:highlight_line_range(bufnr, endpoint.line_number, endpoint.column, endpoint.end_line_number, highlight_group)
 end
 
 function Highlighter:highlight_component_definition(bufnr, endpoint, highlight_group)

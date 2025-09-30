@@ -3,7 +3,7 @@ local class = require "endpoint.lib.middleclass"
 local ExpressParser = require "endpoint.parser.express_parser"
 
 ---@class endpoint.ExpressFramework
-local ExpressFramework = class('ExpressFramework', Framework)
+local ExpressFramework = class("ExpressFramework", Framework)
 
 ---Creates a new ExpressFramework instance
 function ExpressFramework:initialize()

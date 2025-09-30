@@ -2,7 +2,7 @@ local Parser = require "endpoint.core.Parser"
 local class = require "endpoint.lib.middleclass"
 
 ---@class endpoint.DotNetParser
-local DotNetParser = class('DotNetParser', Parser)
+local DotNetParser = class("DotNetParser", Parser)
 
 -- ========================================
 -- PUBLIC METHODS
@@ -69,7 +69,7 @@ function DotNetParser:_extract_path_multiline(file_path, start_line, content)
   -- First try single line extraction from cleaned content
   local path = self:_extract_path_single_line(clean_content, file_path, start_line)
   if path then
-    return path, nil  -- Single line, no end_line
+    return path, nil -- Single line, no end_line
   end
 
   -- For bare HTTP attributes like [HttpGet], look for nearby [Route(...)] in the file
@@ -155,13 +155,17 @@ end
 function DotNetParser:_is_multiline_attribute(content)
   -- Check if content has attribute start but no closing parenthesis
   -- Also check if content contains attribute but doesn't have a complete path on the same line
-  local has_attribute_start = content:match "%[Http%w+%(" or content:match "%[Route%(" or content:match "app%.Map%w+%(" or content:match "endpoints%.Map%w+%("
+  local has_attribute_start = content:match "%[Http%w+%("
+    or content:match "%[Route%("
+    or content:match "app%.Map%w+%("
+    or content:match "endpoints%.Map%w+%("
   if not has_attribute_start then
     return false
   end
 
   -- If it has the attribute but doesn't have both opening and closing quotes with content, it's likely multiline
-  local has_complete_path = content:match "%[Http%w+%([\"']([^\"']+)[\"']%)" or content:match "%[Route%([\"']([^\"']+)[\"']%)"
+  local has_complete_path = content:match "%[Http%w+%([\"']([^\"']+)[\"']%)"
+    or content:match "%[Route%([\"']([^\"']+)[\"']%)"
   return not has_complete_path
 end
 
@@ -352,23 +356,23 @@ function DotNetParser:_clean_multiline_content(content)
   -- Strategy 1: Look for HTTP method + Route attribute combinations first
 
   -- Pattern 1: [HttpX] followed by [Route(...)] - preserve both
-  local http_and_route = clean_content:match("(%[Http%w+%]%s*%[Route%([^%)]*%)%])")
+  local http_and_route = clean_content:match "(%[Http%w+%]%s*%[Route%([^%)]*%)%])"
   if http_and_route then
     return http_and_route
   end
 
   -- Pattern 2: [HttpX("path")] - single attribute with path
-  local attr_with_path = clean_content:match("(%[Http%w+%([^%)]*%)%])")
+  local attr_with_path = clean_content:match "(%[Http%w+%([^%)]*%)%])"
   if attr_with_path then
     return attr_with_path
   end
 
   -- Pattern 3: [HttpX] - bare attribute (check if Route follows)
-  local bare_attr = clean_content:match("(%[Http%w+%])")
+  local bare_attr = clean_content:match "(%[Http%w+%])"
   if bare_attr then
     -- Look for Route attribute that might follow
-    local remaining = clean_content:sub(clean_content:find("%[Http%w+%]") + #bare_attr)
-    local route_part = remaining:match("^%s*(%[Route%([^%)]*%)%])")
+    local remaining = clean_content:sub(clean_content:find "%[Http%w+%]" + #bare_attr)
+    local route_part = remaining:match "^%s*(%[Route%([^%)]*%)%])"
     if route_part then
       return bare_attr .. " " .. route_part
     end
@@ -376,7 +380,7 @@ function DotNetParser:_clean_multiline_content(content)
   end
 
   -- Pattern 4: [Route("path")] only - find the closing of the route attribute
-  local route_attr = clean_content:match("(%[Route%([^%)]*%)%])")
+  local route_attr = clean_content:match "(%[Route%([^%)]*%)%])"
   if route_attr then
     return route_attr
   end
@@ -385,15 +389,15 @@ function DotNetParser:_clean_multiline_content(content)
 
   -- Cut at first occurrence of patterns that indicate we've gone too far
   local cut_patterns = {
-    "%]%s*public",  -- Reached class or method definition
-    "%]%s*{",  -- Reached method body
-    "%]%s*private",  -- Reached private method
-    "%]%s*protected",  -- Reached protected method
-    "%)%]%s*public",  -- Route attribute followed by class definition
-    "%)%].*public%s+class",  -- Route attribute followed by class
-    "%]%s*public%s+async",  -- Reached async method definition
-    "%]%s*public%s+.*Task",  -- Reached method returning Task
-    "%]%s*public%s+.*ActionResult",  -- Reached method returning ActionResult
+    "%]%s*public", -- Reached class or method definition
+    "%]%s*{", -- Reached method body
+    "%]%s*private", -- Reached private method
+    "%]%s*protected", -- Reached protected method
+    "%)%]%s*public", -- Route attribute followed by class definition
+    "%)%].*public%s+class", -- Route attribute followed by class
+    "%]%s*public%s+async", -- Reached async method definition
+    "%]%s*public%s+.*Task", -- Reached method returning Task
+    "%]%s*public%s+.*ActionResult", -- Reached method returning ActionResult
   }
 
   for _, pattern in ipairs(cut_patterns) do
@@ -405,7 +409,7 @@ function DotNetParser:_clean_multiline_content(content)
   end
 
   -- Final fallback: if we still have artifacts, cut at first ] followed by non-whitespace
-  local bracket_pos = clean_content:find("%][^%s]")
+  local bracket_pos = clean_content:find "%][^%s]"
   if bracket_pos then
     clean_content = clean_content:sub(1, bracket_pos)
   end
@@ -498,7 +502,7 @@ function DotNetParser:_is_commented_code(content, file_path, line_number)
       if actual_line then
         local line_trimmed = actual_line:gsub("^%s+", "")
         if line_trimmed:match "^//" then
-          return true  -- This line is commented
+          return true -- This line is commented
         end
       end
 
@@ -543,7 +547,10 @@ function DotNetParser:_calculate_attribute_column(file_path, line_number, ripgre
     if current_line == line_number then
       file:close()
       -- Find the position of [ character (1-based)
-      local bracket_pos = line:find("%[Http%w+") or line:find("%[Route%(") or line:find("app%.Map%w+%(") or line:find("endpoints%.Map%w+%(")
+      local bracket_pos = line:find "%[Http%w+"
+        or line:find "%[Route%("
+        or line:find "app%.Map%w+%("
+        or line:find "endpoints%.Map%w+%("
       if bracket_pos then
         return bracket_pos
       end
@@ -651,7 +658,7 @@ function DotNetParser:_extract_route_info(content, file_path, line_number)
           if line and line:match "%[Route%(" then
             -- First try simple single line match
             local route_path = line:match "%[Route%([^%)]*[\"']([^\"']*)[\"']"
-            if route_path ~= nil then  -- Allow empty strings
+            if route_path ~= nil then -- Allow empty strings
               return method_from_content, route_path
             end
 
@@ -672,7 +679,7 @@ function DotNetParser:_extract_route_info(content, file_path, line_number)
             end
 
             route_path = route_content:match "%[Route%([^%)]*[\"']([^\"']*)[\"']"
-            if route_path ~= nil then  -- Allow empty strings
+            if route_path ~= nil then -- Allow empty strings
               return method_from_content, route_path
             end
           end

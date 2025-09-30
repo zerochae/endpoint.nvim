@@ -2,7 +2,7 @@ local Parser = require "endpoint.core.Parser"
 local class = require "endpoint.lib.middleclass"
 
 ---@class endpoint.ReactRouterParser
-local ReactRouterParser = class('ReactRouterParser', Parser)
+local ReactRouterParser = class("ReactRouterParser", Parser)
 
 -- ========================================
 -- PUBLIC METHODS

@@ -3,7 +3,7 @@ local class = require "endpoint.lib.middleclass"
 local KtorParser = require "endpoint.parser.ktor_parser"
 
 ---@class endpoint.KtorFramework
-local KtorFramework = class('KtorFramework', Framework)
+local KtorFramework = class("KtorFramework", Framework)
 
 ---Creates a new KtorFramework instance
 function KtorFramework:initialize()

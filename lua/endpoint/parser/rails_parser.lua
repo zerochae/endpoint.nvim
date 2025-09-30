@@ -3,7 +3,7 @@ local class = require "endpoint.lib.middleclass"
 
 ---@class endpoint.RailsParser
 ---Rails-specific parser for route files and controller actions
-local RailsParser = class('RailsParser', Parser)
+local RailsParser = class("RailsParser", Parser)
 
 -- ========================================
 -- PUBLIC METHODS

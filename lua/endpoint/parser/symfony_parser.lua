@@ -2,7 +2,7 @@ local Parser = require "endpoint.core.Parser"
 local class = require "endpoint.lib.middleclass"
 
 ---@class endpoint.SymfonyParser
-local SymfonyParser = class('SymfonyParser', Parser)
+local SymfonyParser = class("SymfonyParser", Parser)
 
 -- ========================================
 -- PUBLIC METHODS
@@ -78,7 +78,7 @@ function SymfonyParser:_extract_path_multiline(file_path, start_line, content)
   -- First try single line extraction
   local path = self:_extract_path_single_line(content)
   if path then
-    return path, nil  -- Single line, no end_line
+    return path, nil -- Single line, no end_line
   end
 
   -- If it's a multiline annotation, read the file to find the complete annotation
@@ -541,7 +541,9 @@ function SymfonyParser:_is_symfony_route_content(content)
   -- Handle multiline patterns by normalizing whitespace
   local normalized_content = content:gsub("%s+", " "):gsub("[\r\n]+", " ")
 
-  return normalized_content:match "#%[Route%(" or normalized_content:match "@Route%(" or normalized_content:match "\\* @Route%("
+  return normalized_content:match "#%[Route%("
+    or normalized_content:match "@Route%("
+    or normalized_content:match "\\* @Route%("
 end
 
 ---Calculates correct column position for annotation start
@@ -562,9 +564,9 @@ function SymfonyParser:_calculate_annotation_column(content, file_path, line_num
     if current_line == line_number then
       file:close()
       -- Find the position of # or @ character (1-based)
-      local hash_pos = line:find("#%[Route%(")
-      local at_pos = line:find("@Route%(")
-      local docblock_pos = line:find("\\* @Route%(")
+      local hash_pos = line:find "#%[Route%("
+      local at_pos = line:find "@Route%("
+      local docblock_pos = line:find "\\* @Route%("
 
       local annotation_pos = hash_pos or at_pos or docblock_pos
       if annotation_pos then
@@ -580,4 +582,3 @@ function SymfonyParser:_calculate_annotation_column(content, file_path, line_num
 end
 
 return SymfonyParser
-

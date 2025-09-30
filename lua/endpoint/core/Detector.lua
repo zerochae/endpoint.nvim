@@ -2,7 +2,7 @@ local fs = require "endpoint.utils.fs"
 local class = require "endpoint.lib.middleclass"
 
 ---@class endpoint.Detector
-local Detector = class('Detector')
+local Detector = class "Detector"
 
 function Detector:initialize(required_dependencies, manifest_files, detection_name)
   self.detection_name = detection_name or "dependency_detection"

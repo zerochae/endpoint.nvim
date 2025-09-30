@@ -2,7 +2,7 @@ local Parser = require "endpoint.core.Parser"
 local class = require "endpoint.lib.middleclass"
 
 ---@class endpoint.SpringParser
-local SpringParser = class('SpringParser', Parser)
+local SpringParser = class("SpringParser", Parser)
 
 -- ========================================
 -- PUBLIC METHODS
@@ -458,7 +458,7 @@ function SpringParser:_get_extended_annotation_content(file_path, start_line)
   local start_column = nil
   local start_line_content = lines[start_line]
   if start_line_content then
-    local annotation_start = start_line_content:find("@%w*Mapping")
+    local annotation_start = start_line_content:find "@%w*Mapping"
     if annotation_start then
       start_column = annotation_start
     end

@@ -2,7 +2,7 @@ local Parser = require "endpoint.core.Parser"
 local class = require "endpoint.lib.middleclass"
 
 ---@class endpoint.ServletParser
-local ServletParser = class('ServletParser', Parser)
+local ServletParser = class("ServletParser", Parser)
 
 -- ========================================
 -- PUBLIC METHODS

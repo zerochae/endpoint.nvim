@@ -2,7 +2,7 @@ local Parser = require "endpoint.core.Parser"
 local class = require "endpoint.lib.middleclass"
 
 ---@class endpoint.FastApiParser
-local FastApiParser = class('FastApiParser', Parser)
+local FastApiParser = class("FastApiParser", Parser)
 
 -- ========================================
 -- PUBLIC METHODS
@@ -147,7 +147,7 @@ function FastApiParser:_extract_path_multiline(file_path, start_line, content)
   -- First try single line extraction
   local path = self:_extract_path_single_line(content)
   if path then
-    return path, nil  -- Single line, no end_line
+    return path, nil -- Single line, no end_line
   end
 
   -- If it's a multiline decorator, read the file to find the path and end line

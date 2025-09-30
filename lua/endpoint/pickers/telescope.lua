@@ -3,7 +3,7 @@ local Highlighter = require "endpoint.core.Highlighter"
 local Themes = require "endpoint.core.Themes"
 local class = require "endpoint.lib.middleclass"
 
----@class endpoint.TelescopePicker : endpoint.Picker
+---@class endpoint.TelescopePicker
 local TelescopePicker = class("TelescopePicker", Picker)
 
 ---Creates a new TelescopePicker instance

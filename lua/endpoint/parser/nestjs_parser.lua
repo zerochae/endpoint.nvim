@@ -2,7 +2,7 @@ local Parser = require "endpoint.core.Parser"
 local class = require "endpoint.lib.middleclass"
 
 ---@class endpoint.NestJsParser
-local NestJsParser = class('NestJsParser', Parser)
+local NestJsParser = class("NestJsParser", Parser)
 
 -- ========================================
 -- PUBLIC METHODS

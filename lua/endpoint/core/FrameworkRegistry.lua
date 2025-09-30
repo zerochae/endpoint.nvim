@@ -113,4 +113,3 @@ function FrameworkRegistry:get_info()
 end
 
 return FrameworkRegistry
-

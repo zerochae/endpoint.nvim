@@ -2,7 +2,7 @@ local Parser = require "endpoint.core.Parser"
 local class = require "endpoint.lib.middleclass"
 
 ---@class endpoint.ExpressParser
-local ExpressParser = class('ExpressParser', Parser)
+local ExpressParser = class("ExpressParser", Parser)
 
 -- Pattern definitions for different file types
 local js_patterns = {

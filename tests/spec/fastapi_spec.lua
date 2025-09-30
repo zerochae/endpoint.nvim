@@ -137,17 +137,17 @@ describe("FastapiFramework", function()
 
   describe("Controller Name Extraction", function()
     it("should extract controller name from Python file", function()
-      local controller_name = framework:getControllerName("app/routers/users.py")
+      local controller_name = framework:getControllerName "app/routers/users.py"
       assert.is_not_nil(controller_name)
     end)
 
     it("should handle main.py files", function()
-      local controller_name = framework:getControllerName("main.py")
+      local controller_name = framework:getControllerName "main.py"
       assert.is_not_nil(controller_name)
     end)
 
     it("should handle nested router paths", function()
-      local controller_name = framework:getControllerName("app/api/v1/users.py")
+      local controller_name = framework:getControllerName "app/api/v1/users.py"
       assert.is_not_nil(controller_name)
     end)
   end)
@@ -180,15 +180,15 @@ describe("FastapiFramework", function()
       local fixture_files = {
         "tests/fixtures/fastapi/src/main.py",
         "tests/fixtures/fastapi/src/routers/users.py",
-        "tests/fixtures/fastapi/src/routers/posts.py"
+        "tests/fixtures/fastapi/src/routers/posts.py",
       }
-      
+
       local total_endpoints = 0
       for _, file_path in ipairs(fixture_files) do
         local file_exists = vim.fn.filereadable(file_path) == 1
         if file_exists then
           local file_content = vim.fn.readfile(file_path)
-          
+
           -- Test multiple endpoints from the real file
           for line_num, line in ipairs(file_content) do
             local result = parser:parse_content(line, file_path, line_num, 1)
@@ -198,7 +198,7 @@ describe("FastapiFramework", function()
           end
         end
       end
-      
+
       -- Should find endpoints from real FastAPI files if they exist
       if total_endpoints > 0 then
         assert.is_true(total_endpoints > 0, "Should find endpoints from real FastAPI files")
@@ -231,54 +231,54 @@ describe("FastapiParser", function()
 
   describe("Endpoint Path Extraction", function()
     it("should extract simple paths", function()
-      local path = parser:extract_endpoint_path('@app.get("/users")')
+      local path = parser:extract_endpoint_path '@app.get("/users")'
       assert.equals("/users", path)
     end)
 
     it("should extract paths with parameters", function()
-      local path = parser:extract_endpoint_path('@app.get("/users/{user_id}")')
+      local path = parser:extract_endpoint_path '@app.get("/users/{user_id}")'
       assert.equals("/users/{user_id}", path)
     end)
 
     it("should handle single quotes", function()
-      local path = parser:extract_endpoint_path("@app.get('/users')")
+      local path = parser:extract_endpoint_path "@app.get('/users')"
       assert.equals("/users", path)
     end)
 
     it("should handle router patterns", function()
-      local path = parser:extract_endpoint_path('@router.get("/users")')
+      local path = parser:extract_endpoint_path '@router.get("/users")'
       assert.equals("/users", path)
     end)
   end)
 
   describe("HTTP Method Extraction", function()
     it("should extract GET from @app.get", function()
-      local method = parser:extract_method('@app.get("/users")')
+      local method = parser:extract_method '@app.get("/users")'
       assert.equals("GET", method)
     end)
 
     it("should extract POST from @app.post", function()
-      local method = parser:extract_method('@app.post("/users")')
+      local method = parser:extract_method '@app.post("/users")'
       assert.equals("POST", method)
     end)
 
     it("should extract PUT from @app.put", function()
-      local method = parser:extract_method('@app.put("/users/{user_id}")')
+      local method = parser:extract_method '@app.put("/users/{user_id}")'
       assert.equals("PUT", method)
     end)
 
     it("should extract DELETE from @app.delete", function()
-      local method = parser:extract_method('@app.delete("/users/{user_id}")')
+      local method = parser:extract_method '@app.delete("/users/{user_id}")'
       assert.equals("DELETE", method)
     end)
 
     it("should extract PATCH from @app.patch", function()
-      local method = parser:extract_method('@app.patch("/users/{user_id}")')
+      local method = parser:extract_method '@app.patch("/users/{user_id}")'
       assert.equals("PATCH", method)
     end)
 
     it("should extract method from router patterns", function()
-      local method = parser:extract_method('@router.get("/users")')
+      local method = parser:extract_method '@router.get("/users")'
       assert.equals("GET", method)
     end)
   end)
@@ -314,3 +314,4 @@ describe("FastapiParser", function()
     end)
   end)
 end)
+

@@ -2,7 +2,7 @@ local class = require "endpoint.lib.middleclass"
 local config = require "endpoint.config"
 
 ---@class endpoint.PickerRegistry
-local PickerRegistry = class('PickerRegistry')
+local PickerRegistry = class "PickerRegistry"
 
 function PickerRegistry:initialize()
   self.available_pickers = {}

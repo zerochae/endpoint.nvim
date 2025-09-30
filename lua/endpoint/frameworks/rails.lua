@@ -3,7 +3,7 @@ local class = require "endpoint.lib.middleclass"
 local RailsParser = require "endpoint.parser.rails_parser"
 
 ---@class endpoint.RailsFramework
-local RailsFramework = class('RailsFramework', Framework)
+local RailsFramework = class("RailsFramework", Framework)
 
 ---Creates a new RailsFramework instance
 function RailsFramework:initialize()

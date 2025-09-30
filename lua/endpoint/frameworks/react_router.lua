@@ -3,7 +3,7 @@ local class = require "endpoint.lib.middleclass"
 local ReactRouterParser = require "endpoint.parser.react_router_parser"
 
 ---@class endpoint.ReactRouterFramework
-local ReactRouterFramework = class('ReactRouterFramework', Framework)
+local ReactRouterFramework = class("ReactRouterFramework", Framework)
 
 ---Creates a new ReactRouterFramework instance
 function ReactRouterFramework:initialize()

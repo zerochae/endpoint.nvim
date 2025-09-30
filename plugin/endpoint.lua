@@ -1,8 +1,8 @@
 -- Prevent loading file twice
-if vim.g.loaded_endpoint_nvim == 1 then
+if vim.g.loaded_endpoint_nvim then
   return
 end
-vim.g.loaded_endpoint_nvim = 1
+vim.g.loaded_endpoint_nvim = true
 
 -- Create user commands for old_backup structure
 

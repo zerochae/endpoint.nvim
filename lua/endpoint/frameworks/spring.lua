@@ -3,7 +3,7 @@ local class = require "endpoint.lib.middleclass"
 local SpringParser = require "endpoint.parser.spring_parser"
 
 ---@class endpoint.SpringFramework
-local SpringFramework = class('SpringFramework', Framework)
+local SpringFramework = class("SpringFramework", Framework)
 
 ---Creates a new SpringFramework instance
 function SpringFramework:initialize()

@@ -3,7 +3,7 @@ local class = require "endpoint.lib.middleclass"
 local FastApiParser = require "endpoint.parser.fastapi_parser"
 
 ---@class endpoint.FastApiFramework
-local FastApiFramework = class('FastApiFramework', Framework)
+local FastApiFramework = class("FastApiFramework", Framework)
 
 ---Creates a new FastApiFramework instance
 function FastApiFramework:initialize()

@@ -4,7 +4,7 @@ local Themes = require "endpoint.core.Themes"
 local class = require "endpoint.lib.middleclass"
 
 ---@class endpoint.VimUiSelectPicker
-local VimUiSelectPicker = class('VimUiSelectPicker', Picker)
+local VimUiSelectPicker = class("VimUiSelectPicker", Picker)
 
 ---Creates a new VimUiSelectPicker instance
 function VimUiSelectPicker:initialize()

@@ -3,7 +3,7 @@ local class = require "endpoint.lib.middleclass"
 local ServletParser = require "endpoint.parser.servlet_parser"
 
 ---@class endpoint.ServletFramework
-local ServletFramework = class('ServletFramework', Framework)
+local ServletFramework = class("ServletFramework", Framework)
 
 ---Creates a new ServletFramework instance
 function ServletFramework:initialize()

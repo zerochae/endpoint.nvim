@@ -534,3 +534,4 @@
 ---@alias EventManager endpoint.Events
 ---@alias CacheManager endpoint.Cache
 ---@alias PickerManager endpoint.PickerRegistry
+

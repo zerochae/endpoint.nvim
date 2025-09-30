@@ -3,7 +3,7 @@ local class = require "endpoint.lib.middleclass"
 local SymfonyParser = require "endpoint.parser.symfony_parser"
 
 ---@class endpoint.SymfonyFramework
-local SymfonyFramework = class('SymfonyFramework', Framework)
+local SymfonyFramework = class("SymfonyFramework", Framework)
 
 ---Creates a new SymfonyFramework instance
 function SymfonyFramework:initialize()
