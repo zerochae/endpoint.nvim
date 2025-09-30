@@ -1,12 +1,13 @@
 local Framework = require "endpoint.core.Framework"
+local class = require "endpoint.lib.middleclass"
 local SymfonyParser = require "endpoint.parser.symfony_parser"
 
 ---@class endpoint.SymfonyFramework
-local SymfonyFramework = Framework:extend()
+local SymfonyFramework = class('SymfonyFramework', Framework)
 
 ---Creates a new SymfonyFramework instance
-function SymfonyFramework:new()
-  SymfonyFramework.super.new(self, {
+function SymfonyFramework:initialize()
+  Framework.initialize(self, {
     name = "symfony",
     config = {
       file_extensions = { "*.php" },

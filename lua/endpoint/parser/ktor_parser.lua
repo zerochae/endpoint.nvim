@@ -1,15 +1,16 @@
 local Parser = require "endpoint.core.Parser"
+local class = require "endpoint.lib.middleclass"
 
 ---@class endpoint.KtorParser
-local KtorParser = Parser:extend()
+local KtorParser = class('KtorParser', Parser)
 
 -- ========================================
 -- PUBLIC METHODS
 -- ========================================
 
 ---Creates a new KtorParser instance
-function KtorParser:new()
-  KtorParser.super.new(self, {
+function KtorParser:initialize()
+  Parser.initialize(self, {
     parser_name = "ktor_parser",
     framework_name = "ktor",
     language = "kotlin",

@@ -1,12 +1,13 @@
 local Framework = require "endpoint.core.Framework"
+local class = require "endpoint.lib.middleclass"
 local ExpressParser = require "endpoint.parser.express_parser"
 
 ---@class endpoint.ExpressFramework
-local ExpressFramework = Framework:extend()
+local ExpressFramework = class('ExpressFramework', Framework)
 
 ---Creates a new ExpressFramework instance
-function ExpressFramework:new()
-  ExpressFramework.super.new(self, {
+function ExpressFramework:initialize()
+  Framework.initialize(self, {
     name = "express",
     config = {
       file_extensions = { "*.js", "*.ts", "*.mjs" },

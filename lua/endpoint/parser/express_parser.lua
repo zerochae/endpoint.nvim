@@ -1,7 +1,8 @@
 local Parser = require "endpoint.core.Parser"
+local class = require "endpoint.lib.middleclass"
 
 ---@class endpoint.ExpressParser
-local ExpressParser = Parser:extend()
+local ExpressParser = class('ExpressParser', Parser)
 
 -- Pattern definitions for different file types
 local js_patterns = {
@@ -91,8 +92,8 @@ local ts_patterns = {
 -- ========================================
 
 ---Creates a new ExpressParser instance
-function ExpressParser:new()
-  ExpressParser.super.new(self, {
+function ExpressParser:initialize()
+  Parser.initialize(self, {
     parser_name = "express_parser",
     framework_name = "express",
     language = "javascript",

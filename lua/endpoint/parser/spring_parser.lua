@@ -1,15 +1,16 @@
 local Parser = require "endpoint.core.Parser"
+local class = require "endpoint.lib.middleclass"
 
 ---@class endpoint.SpringParser
-local SpringParser = Parser:extend()
+local SpringParser = class('SpringParser', Parser)
 
 -- ========================================
 -- PUBLIC METHODS
 -- ========================================
 
 ---Creates a new SpringParser instance
-function SpringParser:new()
-  SpringParser.super.new(self, {
+function SpringParser:initialize()
+  Parser.initialize(self, {
     parser_name = "spring_parser",
     framework_name = "spring",
     language = "java",

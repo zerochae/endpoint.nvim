@@ -1,12 +1,13 @@
 local Framework = require "endpoint.core.Framework"
+local class = require "endpoint.lib.middleclass"
 local RailsParser = require "endpoint.parser.rails_parser"
 
 ---@class endpoint.RailsFramework
-local RailsFramework = Framework:extend()
+local RailsFramework = class('RailsFramework', Framework)
 
 ---Creates a new RailsFramework instance
-function RailsFramework:new()
-  RailsFramework.super.new(self, {
+function RailsFramework:initialize()
+  Framework.initialize(self, {
     name = "rails",
     config = {
       file_extensions = { "*.rb" },

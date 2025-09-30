@@ -2,13 +2,14 @@ local Picker = require "endpoint.core.Picker"
 local Highlighter = require "endpoint.core.Highlighter"
 local Themes = require "endpoint.core.Themes"
 local log = require "endpoint.utils.log"
+local class = require "endpoint.lib.middleclass"
 
 ---@class endpoint.SnacksPicker : endpoint.Picker
-local SnacksPicker = Picker:extend()
+local SnacksPicker = class('SnacksPicker', Picker)
 
 ---Creates a new SnacksPicker instance
-function SnacksPicker:new()
-  SnacksPicker.super.new(self, {
+function SnacksPicker:initialize()
+  Picker.initialize(self, {
     name = "snacks",
     themes = Themes:new(),
     snacks_available = pcall(require, "snacks"),

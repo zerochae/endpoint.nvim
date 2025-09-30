@@ -1,15 +1,16 @@
 local Parser = require "endpoint.core.Parser"
+local class = require "endpoint.lib.middleclass"
 
 ---@class endpoint.DotNetParser
-local DotNetParser = Parser:extend()
+local DotNetParser = class('DotNetParser', Parser)
 
 -- ========================================
 -- PUBLIC METHODS
 -- ========================================
 
 ---Creates a new DotNetParser instance
-function DotNetParser:new()
-  DotNetParser.super.new(self, {
+function DotNetParser:initialize()
+  Parser.initialize(self, {
     parser_name = "dotnet_parser",
     framework_name = "dotnet",
     language = "csharp",

@@ -1,15 +1,16 @@
 local Parser = require "endpoint.core.Parser"
+local class = require "endpoint.lib.middleclass"
 
 ---@class endpoint.SymfonyParser
-local SymfonyParser = Parser:extend()
+local SymfonyParser = class('SymfonyParser', Parser)
 
 -- ========================================
 -- PUBLIC METHODS
 -- ========================================
 
 ---Creates a new SymfonyParser instance
-function SymfonyParser:new()
-  SymfonyParser.super.new(self, {
+function SymfonyParser:initialize()
+  Parser.initialize(self, {
     parser_name = "symfony_parser",
     framework_name = "symfony",
     language = "php",

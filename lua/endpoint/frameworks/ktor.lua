@@ -1,12 +1,13 @@
 local Framework = require "endpoint.core.Framework"
+local class = require "endpoint.lib.middleclass"
 local KtorParser = require "endpoint.parser.ktor_parser"
 
 ---@class endpoint.KtorFramework
-local KtorFramework = Framework:extend()
+local KtorFramework = class('KtorFramework', Framework)
 
 ---Creates a new KtorFramework instance
-function KtorFramework:new()
-  KtorFramework.super.new(self, {
+function KtorFramework:initialize()
+  Framework.initialize(self, {
     name = "ktor",
     config = {
       file_extensions = { "*.kt" },

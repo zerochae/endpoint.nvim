@@ -1,13 +1,14 @@
 local Picker = require "endpoint.core.Picker"
 local Highlighter = require "endpoint.core.Highlighter"
 local Themes = require "endpoint.core.Themes"
+local class = require "endpoint.lib.middleclass"
 
 ---@class endpoint.TelescopePicker : endpoint.Picker
-local TelescopePicker = Picker:extend()
+local TelescopePicker = class("TelescopePicker", Picker)
 
 ---Creates a new TelescopePicker instance
-function TelescopePicker:new()
-  TelescopePicker.super.new(self, {
+function TelescopePicker:initialize()
+  Picker.initialize(self, {
     name = "telescope",
     themes = Themes:new(),
     telescope_available = pcall(require, "telescope"),
@@ -173,7 +174,9 @@ function TelescopePicker:_set_preview_cursor(picker_self, preview_line, preview_
     local target_line = math.min(preview_line or 1, line_count)
     local target_col = math.max(0, (preview_col or 1) - 1)
 
-    pcall(vim.api.nvim_win_set_cursor, picker_self.state.winid, { target_line, target_col })
+    pcall(function()
+      vim.api.nvim_win_set_cursor(picker_self.state.winid, { target_line, target_col })
+    end)
 
     -- Center the line in the window
     vim.defer_fn(function()

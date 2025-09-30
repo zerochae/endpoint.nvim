@@ -1,12 +1,13 @@
 local Framework = require "endpoint.core.Framework"
+local class = require "endpoint.lib.middleclass"
 local FastApiParser = require "endpoint.parser.fastapi_parser"
 
 ---@class endpoint.FastApiFramework
-local FastApiFramework = Framework:extend()
+local FastApiFramework = class('FastApiFramework', Framework)
 
 ---Creates a new FastApiFramework instance
-function FastApiFramework:new()
-  FastApiFramework.super.new(self, {
+function FastApiFramework:initialize()
+  Framework.initialize(self, {
     name = "fastapi",
     config = {
       file_extensions = { "*.py" },

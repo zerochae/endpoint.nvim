@@ -1,10 +1,10 @@
-local Class = require "endpoint.lib.classic"
+local class = require "endpoint.lib.middleclass"
 
 ---@class endpoint.Parser
-local Parser = Class:extend()
+local Parser = class('Parser')
 
 ---Creates a new Parser instance with optional fields
-function Parser:new(fields)
+function Parser:initialize(fields)
   self.parser_name = "unknown_parser"
   self.framework_name = "unknown"
   self.language = "unknown"

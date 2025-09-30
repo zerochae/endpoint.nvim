@@ -1,15 +1,16 @@
 local Parser = require "endpoint.core.Parser"
+local class = require "endpoint.lib.middleclass"
 
 ---@class endpoint.ReactRouterParser
-local ReactRouterParser = Parser:extend()
+local ReactRouterParser = class('ReactRouterParser', Parser)
 
 -- ========================================
 -- PUBLIC METHODS
 -- ========================================
 
 ---Creates a new ReactRouterParser instance
-function ReactRouterParser:new()
-  ReactRouterParser.super.new(self, {
+function ReactRouterParser:initialize()
+  Parser.initialize(self, {
     parser_name = "react_router_parser",
     framework_name = "react_router",
     language = "javascript",

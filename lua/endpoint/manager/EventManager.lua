@@ -1,13 +1,11 @@
----@class endpoint.EventManager
-local EventManager = {}
-EventManager.__index = EventManager
-
+local class = require "endpoint.lib.middleclass"
 local log = require "endpoint.utils.log"
 
-function EventManager:new()
-  local event_manager_instance = setmetatable({}, self)
-  event_manager_instance.event_listeners = {}
-  return event_manager_instance
+---@class endpoint.EventManager
+local EventManager = class('EventManager')
+
+function EventManager:initialize()
+  self.event_listeners = {}
 end
 
 ---Registers an event listener for a specific event type

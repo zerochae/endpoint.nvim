@@ -1,11 +1,11 @@
-local Class = require "endpoint.lib.classic"
+local class = require "endpoint.lib.middleclass"
 local log = require "endpoint.utils.log"
 
 ---@class endpoint.Framework
-local Framework = Class:extend()
+local Framework = class "Framework"
 
 ---Creates a new Framework instance
-function Framework:new(fields)
+function Framework:initialize(fields)
   if fields then
     for key, value in pairs(fields) do
       self[key] = value
@@ -35,7 +35,7 @@ end
 function Framework:_setup_detector_and_parser()
   if self.config.detector then
     local Detector = require "endpoint.core.Detector"
-    self.detector = Detector:new_dependency_detector(
+    self.detector = Detector:new(
       self.config.detector.dependencies or {},
       self.config.detector.manifest_files or {},
       self.config.detector.name or (self.name .. "_detection")
@@ -43,7 +43,7 @@ function Framework:_setup_detector_and_parser()
   end
 
   if self.config.parser then
-    self.parser = self.config.parser()
+    self.parser = self.config.parser:new()
   end
 end
 

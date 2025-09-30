@@ -1,15 +1,12 @@
----@class endpoint.PickerManager
-local PickerManager = {}
-PickerManager.__index = PickerManager
-
+local class = require "endpoint.lib.middleclass"
 local config = require "endpoint.config"
 
----Creates a new PickerManager instance
-function PickerManager:new()
-  local picker_manager_instance = setmetatable({}, self)
-  picker_manager_instance.available_pickers = {}
-  picker_manager_instance:_register_default_pickers()
-  return picker_manager_instance
+---@class endpoint.PickerManager
+local PickerManager = class('PickerManager')
+
+function PickerManager:initialize()
+  self.available_pickers = {}
+  self:_register_default_pickers()
 end
 
 ---Registers default pickers
@@ -20,9 +17,9 @@ function PickerManager:_register_default_pickers()
   local SnacksPicker = require "endpoint.pickers.snacks"
 
   self.available_pickers = {
-    telescope = TelescopePicker(),
-    vim_ui_select = VimUiSelectPicker(),
-    snacks = SnacksPicker(),
+    telescope = TelescopePicker:new(),
+    vim_ui_select = VimUiSelectPicker:new(),
+    snacks = SnacksPicker:new(),
   }
 end
 

@@ -1,12 +1,13 @@
 local Framework = require "endpoint.core.Framework"
+local class = require "endpoint.lib.middleclass"
 local ServletParser = require "endpoint.parser.servlet_parser"
 
 ---@class endpoint.ServletFramework
-local ServletFramework = Framework:extend()
+local ServletFramework = class('ServletFramework', Framework)
 
 ---Creates a new ServletFramework instance
-function ServletFramework:new()
-  ServletFramework.super.new(self, {
+function ServletFramework:initialize()
+  Framework.initialize(self, {
     name = "servlet",
     config = {
       file_extensions = { "*.java", "*.xml" },

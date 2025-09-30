@@ -1,13 +1,12 @@
----@class endpoint.CacheManager
-local CacheManager = {}
-CacheManager.__index = CacheManager
+local class = require "endpoint.lib.middleclass"
 
-function CacheManager:new()
-  local cache_instance = setmetatable({}, self)
-  cache_instance.cached_endpoints = {}
-  cache_instance.cache_timestamps = {}
-  cache_instance.cache_mode = "session" -- Will be set by EndpointManager
-  return cache_instance
+---@class endpoint.CacheManager
+local CacheManager = class('CacheManager')
+
+function CacheManager:initialize()
+  self.cached_endpoints = {}
+  self.cache_timestamps = {}
+  self.cache_mode = "session"
 end
 
 function CacheManager:set_mode(mode)

@@ -1,16 +1,17 @@
 local Parser = require "endpoint.core.Parser"
+local class = require "endpoint.lib.middleclass"
 
 ---@class endpoint.RailsParser
 ---Rails-specific parser for route files and controller actions
-local RailsParser = Parser:extend()
+local RailsParser = class('RailsParser', Parser)
 
 -- ========================================
 -- PUBLIC METHODS
 -- ========================================
 
 ---Creates a new RailsParser instance
-function RailsParser:new()
-  RailsParser.super.new(self, {
+function RailsParser:initialize()
+  Parser.initialize(self, {
     parser_name = "rails_parser",
     framework_name = "rails",
     language = "ruby",

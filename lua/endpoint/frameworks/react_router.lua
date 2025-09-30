@@ -1,12 +1,13 @@
 local Framework = require "endpoint.core.Framework"
+local class = require "endpoint.lib.middleclass"
 local ReactRouterParser = require "endpoint.parser.react_router_parser"
 
 ---@class endpoint.ReactRouterFramework
-local ReactRouterFramework = Framework:extend()
+local ReactRouterFramework = class('ReactRouterFramework', Framework)
 
 ---Creates a new ReactRouterFramework instance
-function ReactRouterFramework:new()
-  ReactRouterFramework.super.new(self, {
+function ReactRouterFramework:initialize()
+  Framework.initialize(self, {
     name = "react_router",
     config = {
       file_extensions = { "*.tsx", "*.jsx", "*.ts", "*.js" },

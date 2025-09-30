@@ -1,15 +1,16 @@
 local Parser = require "endpoint.core.Parser"
+local class = require "endpoint.lib.middleclass"
 
 ---@class endpoint.NestJsParser
-local NestJsParser = Parser:extend()
+local NestJsParser = class('NestJsParser', Parser)
 
 -- ========================================
 -- PUBLIC METHODS
 -- ========================================
 
 ---Creates a new NestJsParser instance
-function NestJsParser:new()
-  NestJsParser.super.new(self, {
+function NestJsParser:initialize()
+  Parser.initialize(self, {
     parser_name = "nestjs_parser",
     framework_name = "nestjs",
     language = "typescript",

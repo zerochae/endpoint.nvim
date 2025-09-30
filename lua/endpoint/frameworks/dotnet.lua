@@ -1,12 +1,13 @@
 local Framework = require "endpoint.core.Framework"
+local class = require "endpoint.lib.middleclass"
 local DotNetParser = require "endpoint.parser.dotnet_parser"
 
 ---@class endpoint.DotNetFramework
-local DotNetFramework = Framework:extend()
+local DotNetFramework = class("DotNetFramework", Framework)
 
 ---Creates a new DotNetFramework instance
-function DotNetFramework:new()
-  DotNetFramework.super.new(self, {
+function DotNetFramework:initialize()
+  Framework.initialize(self, {
     name = "dotnet",
     config = {
       file_extensions = { "*.cs" },
@@ -32,4 +33,5 @@ function DotNetFramework:new()
   })
 end
 
+-- Export class (EndpointManager will create singleton)
 return DotNetFramework

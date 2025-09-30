@@ -4,15 +4,22 @@
 -- LIBRARY TYPES
 -- ========================================
 
--- Classic OOP Library (rxi/classic)
+-- Middleclass OOP Library (kikito/middleclass)
+-- Base class for all OOP classes in endpoint.nvim
 ---@class Class
----@field super Class|nil Parent class
----@field new fun(self: Class, ...)
----@field extend fun(self: Class): Class Create a new class that inherits from this class
----@field implement fun(self: Class, ...: Class) Add methods from other classes
----@field is fun(self: Class, T: Class): boolean Check if instance is of specific type
----@field __tostring fun(self: Class): string
----@field __call fun(self: Class, ...: any): Class
+---@field name string Class name
+---@field super Class|nil Parent class reference
+---@field static table Static class members
+---@field subclasses table<Class, boolean> Set of subclasses
+---@field new fun(self: Class, ...): any Creates and initializes a new instance
+---@field initialize fun(self: any, ...) Constructor method (override in subclasses)
+---@field isInstanceOf fun(self: any, aClass: Class): boolean Checks if instance is of specific type
+---@field subclass fun(self: Class, name: string): Class Creates a subclass
+---@field isSubclassOf fun(self: Class, aClass: Class): boolean Checks if class is subclass of another
+---@field include fun(self: Class, ...: table) Adds mixin methods to class
+---@field allocate fun(self: Class): any Allocates instance without initialization
+---@field __tostring fun(self: Class): string String representation
+---@field __call fun(self: Class, ...: any): any Allows Class(...) syntax for new()
 
 -- ========================================
 -- CORE TYPES
@@ -26,6 +33,7 @@
 ---@field line_number number Line number in source file
 ---@field column number Column number in source file
 ---@field end_line_number? number End line number in source file
+---@field end_column? number End column number in source file
 ---@field display_value string Display text for UI (e.g., "GET /api/users")
 ---@field confidence? number Confidence score (0.0-1.0), defaults to 1.0
 ---@field tags? string[] Framework-specific tags (e.g., {"api", "spring"})
@@ -114,7 +122,7 @@
 ---@field detector endpoint.Detector
 ---@field parser endpoint.Parser
 ---@field controller_extractors? endpoint.controller_extractor[] Extractors for controller names from file paths
----@field new fun(self: endpoint.Framework, fields?: table)
+---@field initialize fun(self: endpoint.Framework, fields?: table)
 ---@field _validate_config fun(self: endpoint.Framework)
 ---@field _initialize fun(self: endpoint.Framework)
 ---@field detect fun(self: endpoint.Framework): boolean
@@ -136,7 +144,7 @@
 ---@field super Class Parent class reference
 ---@field name string
 ---@field themes? table
----@field new fun(self: endpoint.Picker, fields?: table)
+---@field initialize fun(self: endpoint.Picker, fields?: table)
 ---@field is_available fun(self: endpoint.Picker): boolean
 ---@field show fun(self: endpoint.Picker, endpoints?: endpoint.entry[], opts?: table)
 ---@field get_name fun(self: endpoint.Picker): string
@@ -150,12 +158,11 @@
 -- ========================================
 
 -- Detection Pattern
----@class endpoint.Detector
+---@class endpoint.Detector : Class
 ---@field detection_name string
----@field required_dependencies? string[]
----@field manifest_files? string[]
----@field new fun(self: endpoint.Detector, detection_name: string, fields: table?): endpoint.Detector
----@field new_dependency_detector fun(self: endpoint.Detector, required_dependencies: string[], manifest_files: string[], name?: string): endpoint.Detector
+---@field required_dependencies string[]
+---@field manifest_files string[]
+---@field initialize fun(self: endpoint.Detector, required_dependencies: string[], manifest_files: string[], detection_name?: string)
 ---@field is_target_detected fun(self: endpoint.Detector): boolean
 ---@field get_name fun(self: endpoint.Detector): string
 ---@field get_detection_details fun(self: endpoint.Detector): table|nil
@@ -167,14 +174,13 @@
 ---@field _should_check_submodules fun(self: endpoint.Detector): boolean
 ---@field _find_submodule_manifest_files fun(self: endpoint.Detector): string[]
 
-
 -- Parsing Pattern
 ---@class endpoint.Parser : Class
 ---@field super Class Parent class reference
 ---@field parser_name? string
 ---@field framework_name? string
 ---@field language? string
----@field new fun(self: endpoint.Parser, fields?: table)
+---@field initialize fun(self: endpoint.Parser, fields?: table)
 ---@field extract_base_path fun(self: endpoint.Parser, file_path: string, line_number: number): string
 ---@field extract_endpoint_path fun(self: endpoint.Parser, content: string, file_path?: string, line_number?: number): string|nil
 ---@field extract_method fun(self: endpoint.Parser, content: string): string|nil
@@ -184,7 +190,6 @@
 ---@field is_content_valid_for_parsing fun(self: endpoint.Parser, content_to_validate?: string): boolean
 ---@field get_parsing_confidence fun(self: endpoint.Parser, content_to_analyze?: string): number
 ---@field create_metadata fun(self: endpoint.Parser, route_type: string, extra_metadata?: table, content?: string): table
-
 
 ---@class endpoint.RailsParser : endpoint.Parser
 ---@field _extract_http_method fun(self: endpoint.RailsParser, content: string): string|nil
@@ -213,9 +218,8 @@
 ---@field _looks_like_incomplete_spring_annotation fun(self: endpoint.SpringParser, content: string): boolean
 ---@field _get_extended_annotation_content fun(self: endpoint.SpringParser, file_path: string, start_line: number): string|nil, number|nil, number|nil
 
----@class endpoint.Highlighter
+---@class endpoint.Highlighter : Class
 ---@field highlight_ns number
----@field new fun(self: endpoint.Highlighter, namespace_name: string): endpoint.Highlighter
 ---@field is_highlighting_enabled fun(self: endpoint.Highlighter, config: table): boolean
 ---@field clear_highlights fun(self: endpoint.Highlighter, bufnr: number)
 ---@field highlight_line_range fun(self: endpoint.Highlighter, bufnr: number, start_line: number, start_col: number, end_line?: number, highlight_group?: string)
@@ -223,10 +227,9 @@
 ---@field highlight_component_definition fun(self: endpoint.Highlighter, bufnr: number, endpoint: table, highlight_group?: string)
 ---@field calculate_highlight_length fun(self: endpoint.Highlighter, entry: table, method_icon: string, method_text: string): number
 
----@class endpoint.Themes
+---@class endpoint.Themes : Class
 ---@field DEFAULT_METHOD_COLORS table<string, string>
 ---@field DEFAULT_METHOD_ICONS table<string, string>
----@field new fun(self: endpoint.Themes): endpoint.Themes
 ---@field get_method_color fun(self: endpoint.Themes, method: string, config: table): string
 ---@field get_method_icon fun(self: endpoint.Themes, method: string, config: table): string
 ---@field get_method_text fun(self: endpoint.Themes, method: string, config: table): string
@@ -329,7 +332,7 @@
 -- ========================================
 
 -- Cache Manager (OOP)
----@class endpoint.CacheManager
+---@class endpoint.CacheManager : Class
 ---@field cached_endpoints endpoint.entry[]
 ---@field cache_timestamp number
 ---@field new fun(self: endpoint.CacheManager): endpoint.CacheManager
@@ -340,7 +343,7 @@
 ---@field get_stats fun(self: endpoint.CacheManager): table
 
 -- Event Manager (Observer Pattern)
----@class endpoint.EventManager
+---@class endpoint.EventManager : Class
 ---@field event_listeners table<string, endpoint.EventListener[]>
 ---@field new fun(self: endpoint.EventManager): endpoint.EventManager
 ---@field add_event_listener fun(self: endpoint.EventManager, event_type: string, listener_callback: function, listener_priority?: number)
@@ -368,7 +371,7 @@
 ---@field get_best_available_picker fun(self: endpoint.PickerManager, preferred_picker_name?: string, fallback_picker_name?: string): endpoint.Picker, string
 
 -- Endpoint Manager (Main Orchestrator)
----@class endpoint.EndpointManager
+---@class endpoint.EndpointManager : Class
 ---@field registered_frameworks endpoint.Framework[]
 ---@field event_manager endpoint.EventManager
 ---@field cache_manager endpoint.CacheManager
@@ -435,17 +438,19 @@
 ---@class endpoint.TelescopePicker : endpoint.Picker
 ---@field telescope_available boolean
 ---@field highlighter endpoint.Highlighter
----@field new fun(self: endpoint.TelescopePicker)
+---@field initialize fun(self: endpoint.TelescopePicker)
 ---@field _set_preview_cursor fun(self: endpoint.TelescopePicker, picker_self: table, preview_line: number, preview_col: number)
 
 ---@class endpoint.SnacksPicker : endpoint.Picker
 ---@field snacks_available boolean
 ---@field highlighter endpoint.Highlighter
+---@field initialize fun(self: endpoint.SnacksPicker)
 ---@field _validate_position fun(self: endpoint.SnacksPicker, endpoint: endpoint.entry): {start_pos: number[], end_pos: number[]}
 
 ---@class endpoint.VimUiSelectPicker : endpoint.Picker
 ---@field highlighter endpoint.Highlighter
 ---@field has_dressing boolean
+---@field initialize fun(self: endpoint.VimUiSelectPicker)
 ---@field _create_telescope_entry fun(self: endpoint.VimUiSelectPicker, item: endpoint.entry, config: table): table
 ---@field _create_method_highlight_function fun(self: endpoint.VimUiSelectPicker): function
 ---@field _register_dressing_custom_kind fun(self: endpoint.VimUiSelectPicker)

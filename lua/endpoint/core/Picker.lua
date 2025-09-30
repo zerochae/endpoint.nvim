@@ -1,10 +1,10 @@
-local Class = require "endpoint.lib.classic"
+local class = require "endpoint.lib.middleclass"
 
 ---@class endpoint.Picker
-local Picker = Class:extend()
+local Picker = class('Picker')
 
 ---Creates a new Picker instance with optional fields
-function Picker:new(fields)
+function Picker:initialize(fields)
   if fields then
     for key, value in pairs(fields) do
       self[key] = value

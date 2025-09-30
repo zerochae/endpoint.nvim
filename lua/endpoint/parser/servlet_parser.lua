@@ -1,15 +1,16 @@
 local Parser = require "endpoint.core.Parser"
+local class = require "endpoint.lib.middleclass"
 
 ---@class endpoint.ServletParser
-local ServletParser = Parser:extend()
+local ServletParser = class('ServletParser', Parser)
 
 -- ========================================
 -- PUBLIC METHODS
 -- ========================================
 
 ---Creates a new ServletParser instance
-function ServletParser:new()
-  ServletParser.super.new(self, {
+function ServletParser:initialize()
+  Parser.initialize(self, {
     parser_name = "servlet_parser",
     framework_name = "servlet",
     language = "java",

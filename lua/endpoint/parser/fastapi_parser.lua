@@ -1,15 +1,16 @@
 local Parser = require "endpoint.core.Parser"
+local class = require "endpoint.lib.middleclass"
 
 ---@class endpoint.FastApiParser
-local FastApiParser = Parser:extend()
+local FastApiParser = class('FastApiParser', Parser)
 
 -- ========================================
 -- PUBLIC METHODS
 -- ========================================
 
 ---Creates a new FastApiParser instance
-function FastApiParser:new()
-  FastApiParser.super.new(self, {
+function FastApiParser:initialize()
+  Parser.initialize(self, {
     parser_name = "fastapi_parser",
     framework_name = "fastapi",
     language = "python",

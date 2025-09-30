@@ -1,12 +1,13 @@
 local Framework = require "endpoint.core.Framework"
+local class = require "endpoint.lib.middleclass"
 local NestJsParser = require "endpoint.parser.nestjs_parser"
 
 ---@class endpoint.NestJsFramework
-local NestJsFramework = Framework:extend()
+local NestJsFramework = class('NestJsFramework', Framework)
 
 ---Creates a new NestJsFramework instance
-function NestJsFramework:new()
-  NestJsFramework.super.new(self, {
+function NestJsFramework:initialize()
+  Framework.initialize(self, {
     name = "nestjs",
     config = {
       file_extensions = { "*.ts", "*.js" },

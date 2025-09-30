@@ -1,39 +1,30 @@
----@class endpoint.EndpointManager
-local EndpointManager = {}
-EndpointManager.__index = EndpointManager
-
+local class = require "endpoint.lib.middleclass"
 local log = require "endpoint.utils.log"
 local EventManager = require "endpoint.manager.EventManager"
 local CacheManager = require "endpoint.manager.CacheManager"
 local config = require "endpoint.config"
 local PickerManager = require "endpoint.manager.PickerManager"
 
--- Import all framework classes
 local SpringFramework = require "endpoint.frameworks.spring"
 local FastApiFramework = require "endpoint.frameworks.fastapi"
 local ExpressFramework = require "endpoint.frameworks.express"
--- local FlaskFramework = require "endpoint.frameworks.flask"
 local RailsFramework = require "endpoint.frameworks.rails"
 local NestJsFramework = require "endpoint.frameworks.nestjs"
--- local DjangoFramework = require "endpoint.frameworks.django"
--- local GinFramework = require "endpoint.frameworks.gin"
 local SymfonyFramework = require "endpoint.frameworks.symfony"
 local KtorFramework = require "endpoint.frameworks.ktor"
--- local AxumFramework = require "endpoint.frameworks.axum"
--- local PhoenixFramework = require "endpoint.frameworks.phoenix"
 local DotNetFramework = require "endpoint.frameworks.dotnet"
 local ServletFramework = require "endpoint.frameworks.servlet"
 local ReactRouterFramework = require "endpoint.frameworks.react_router"
 
----Creates a new EndpointManager instance
-function EndpointManager:new()
-  local endpoint_manager_instance = setmetatable({}, self)
-  endpoint_manager_instance.registered_frameworks = {}
-  endpoint_manager_instance.event_manager = EventManager:new()
-  endpoint_manager_instance.cache_manager = CacheManager:new()
-  endpoint_manager_instance.picker_manager = PickerManager:new()
-  endpoint_manager_instance._initialized = false
-  return endpoint_manager_instance
+---@class endpoint.EndpointManager
+local EndpointManager = class('EndpointManager')
+
+function EndpointManager:initialize()
+  self.registered_frameworks = {}
+  self.event_manager = EventManager:new()
+  self.cache_manager = CacheManager:new()
+  self.picker_manager = PickerManager:new()
+  self._initialized = false
 end
 
 ---Setup the endpoint manager with configuration and register all frameworks
@@ -54,7 +45,7 @@ end
 function EndpointManager:register_all_frameworks()
   log.framework_debug "Registering all available frameworks"
 
-  -- Register all framework instances
+  -- Create framework instances from classes
   local framework_classes = {
     SpringFramework,
     RailsFramework,
@@ -74,7 +65,8 @@ function EndpointManager:register_all_frameworks()
   }
 
   for _, framework_class in ipairs(framework_classes) do
-    local framework_instance = framework_class()
+    ---@type endpoint.Framework
+    local framework_instance = framework_class:new()
     self:register_framework(framework_instance)
   end
 

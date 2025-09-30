@@ -1,12 +1,13 @@
 local Framework = require "endpoint.core.Framework"
+local class = require "endpoint.lib.middleclass"
 local SpringParser = require "endpoint.parser.spring_parser"
 
 ---@class endpoint.SpringFramework
-local SpringFramework = Framework:extend()
+local SpringFramework = class('SpringFramework', Framework)
 
 ---Creates a new SpringFramework instance
-function SpringFramework:new()
-  SpringFramework.super.new(self, {
+function SpringFramework:initialize()
+  Framework.initialize(self, {
     name = "spring",
     config = {
       file_extensions = { "*.java", "*.kt" },
