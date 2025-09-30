@@ -1,18 +1,18 @@
 local config = require "endpoint.config"
-local EndpointManager = require "endpoint.EndpointManager"
+local Endpoint = require "endpoint.core.Endpoint"
 
-local endpoint_manager = EndpointManager:new()
+local endpoint = Endpoint:new()
 
 local M = {}
 
 -- Setup function
 function M.setup(user_config)
-  endpoint_manager:setup(user_config)
+  endpoint:setup(user_config)
 end
 
 -- Main function to find and show endpoints
 function M.find(opts)
-  endpoint_manager:find(opts)
+  endpoint:find(opts)
 end
 
 -- Force refresh (bypass cache)
@@ -22,11 +22,11 @@ end
 
 -- Cache management
 function M.clear_cache()
-  endpoint_manager:clear_cache()
+  endpoint:clear_cache()
 end
 
 function M.show_cache_stats()
-  endpoint_manager:show_cache_stats()
+  endpoint:show_cache_stats()
 end
 
 -- Get configuration
@@ -36,17 +36,17 @@ end
 
 -- Get framework information
 function M.get_framework_info()
-  return endpoint_manager:get_framework_info()
+  return endpoint:get_framework_info()
 end
 
 -- Detect frameworks in current project
 function M.detect_frameworks()
-  return endpoint_manager:detect_project_frameworks()
+  return endpoint:detect_project_frameworks()
 end
 
 -- Scan with specific framework
 function M.scan_with_framework(framework_name, opts)
-  return endpoint_manager:scan_with_framework(framework_name, opts)
+  return endpoint:scan_with_framework(framework_name, opts)
 end
 
 return M

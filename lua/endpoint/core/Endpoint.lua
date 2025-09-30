@@ -6,10 +6,10 @@ local Cache = require "endpoint.core.Cache"
 local config = require "endpoint.config"
 local PickerRegistry = require "endpoint.core.PickerRegistry"
 
----@class endpoint.EndpointManager
-local EndpointManager = class "EndpointManager"
+---@class endpoint.core.Endpoint
+local Endpoint = class "Endpoint"
 
-function EndpointManager:initialize(dependencies)
+function Endpoint:initialize(dependencies)
   dependencies = dependencies or {}
 
   self.framework_registry = dependencies.framework_registry or FrameworkRegistry:new()
@@ -18,25 +18,25 @@ function EndpointManager:initialize(dependencies)
   self._initialized = false
 end
 
-function EndpointManager:get_events()
+function Endpoint:get_events()
   return Events.static.get_instance()
 end
 
 ---Setup the endpoint manager with configuration
-function EndpointManager:setup(user_config)
+function Endpoint:setup(user_config)
   config.setup(user_config)
   self._initialized = true
 end
 
 ---Ensures the endpoint manager is initialized
-function EndpointManager:_ensure_initialized()
+function Endpoint:_ensure_initialized()
   if not self._initialized then
     error "endpoint.nvim not initialized. Call setup() first."
   end
 end
 
 ---Registers a framework with the endpoint manager
-function EndpointManager:register_framework(framework_instance)
+function Endpoint:register_framework(framework_instance)
   if not framework_instance or not framework_instance.get_name then
     error "Invalid framework instance provided"
   end
@@ -50,22 +50,22 @@ function EndpointManager:register_framework(framework_instance)
 end
 
 ---Unregisters a framework from the endpoint manager
-function EndpointManager:unregister_framework(framework_name)
+function Endpoint:unregister_framework(framework_name)
   return self.framework_registry:unregister(framework_name)
 end
 
 ---Gets all registered frameworks
-function EndpointManager:get_registered_frameworks()
+function Endpoint:get_registered_frameworks()
   return self.framework_registry:get_all()
 end
 
 ---Detects which frameworks are present in the current project
-function EndpointManager:detect_project_frameworks()
+function Endpoint:detect_project_frameworks()
   return self.framework_registry:detect_all()
 end
 
 ---Scans for endpoints using all detected frameworks
-function EndpointManager:scan_all_endpoints(scan_options)
+function Endpoint:scan_all_endpoints(scan_options)
   scan_options = scan_options or {}
 
   local event_manager = self:get_events()
@@ -114,7 +114,7 @@ function EndpointManager:scan_all_endpoints(scan_options)
 end
 
 ---Scans for endpoints using a specific framework
-function EndpointManager:scan_with_framework(framework_name, scan_options)
+function Endpoint:scan_with_framework(framework_name, scan_options)
   scan_options = scan_options or {}
 
   local target_framework = self.framework_registry:get_by_name(framework_name)
@@ -134,27 +134,27 @@ function EndpointManager:scan_with_framework(framework_name, scan_options)
 end
 
 ---Adds an event listener for endpoint management events
-function EndpointManager:add_event_listener(event_type, listener_callback, listener_priority)
+function Endpoint:add_event_listener(event_type, listener_callback, listener_priority)
   self:get_events():add_event_listener(event_type, listener_callback, listener_priority)
 end
 
 ---Removes an event listener
-function EndpointManager:remove_event_listener(event_type, listener_callback)
+function Endpoint:remove_event_listener(event_type, listener_callback)
   return self:get_events():remove_event_listener(event_type, listener_callback)
 end
 
 ---Gets information about all registered frameworks
-function EndpointManager:get_framework_info()
+function Endpoint:get_framework_info()
   return self.framework_registry:get_info()
 end
 
 ---Clears all registered frameworks
-function EndpointManager:clear_all_frameworks()
+function Endpoint:clear_all_frameworks()
   return self.framework_registry:clear()
 end
 
 ---Main function to find and show endpoints with UI
-function EndpointManager:find(opts)
+function Endpoint:find(opts)
   self:_ensure_initialized()
   opts = opts or {}
 
@@ -171,7 +171,7 @@ end
 
 ---Resolves endpoints from cache or by scanning
 ---@private
-function EndpointManager:_resolve_endpoints(opts)
+function Endpoint:_resolve_endpoints(opts)
   if not opts.force_refresh and self:_should_use_cache(opts.method) then
     return self.cache:get_endpoints(opts.method)
   end
@@ -184,7 +184,7 @@ end
 
 ---Checks if cache should be used
 ---@private
-function EndpointManager:_should_use_cache(method)
+function Endpoint:_should_use_cache(method)
   local cache_config = config.get().cache
   if cache_config.mode == "none" then
     return false
@@ -200,7 +200,7 @@ end
 
 ---Updates cache if caching is enabled
 ---@private
-function EndpointManager:_update_cache_if_enabled(endpoints, method)
+function Endpoint:_update_cache_if_enabled(endpoints, method)
   local cache_config = config.get().cache
   if cache_config.mode ~= "none" and self.cache then
     self.cache:set_mode(cache_config.mode)
@@ -209,10 +209,10 @@ function EndpointManager:_update_cache_if_enabled(endpoints, method)
 end
 
 -- Legacy _handle_cache function - now integrated into find()
--- function EndpointManager:_handle_cache(endpoints, opts) ... end
+-- function Endpoint:_handle_cache(endpoints, opts) ... end
 
 ---Shows endpoints using the configured picker
-function EndpointManager:_show_with_picker(endpoints, opts)
+function Endpoint:_show_with_picker(endpoints, opts)
   local picker_config = config.get()
   local picker_name = picker_config.picker and picker_config.picker.type or picker_config.picker or "vim_ui_select"
 
@@ -240,7 +240,7 @@ function EndpointManager:_show_with_picker(endpoints, opts)
 end
 
 ---Clears the endpoint cache
-function EndpointManager:clear_cache()
+function Endpoint:clear_cache()
   self:_ensure_initialized()
 
   if self.cache then
@@ -252,7 +252,7 @@ function EndpointManager:clear_cache()
 end
 
 ---Shows cache statistics
-function EndpointManager:show_cache_stats()
+function Endpoint:show_cache_stats()
   self:_ensure_initialized()
 
   if self.cache then
@@ -265,4 +265,4 @@ function EndpointManager:show_cache_stats()
   end
 end
 
-return EndpointManager
+return Endpoint

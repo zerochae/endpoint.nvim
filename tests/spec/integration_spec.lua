@@ -1,12 +1,11 @@
-local EndpointManager = require "endpoint.EndpointManager"
+local Endpoint = require "endpoint.core.Endpoint"
 
 describe("Endpoint.nvim Integration Tests", function()
-  local endpoint_manager
+  local endpoint_instance
 
   before_each(function()
-    endpoint_manager = EndpointManager:new()
-    -- Setup with default config
-    endpoint_manager:setup {}
+    endpoint_instance = Endpoint:new()
+    endpoint_instance:setup {}
   end)
 
   describe("Real Project Detection", function()
@@ -23,7 +22,7 @@ describe("Endpoint.nvim Integration Tests", function()
 
       vim.fn.chdir(spring_fixture_path)
 
-      local detected_frameworks = endpoint_manager:detect_project_frameworks()
+      local detected_frameworks = endpoint_instance:detect_project_frameworks()
 
       -- Should detect Spring framework
       local found_spring = false
@@ -53,7 +52,7 @@ describe("Endpoint.nvim Integration Tests", function()
 
       vim.fn.chdir(express_fixture_path)
 
-      local detected_frameworks = endpoint_manager:detect_project_frameworks()
+      local detected_frameworks = endpoint_instance:detect_project_frameworks()
 
       -- Should detect Express framework
       local found_express = false
@@ -75,7 +74,7 @@ describe("Endpoint.nvim Integration Tests", function()
     it("should scan Spring project and find endpoints", function()
       -- Use Spring framework directly instead of changing directory
       local spring_framework = nil
-      for _, framework in ipairs(endpoint_manager:get_registered_frameworks()) do
+      for _, framework in ipairs(endpoint_instance:get_registered_frameworks()) do
         if framework:get_name() == "spring" then
           spring_framework = framework
           break
@@ -135,7 +134,7 @@ describe("Endpoint.nvim Integration Tests", function()
     it("should scan Express project and find endpoints", function()
       -- Use Express framework directly instead of changing directory
       local express_framework = nil
-      for _, framework in ipairs(endpoint_manager:get_registered_frameworks()) do
+      for _, framework in ipairs(endpoint_instance:get_registered_frameworks()) do
         if framework:get_name() == "express" then
           express_framework = framework
           break
@@ -197,7 +196,7 @@ describe("Endpoint.nvim Integration Tests", function()
     it("should filter endpoints by HTTP method", function()
       -- Use Spring framework directly
       local spring_framework = nil
-      for _, framework in ipairs(endpoint_manager:get_registered_frameworks()) do
+      for _, framework in ipairs(endpoint_instance:get_registered_frameworks()) do
         if framework:get_name() == "spring" then
           spring_framework = framework
           break
@@ -226,7 +225,7 @@ describe("Endpoint.nvim Integration Tests", function()
 
   describe("Cache Functionality", function()
     it("should cache and retrieve endpoints", function()
-      local cache = endpoint_manager.cache
+      local cache = endpoint_instance.cache
 
       cache:clear()
 
@@ -242,7 +241,7 @@ describe("Endpoint.nvim Integration Tests", function()
     end)
 
     it("should respect force refresh", function()
-      local cache = endpoint_manager.cache
+      local cache = endpoint_instance.cache
 
       cache:clear()
 
@@ -268,7 +267,7 @@ describe("Endpoint.nvim Integration Tests", function()
     it("should handle non-existent project gracefully", function()
       -- Test error handling without changing directory
       local spring_framework = nil
-      for _, framework in ipairs(endpoint_manager:get_registered_frameworks()) do
+      for _, framework in ipairs(endpoint_instance:get_registered_frameworks()) do
         if framework:get_name() == "spring" then
           spring_framework = framework
           break
@@ -306,7 +305,7 @@ describe("Endpoint.nvim Integration Tests", function()
       local original_cwd = vim.fn.getcwd()
       vim.fn.chdir(temp_dir)
 
-      local endpoints = endpoint_manager:scan_all_endpoints {}
+      local endpoints = endpoint_instance:scan_all_endpoints {}
 
       -- Should return empty list without crashing
       assert.is_table(endpoints, "Should return table even for empty project")
@@ -322,7 +321,7 @@ describe("Endpoint.nvim Integration Tests", function()
     it("should handle large number of endpoints efficiently", function()
       -- Test performance without changing directory
       local spring_framework = nil
-      for _, framework in ipairs(endpoint_manager:get_registered_frameworks()) do
+      for _, framework in ipairs(endpoint_instance:get_registered_frameworks()) do
         if framework:get_name() == "spring" then
           spring_framework = framework
           break

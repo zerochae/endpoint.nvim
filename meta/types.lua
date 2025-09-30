@@ -109,33 +109,33 @@
 -- CORE MANAGER & REGISTRY CLASSES
 -- ========================================
 
--- EndpointManager (Main Orchestrator)
----@class endpoint.EndpointManager : Class
+-- Endpoint (Main Orchestrator)
+---@class endpoint.core.Endpoint : Class
 ---@field framework_registry endpoint.FrameworkRegistry
 ---@field cache endpoint.Cache
 ---@field picker_registry endpoint.PickerRegistry
 ---@field _initialized boolean
----@field initialize fun(self: endpoint.EndpointManager, dependencies?: table)
----@field setup fun(self: endpoint.EndpointManager, user_config: table?)
----@field get_events fun(self: endpoint.EndpointManager): endpoint.Events
----@field register_framework fun(self: endpoint.EndpointManager, framework_instance: endpoint.Framework)
----@field unregister_framework fun(self: endpoint.EndpointManager, framework_name: string): boolean
----@field get_registered_frameworks fun(self: endpoint.EndpointManager): endpoint.Framework[]
----@field detect_project_frameworks fun(self: endpoint.EndpointManager): endpoint.Framework[]
----@field scan_all_endpoints fun(self: endpoint.EndpointManager, scan_options: table?): endpoint.entry[]
----@field scan_with_framework fun(self: endpoint.EndpointManager, framework_name: string, scan_options: table?): endpoint.entry[]
----@field add_event_listener fun(self: endpoint.EndpointManager, event_type: string, listener_callback: function, listener_priority: number?)
----@field remove_event_listener fun(self: endpoint.EndpointManager, event_type: string, listener_callback: function): boolean
----@field get_framework_info fun(self: endpoint.EndpointManager): table[]
----@field clear_all_frameworks fun(self: endpoint.EndpointManager): number
----@field find fun(self: endpoint.EndpointManager, opts: table?)
----@field clear_cache fun(self: endpoint.EndpointManager)
----@field show_cache_stats fun(self: endpoint.EndpointManager)
----@field _ensure_initialized fun(self: endpoint.EndpointManager)
----@field _resolve_endpoints fun(self: endpoint.EndpointManager, opts: table): endpoint.entry[]
----@field _should_use_cache fun(self: endpoint.EndpointManager, method?: string): boolean
----@field _update_cache_if_enabled fun(self: endpoint.EndpointManager, endpoints: endpoint.entry[], method?: string)
----@field _show_with_picker fun(self: endpoint.EndpointManager, endpoints: endpoint.entry[], opts: table?)
+---@field initialize fun(self: endpoint.core.Endpoint, dependencies?: table)
+---@field setup fun(self: endpoint.core.Endpoint, user_config: table?)
+---@field get_events fun(self: endpoint.core.Endpoint): endpoint.Events
+---@field register_framework fun(self: endpoint.core.Endpoint, framework_instance: endpoint.Framework)
+---@field unregister_framework fun(self: endpoint.core.Endpoint, framework_name: string): boolean
+---@field get_registered_frameworks fun(self: endpoint.core.Endpoint): endpoint.Framework[]
+---@field detect_project_frameworks fun(self: endpoint.core.Endpoint): endpoint.Framework[]
+---@field scan_all_endpoints fun(self: endpoint.core.Endpoint, scan_options: table?): endpoint.entry[]
+---@field scan_with_framework fun(self: endpoint.core.Endpoint, framework_name: string, scan_options: table?): endpoint.entry[]
+---@field add_event_listener fun(self: endpoint.core.Endpoint, event_type: string, listener_callback: function, listener_priority: number?)
+---@field remove_event_listener fun(self: endpoint.core.Endpoint, event_type: string, listener_callback: function): boolean
+---@field get_framework_info fun(self: endpoint.core.Endpoint): table[]
+---@field clear_all_frameworks fun(self: endpoint.core.Endpoint): number
+---@field find fun(self: endpoint.core.Endpoint, opts: table?)
+---@field clear_cache fun(self: endpoint.core.Endpoint)
+---@field show_cache_stats fun(self: endpoint.core.Endpoint)
+---@field _ensure_initialized fun(self: endpoint.core.Endpoint)
+---@field _resolve_endpoints fun(self: endpoint.core.Endpoint, opts: table): endpoint.entry[]
+---@field _should_use_cache fun(self: endpoint.core.Endpoint, method?: string): boolean
+---@field _update_cache_if_enabled fun(self: endpoint.core.Endpoint, endpoints: endpoint.entry[], method?: string)
+---@field _show_with_picker fun(self: endpoint.core.Endpoint, endpoints: endpoint.entry[], opts: table?)
 
 -- FrameworkRegistry (Framework Management)
 ---@class endpoint.FrameworkRegistry : Class
