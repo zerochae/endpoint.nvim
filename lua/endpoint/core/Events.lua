@@ -1,15 +1,27 @@
 local class = require "endpoint.lib.middleclass"
 local log = require "endpoint.utils.log"
 
----@class endpoint.EventManager
-local EventManager = class('EventManager')
+---@class endpoint.Events
+local Events = class "Events"
 
-function EventManager:initialize()
+local _instance = nil
+
+function Events.static.get_instance()
+  if not _instance then
+    _instance = Events:new()
+  end
+  return _instance
+end
+
+function Events.static.reset_instance()
+  _instance = nil
+end
+
+function Events:initialize()
   self.event_listeners = {}
 end
 
----Registers an event listener for a specific event type
-function EventManager:add_event_listener(event_type, listener_callback, listener_priority)
+function Events:add_event_listener(event_type, listener_callback, listener_priority)
   if type(listener_callback) ~= "function" then
     error "Event listener must be a function"
   end
@@ -26,7 +38,6 @@ function EventManager:add_event_listener(event_type, listener_callback, listener
 
   table.insert(self.event_listeners[event_type], event_listener_entry)
 
-  -- Sort listeners by priority (higher priority first)
   table.sort(self.event_listeners[event_type], function(listener_a, listener_b)
     return listener_a.execution_priority > listener_b.execution_priority
   end)
@@ -36,8 +47,7 @@ function EventManager:add_event_listener(event_type, listener_callback, listener
   )
 end
 
----Removes an event listener for a specific event type
-function EventManager:remove_event_listener(event_type, listener_callback)
+function Events:remove_event_listener(event_type, listener_callback)
   if not self.event_listeners[event_type] then
     return false
   end
@@ -53,8 +63,7 @@ function EventManager:remove_event_listener(event_type, listener_callback)
   return false
 end
 
----Emits an event to all registered listeners
-function EventManager:emit_event(event_type, event_data)
+function Events:emit_event(event_type, event_data)
   if not self.event_listeners[event_type] then
     log.framework_debug(string.format("No listeners registered for event '%s'", event_type))
     return {}
@@ -93,8 +102,7 @@ function EventManager:emit_event(event_type, event_data)
   return emission_results
 end
 
----Gets all registered event types
-function EventManager:get_registered_event_types()
+function Events:get_registered_event_types()
   local registered_event_types = {}
   for event_type, _ in pairs(self.event_listeners) do
     table.insert(registered_event_types, event_type)
@@ -103,16 +111,14 @@ function EventManager:get_registered_event_types()
   return registered_event_types
 end
 
----Gets the number of listeners for a specific event type
-function EventManager:get_listener_count(event_type)
+function Events:get_listener_count(event_type)
   if not self.event_listeners[event_type] then
     return 0
   end
   return #self.event_listeners[event_type]
 end
 
----Removes all listeners for a specific event type
-function EventManager:clear_event_listeners(event_type)
+function Events:clear_event_listeners(event_type)
   if not self.event_listeners[event_type] then
     return 0
   end
@@ -125,8 +131,7 @@ function EventManager:clear_event_listeners(event_type)
   return removed_listener_count
 end
 
----Removes all listeners for all event types
-function EventManager:clear_all_event_listeners()
+function Events:clear_all_event_listeners()
   local total_removed_listeners = 0
 
   for _, listener_list in pairs(self.event_listeners) do
@@ -140,8 +145,7 @@ function EventManager:clear_all_event_listeners()
   return total_removed_listeners
 end
 
--- Event type constants for commonly used events
-EventManager.EVENT_TYPES = {
+Events.static.EVENT_TYPES = {
   FRAMEWORK_DETECTED = "framework_detected",
   ENDPOINT_DISCOVERED = "endpoint_discovered",
   SCAN_STARTED = "scan_started",
@@ -152,4 +156,4 @@ EventManager.EVENT_TYPES = {
   CONFIG_CHANGED = "config_changed",
 }
 
-return EventManager
+return Events

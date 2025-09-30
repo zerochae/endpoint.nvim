@@ -2,10 +2,46 @@ local class = require "endpoint.lib.middleclass"
 local log = require "endpoint.utils.log"
 
 ---@class endpoint.FrameworkRegistry : Class
-local FrameworkRegistry = class('FrameworkRegistry')
+local FrameworkRegistry = class "FrameworkRegistry"
 
 function FrameworkRegistry:initialize()
   self.frameworks = {}
+  self:_register_default_frameworks()
+end
+
+function FrameworkRegistry:_register_default_frameworks()
+  log.framework_debug "Registering all available frameworks"
+
+  local SpringFramework = require "endpoint.frameworks.spring"
+  local FastApiFramework = require "endpoint.frameworks.fastapi"
+  local ExpressFramework = require "endpoint.frameworks.express"
+  local RailsFramework = require "endpoint.frameworks.rails"
+  local NestJsFramework = require "endpoint.frameworks.nestjs"
+  local SymfonyFramework = require "endpoint.frameworks.symfony"
+  local KtorFramework = require "endpoint.frameworks.ktor"
+  local DotNetFramework = require "endpoint.frameworks.dotnet"
+  local ServletFramework = require "endpoint.frameworks.servlet"
+  local ReactRouterFramework = require "endpoint.frameworks.react_router"
+
+  local framework_classes = {
+    SpringFramework,
+    RailsFramework,
+    SymfonyFramework,
+    ExpressFramework,
+    NestJsFramework,
+    FastApiFramework,
+    DotNetFramework,
+    KtorFramework,
+    ServletFramework,
+    ReactRouterFramework,
+  }
+
+  for _, framework_class in ipairs(framework_classes) do
+    local framework_instance = framework_class:new()
+    self:register(framework_instance)
+  end
+
+  log.framework_debug(string.format("Registered %d frameworks", #framework_classes))
 end
 
 function FrameworkRegistry:register(framework_instance)
@@ -77,3 +113,4 @@ function FrameworkRegistry:get_info()
 end
 
 return FrameworkRegistry
+

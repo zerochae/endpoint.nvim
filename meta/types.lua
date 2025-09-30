@@ -105,10 +105,107 @@
 -- Config type alias for UI configurations
 ---@alias endpoint.Config endpoint.config
 
--- Compatibility aliases for backward compatibility
----@alias EventManager endpoint.EventManager
----@alias PickerManager endpoint.PickerManager
----@alias CacheManager endpoint.CacheManager
+-- ========================================
+-- CORE MANAGER & REGISTRY CLASSES
+-- ========================================
+
+-- EndpointManager (Main Orchestrator)
+---@class endpoint.EndpointManager : Class
+---@field framework_registry endpoint.FrameworkRegistry
+---@field cache endpoint.Cache
+---@field picker_registry endpoint.PickerRegistry
+---@field _initialized boolean
+---@field initialize fun(self: endpoint.EndpointManager, dependencies?: table)
+---@field setup fun(self: endpoint.EndpointManager, user_config: table?)
+---@field get_events fun(self: endpoint.EndpointManager): endpoint.Events
+---@field register_framework fun(self: endpoint.EndpointManager, framework_instance: endpoint.Framework)
+---@field unregister_framework fun(self: endpoint.EndpointManager, framework_name: string): boolean
+---@field get_registered_frameworks fun(self: endpoint.EndpointManager): endpoint.Framework[]
+---@field detect_project_frameworks fun(self: endpoint.EndpointManager): endpoint.Framework[]
+---@field scan_all_endpoints fun(self: endpoint.EndpointManager, scan_options: table?): endpoint.entry[]
+---@field scan_with_framework fun(self: endpoint.EndpointManager, framework_name: string, scan_options: table?): endpoint.entry[]
+---@field add_event_listener fun(self: endpoint.EndpointManager, event_type: string, listener_callback: function, listener_priority: number?)
+---@field remove_event_listener fun(self: endpoint.EndpointManager, event_type: string, listener_callback: function): boolean
+---@field get_framework_info fun(self: endpoint.EndpointManager): table[]
+---@field clear_all_frameworks fun(self: endpoint.EndpointManager): number
+---@field find fun(self: endpoint.EndpointManager, opts: table?)
+---@field clear_cache fun(self: endpoint.EndpointManager)
+---@field show_cache_stats fun(self: endpoint.EndpointManager)
+---@field _ensure_initialized fun(self: endpoint.EndpointManager)
+---@field _resolve_endpoints fun(self: endpoint.EndpointManager, opts: table): endpoint.entry[]
+---@field _should_use_cache fun(self: endpoint.EndpointManager, method?: string): boolean
+---@field _update_cache_if_enabled fun(self: endpoint.EndpointManager, endpoints: endpoint.entry[], method?: string)
+---@field _show_with_picker fun(self: endpoint.EndpointManager, endpoints: endpoint.entry[], opts: table?)
+
+-- FrameworkRegistry (Framework Management)
+---@class endpoint.FrameworkRegistry : Class
+---@field frameworks endpoint.Framework[]
+---@field initialize fun(self: endpoint.FrameworkRegistry)
+---@field register fun(self: endpoint.FrameworkRegistry, framework_instance: endpoint.Framework)
+---@field unregister fun(self: endpoint.FrameworkRegistry, framework_name: string): boolean
+---@field get_all fun(self: endpoint.FrameworkRegistry): endpoint.Framework[]
+---@field get_by_name fun(self: endpoint.FrameworkRegistry, framework_name: string): endpoint.Framework|nil
+---@field detect_all fun(self: endpoint.FrameworkRegistry): endpoint.Framework[]
+---@field clear fun(self: endpoint.FrameworkRegistry): number
+---@field get_info fun(self: endpoint.FrameworkRegistry): table[]
+---@field _register_default_frameworks fun(self: endpoint.FrameworkRegistry)
+
+-- Events (Event Management with Singleton)
+---@class endpoint.Events.static
+---@field get_instance fun(): endpoint.Events
+---@field reset_instance fun()
+---@field EVENT_TYPES table<string, string>
+---@field [any] any
+
+---@class endpoint.Events : Class
+---@field static endpoint.Events.static
+---@field event_listeners table<string, endpoint.EventListener[]>
+---@field initialize fun(self: endpoint.Events)
+---@field add_event_listener fun(self: endpoint.Events, event_type: string, listener_callback: function, listener_priority?: number)
+---@field emit_event fun(self: endpoint.Events, event_type: string, event_data?: any): table[]
+---@field remove_event_listener fun(self: endpoint.Events, event_type: string, listener_callback: function): boolean
+---@field get_registered_event_types fun(self: endpoint.Events): string[]
+---@field get_listener_count fun(self: endpoint.Events, event_type: string): number
+---@field clear_event_listeners fun(self: endpoint.Events, event_type: string): number
+---@field clear_all_event_listeners fun(self: endpoint.Events): number
+
+---@class endpoint.EventListener
+---@field callback_function function
+---@field execution_priority number
+---@field registration_timestamp number
+
+-- Cache (Cache Management)
+---@class endpoint.Cache : Class
+---@field cached_endpoints table<string, endpoint.entry[]>
+---@field cache_timestamps table<string, number>
+---@field cache_mode "none" | "session" | "persistent"
+---@field initialize fun(self: endpoint.Cache)
+---@field set_mode fun(self: endpoint.Cache, mode: "none" | "session" | "persistent")
+---@field is_valid fun(self: endpoint.Cache, method?: string): boolean
+---@field get_endpoints fun(self: endpoint.Cache, method?: string): endpoint.entry[]
+---@field save_endpoints fun(self: endpoint.Cache, endpoints: endpoint.entry[], method?: string)
+---@field clear fun(self: endpoint.Cache)
+---@field get_stats fun(self: endpoint.Cache): table
+---@field _get_cache_key fun(self: endpoint.Cache, method?: string): string
+---@field _get_cache_dir fun(self: endpoint.Cache): string
+---@field _get_project_hash fun(self: endpoint.Cache): string
+---@field _get_cache_file_path fun(self: endpoint.Cache, method?: string): string
+---@field _ensure_cache_dir fun(self: endpoint.Cache)
+---@field _save_to_disk fun(self: endpoint.Cache, endpoints: endpoint.entry[], method?: string)
+---@field _load_from_disk fun(self: endpoint.Cache, method?: string): endpoint.entry[]|nil
+---@field _serialize_table fun(self: endpoint.Cache, tbl: any): string
+---@field _clear_disk_cache fun(self: endpoint.Cache)
+
+-- PickerRegistry (Picker Management)
+---@class endpoint.PickerRegistry : Class
+---@field available_pickers table<string, endpoint.Picker>
+---@field initialize fun(self: endpoint.PickerRegistry)
+---@field get_picker fun(self: endpoint.PickerRegistry, picker_name: string): endpoint.Picker|nil
+---@field get_all_pickers fun(self: endpoint.PickerRegistry): table<string, endpoint.Picker>
+---@field register_picker fun(self: endpoint.PickerRegistry, picker_name: string, picker_instance: endpoint.Picker)
+---@field is_picker_available fun(self: endpoint.PickerRegistry, picker_name: string): boolean
+---@field get_best_available_picker fun(self: endpoint.PickerRegistry, preferred_picker_name?: string, fallback_picker_name?: string): endpoint.Picker, string
+---@field _register_default_pickers fun(self: endpoint.PickerRegistry)
 
 -- ========================================
 -- BASE CLASSES (OOP ARCHITECTURE)
@@ -136,7 +233,6 @@
 ---@field get_config fun(self: endpoint.Framework): table
 ---@field is_instance_of fun(self: endpoint.Framework, framework_class: table): boolean
 
--- Framework base alias for compatibility
 ---@alias endpoint.framework_base endpoint.Framework
 
 -- Base Picker Class
@@ -191,6 +287,28 @@
 ---@field get_parsing_confidence fun(self: endpoint.Parser, content_to_analyze?: string): number
 ---@field create_metadata fun(self: endpoint.Parser, route_type: string, extra_metadata?: table, content?: string): table
 
+-- Highlighter
+---@class endpoint.Highlighter : Class
+---@field highlight_ns number
+---@field is_highlighting_enabled fun(self: endpoint.Highlighter, config: table): boolean
+---@field clear_highlights fun(self: endpoint.Highlighter, bufnr: number)
+---@field highlight_line_range fun(self: endpoint.Highlighter, bufnr: number, start_line: number, start_col: number, end_line?: number, highlight_group?: string)
+---@field highlight_endpoint fun(self: endpoint.Highlighter, bufnr: number, endpoint: table, highlight_group?: string)
+---@field highlight_component_definition fun(self: endpoint.Highlighter, bufnr: number, endpoint: table, highlight_group?: string)
+---@field calculate_highlight_length fun(self: endpoint.Highlighter, entry: table, method_icon: string, method_text: string): number
+
+-- Themes
+---@class endpoint.Themes : Class
+---@field DEFAULT_METHOD_COLORS table<string, string>
+---@field DEFAULT_METHOD_ICONS table<string, string>
+---@field get_method_color fun(self: endpoint.Themes, method: string, config: table): string
+---@field get_method_icon fun(self: endpoint.Themes, method: string, config: table): string
+---@field get_method_text fun(self: endpoint.Themes, method: string, config: table): string
+
+-- ========================================
+-- CONCRETE PARSER IMPLEMENTATIONS
+-- ========================================
+
 ---@class endpoint.RailsParser : endpoint.Parser
 ---@field _extract_http_method fun(self: endpoint.RailsParser, content: string): string|nil
 ---@field _is_valid_route_line fun(self: endpoint.RailsParser, content: string): boolean
@@ -217,22 +335,6 @@
 ---@field _extract_methods_from_request_mapping fun(self: endpoint.SpringParser, content: string): string[]
 ---@field _looks_like_incomplete_spring_annotation fun(self: endpoint.SpringParser, content: string): boolean
 ---@field _get_extended_annotation_content fun(self: endpoint.SpringParser, file_path: string, start_line: number): string|nil, number|nil, number|nil
-
----@class endpoint.Highlighter : Class
----@field highlight_ns number
----@field is_highlighting_enabled fun(self: endpoint.Highlighter, config: table): boolean
----@field clear_highlights fun(self: endpoint.Highlighter, bufnr: number)
----@field highlight_line_range fun(self: endpoint.Highlighter, bufnr: number, start_line: number, start_col: number, end_line?: number, highlight_group?: string)
----@field highlight_endpoint fun(self: endpoint.Highlighter, bufnr: number, endpoint: table, highlight_group?: string)
----@field highlight_component_definition fun(self: endpoint.Highlighter, bufnr: number, endpoint: table, highlight_group?: string)
----@field calculate_highlight_length fun(self: endpoint.Highlighter, entry: table, method_icon: string, method_text: string): number
-
----@class endpoint.Themes : Class
----@field DEFAULT_METHOD_COLORS table<string, string>
----@field DEFAULT_METHOD_ICONS table<string, string>
----@field get_method_color fun(self: endpoint.Themes, method: string, config: table): string
----@field get_method_icon fun(self: endpoint.Themes, method: string, config: table): string
----@field get_method_text fun(self: endpoint.Themes, method: string, config: table): string
 
 ---@class endpoint.SymfonyParser : endpoint.Parser
 ---@field _last_end_line_number number|nil
@@ -328,76 +430,6 @@
 ---@field _find_component_file fun(self: endpoint.ReactRouterParser, component_name?: string): string|nil
 
 -- ========================================
--- MANAGER CLASSES
--- ========================================
-
--- Cache Manager (OOP)
----@class endpoint.CacheManager : Class
----@field cached_endpoints endpoint.entry[]
----@field cache_timestamp number
----@field new fun(self: endpoint.CacheManager): endpoint.CacheManager
----@field is_valid fun(self: endpoint.CacheManager, method: string?): boolean
----@field get_endpoints fun(self: endpoint.CacheManager, method: string?): endpoint.entry[]
----@field save_endpoints fun(self: endpoint.CacheManager, endpoints: endpoint.entry[], method: string?)
----@field clear fun(self: endpoint.CacheManager)
----@field get_stats fun(self: endpoint.CacheManager): table
-
--- Event Manager (Observer Pattern)
----@class endpoint.EventManager : Class
----@field event_listeners table<string, endpoint.EventListener[]>
----@field new fun(self: endpoint.EventManager): endpoint.EventManager
----@field add_event_listener fun(self: endpoint.EventManager, event_type: string, listener_callback: function, listener_priority?: number)
----@field emit_event fun(self: endpoint.EventManager, event_type: string, event_data?: any): table[]
----@field remove_event_listener fun(self: endpoint.EventManager, event_type: string, listener_callback: function): boolean
----@field get_registered_event_types fun(self: endpoint.EventManager): string[]
----@field get_listener_count fun(self: endpoint.EventManager, event_type: string): number
----@field clear_event_listeners fun(self: endpoint.EventManager, event_type: string): number
----@field clear_all_event_listeners fun(self: endpoint.EventManager): number
-
----@class endpoint.EventListener
----@field callback_function function
----@field execution_priority number
----@field registration_timestamp number
-
--- Picker Manager (Factory Pattern)
----@class endpoint.PickerManager
----@field available_pickers table<string, table>
----@field new fun(self: endpoint.PickerManager): endpoint.PickerManager
----@field _register_default_pickers fun(self: endpoint.PickerManager)
----@field get_picker fun(self: endpoint.PickerManager, picker_name: string): endpoint.Picker|nil
----@field get_all_pickers fun(self: endpoint.PickerManager): table<string, endpoint.Picker>
----@field register_picker fun(self: endpoint.PickerManager, picker_name: string, picker_instance: endpoint.Picker)
----@field is_picker_available fun(self: endpoint.PickerManager, picker_name: string): boolean
----@field get_best_available_picker fun(self: endpoint.PickerManager, preferred_picker_name?: string, fallback_picker_name?: string): endpoint.Picker, string
-
--- Endpoint Manager (Main Orchestrator)
----@class endpoint.EndpointManager : Class
----@field registered_frameworks endpoint.Framework[]
----@field event_manager endpoint.EventManager
----@field cache_manager endpoint.CacheManager
----@field picker_manager endpoint.PickerManager
----@field _initialized boolean
----@field new fun(self: endpoint.EndpointManager): endpoint.EndpointManager
----@field setup fun(self: endpoint.EndpointManager, user_config: table?)
----@field register_all_frameworks fun(self: endpoint.EndpointManager)
----@field register_framework fun(self: endpoint.EndpointManager, framework_instance: endpoint.Framework)
----@field unregister_framework fun(self: endpoint.EndpointManager, framework_name: string): boolean
----@field get_registered_frameworks fun(self: endpoint.EndpointManager): endpoint.Framework[]
----@field detect_project_frameworks fun(self: endpoint.EndpointManager): endpoint.Framework[]
----@field scan_all_endpoints fun(self: endpoint.EndpointManager, scan_options: table?): endpoint.entry[]
----@field scan_with_framework fun(self: endpoint.EndpointManager, framework_name: string, scan_options: table?): endpoint.entry[]
----@field get_event_manager fun(self: endpoint.EndpointManager): endpoint.EventManager
----@field add_event_listener fun(self: endpoint.EndpointManager, event_type: string, listener_callback: function, listener_priority: number?)
----@field remove_event_listener fun(self: endpoint.EndpointManager, event_type: string, listener_callback: function): boolean
----@field get_framework_info fun(self: endpoint.EndpointManager): table[]
----@field clear_all_frameworks fun(self: endpoint.EndpointManager): number
----@field find fun(self: endpoint.EndpointManager, opts: table?)
----@field clear_cache fun(self: endpoint.EndpointManager)
----@field show_cache_stats fun(self: endpoint.EndpointManager)
----@field _ensure_initialized fun(self: endpoint.EndpointManager)
----@field _show_with_picker fun(self: endpoint.EndpointManager, endpoints: endpoint.entry[], opts: table?)
-
--- ========================================
 -- CONCRETE FRAMEWORK IMPLEMENTATIONS
 -- ========================================
 
@@ -481,18 +513,9 @@
 ---@field endpoint fun(message: string, level?: number)
 
 -- ========================================
--- LEGACY FUNCTION-BASED MODULES
--- ========================================
-
--- Picker Module (Function-based)
----@class endpoint.picker
----@field show fun(endpoints: endpoint.entry[], opts?: table)
-
--- ========================================
 -- MAIN MODULE INTERFACE
 -- ========================================
 
--- Main Module Interface (updated for new simplified OOP structure)
 ---@class endpoint
 ---@field setup fun(user_config?: table)
 ---@field find fun(opts?: table)
@@ -503,3 +526,11 @@
 ---@field get_framework_info fun(): table[]
 ---@field detect_frameworks fun(): endpoint.Framework[]
 ---@field scan_with_framework fun(framework_name: string, opts?: table): endpoint.entry[]
+
+-- ========================================
+-- LEGACY COMPATIBILITY ALIASES
+-- ========================================
+
+---@alias EventManager endpoint.Events
+---@alias CacheManager endpoint.Cache
+---@alias PickerManager endpoint.PickerRegistry
