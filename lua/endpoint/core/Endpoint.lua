@@ -22,20 +22,20 @@ function Endpoint:get_events()
   return Events.static.get_instance()
 end
 
----Setup the endpoint manager with configuration
+---Setup the endpoint with configuration
 function Endpoint:setup(user_config)
   config.setup(user_config)
   self._initialized = true
 end
 
----Ensures the endpoint manager is initialized
+---Ensures the endpoint is initialized
 function Endpoint:_ensure_initialized()
   if not self._initialized then
     error "endpoint.nvim not initialized. Call setup() first."
   end
 end
 
----Registers a framework with the endpoint manager
+---Registers a framework
 function Endpoint:register_framework(framework_instance)
   if not framework_instance or not framework_instance.get_name then
     error "Invalid framework instance provided"
@@ -49,7 +49,7 @@ function Endpoint:register_framework(framework_instance)
   })
 end
 
----Unregisters a framework from the endpoint manager
+---Unregisters a framework
 function Endpoint:unregister_framework(framework_name)
   return self.framework_registry:unregister(framework_name)
 end
@@ -68,9 +68,9 @@ end
 function Endpoint:scan_all_endpoints(scan_options)
   scan_options = scan_options or {}
 
-  local event_manager = self:get_events()
+  local events = self:get_events()
 
-  event_manager:emit_event(Events.static.EVENT_TYPES.SCAN_STARTED, {
+  events:emit_event(Events.static.EVENT_TYPES.SCAN_STARTED, {
     scan_options = scan_options,
     registered_framework_count = #self.framework_registry:get_all(),
   })
@@ -92,7 +92,7 @@ function Endpoint:scan_all_endpoints(scan_options)
     local framework_endpoints = framework_instance:scan(scan_options)
 
     for _, discovered_endpoint in ipairs(framework_endpoints) do
-      event_manager:emit_event(Events.static.EVENT_TYPES.ENDPOINT_DISCOVERED, {
+      events:emit_event(Events.static.EVENT_TYPES.ENDPOINT_DISCOVERED, {
         endpoint = discovered_endpoint,
         framework_name = framework_name,
       })
@@ -103,7 +103,7 @@ function Endpoint:scan_all_endpoints(scan_options)
     log.framework_debug(string.format("Found %d endpoints with %s", #framework_endpoints, framework_name))
   end
 
-  event_manager:emit_event(Events.static.EVENT_TYPES.SCAN_COMPLETED, {
+  events:emit_event(Events.static.EVENT_TYPES.SCAN_COMPLETED, {
     total_endpoints_found = #all_discovered_endpoints,
     frameworks_used = detected_frameworks,
   })

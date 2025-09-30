@@ -33,5 +33,5 @@ function DotNetFramework:initialize()
   })
 end
 
--- Export class (EndpointManager will create singleton)
+-- Export class (FrameworkRegistry will register this)
 return DotNetFramework
