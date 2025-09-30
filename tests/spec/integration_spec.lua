@@ -92,7 +92,7 @@ describe("Endpoint.nvim Integration Tests", function()
       local original_has_file = fs.has_file
       local original_file_contains = fs.file_contains
 
-      fs.has_file = function(files)
+      local mock_has_file = function(files)
         if type(files) == "table" then
           for _, file in ipairs(files) do
             if file == "pom.xml" or file == "build.gradle" or file == "application.properties" then
@@ -103,12 +103,15 @@ describe("Endpoint.nvim Integration Tests", function()
         return false
       end
 
-      fs.file_contains = function(filepath, pattern)
+      local mock_file_contains = function(filepath, pattern)
         if filepath == "pom.xml" and pattern == "spring-boot" then
           return true
         end
         return false
       end
+
+      fs.has_file = mock_has_file
+      fs.file_contains = mock_file_contains
 
       local endpoints = spring_framework:scan {}
 
@@ -149,7 +152,7 @@ describe("Endpoint.nvim Integration Tests", function()
       local original_has_file = fs.has_file
       local original_file_contains = fs.file_contains
 
-      fs.has_file = function(files)
+      local mock_has_file = function(files)
         if type(files) == "table" then
           for _, file in ipairs(files) do
             if file == "package.json" or file == "server.js" or file == "app.js" then
@@ -160,12 +163,15 @@ describe("Endpoint.nvim Integration Tests", function()
         return false
       end
 
-      fs.file_contains = function(filepath, pattern)
+      local mock_file_contains = function(filepath, pattern)
         if filepath == "package.json" and pattern == "express" then
           return true
         end
         return false
       end
+
+      fs.has_file = mock_has_file
+      fs.file_contains = mock_file_contains
 
       local endpoints = express_framework:scan {}
 
@@ -247,13 +253,13 @@ describe("Endpoint.nvim Integration Tests", function()
       cache:save_endpoints(test_endpoints, "GET")
 
       local is_valid_result = cache:is_valid "GET"
-      assert.is_not_nil(is_valid_result, "is_valid should return a boolean value")
+      assert.is_not_nil(is_valid_result)
       assert.is_true(is_valid_result, "Cache should be valid after saving")
 
       cache:clear()
 
       local is_invalid_result = cache:is_valid "GET"
-      assert.is_not_nil(is_invalid_result, "is_valid should return a boolean value")
+      assert.is_not_nil(is_invalid_result)
       assert.is_false(is_invalid_result, "Cache should be invalid after clearing")
     end)
   end)
@@ -278,16 +284,16 @@ describe("Endpoint.nvim Integration Tests", function()
       local fs = require "endpoint.utils.fs"
       local original_has_file = fs.has_file
 
-      fs.has_file = function(files)
-        return false -- Simulate no files found
+      local mock_has_file = function(_)
+        return false
       end
+
+      fs.has_file = mock_has_file
 
       local endpoints = spring_framework:scan {}
 
-      -- Restore original function
       fs.has_file = original_has_file
 
-      -- Should return empty list without crashing
       assert.is_table(endpoints, "Should return table even for non-existent project")
       assert.equals(0, #endpoints, "Should return empty list for non-existent project")
     end)
@@ -342,4 +348,3 @@ describe("Endpoint.nvim Integration Tests", function()
     end)
   end)
 end)
-

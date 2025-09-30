@@ -31,11 +31,35 @@ describe("SpringFramework", function()
         return has_spring_deps
       elseif (filepath == "build.gradle" or filepath == "build.gradle.kts") and pattern == "spring-boot" then
         return has_gradle_deps
-      elseif filepath == "application.properties" and (pattern == "spring-boot" or pattern == "spring-web" or pattern == "spring-webmvc" or pattern == "org.springframework") then
+      elseif
+        filepath == "application.properties"
+        and (
+          pattern == "spring-boot"
+          or pattern == "spring-web"
+          or pattern == "spring-webmvc"
+          or pattern == "org.springframework"
+        )
+      then
         return has_spring_deps
-      elseif filepath == "application.yml" and (pattern == "spring-boot" or pattern == "spring-web" or pattern == "spring-webmvc" or pattern == "org.springframework") then
+      elseif
+        filepath == "application.yml"
+        and (
+          pattern == "spring-boot"
+          or pattern == "spring-web"
+          or pattern == "spring-webmvc"
+          or pattern == "org.springframework"
+        )
+      then
         return has_spring_deps
-      elseif filepath == "application.yaml" and (pattern == "spring-boot" or pattern == "spring-web" or pattern == "spring-webmvc" or pattern == "org.springframework") then
+      elseif
+        filepath == "application.yaml"
+        and (
+          pattern == "spring-boot"
+          or pattern == "spring-web"
+          or pattern == "spring-webmvc"
+          or pattern == "org.springframework"
+        )
+      then
         return has_spring_deps
       end
       return false
@@ -183,8 +207,7 @@ describe("SpringFramework", function()
     it("should parse real Spring controller file", function()
       local file_path = "tests/fixtures/spring/src/main/java/com/example/UserController.java"
       local file_content = vim.fn.readfile(file_path)
-      local content = table.concat(file_content, "\n")
-      
+
       -- Test multiple endpoints from the real file
       local results = {}
       for line_num, line in ipairs(file_content) do
@@ -193,10 +216,10 @@ describe("SpringFramework", function()
           table.insert(results, result)
         end
       end
-      
+
       -- Should find multiple endpoints from the real controller
       assert.is_true(#results > 0, "Should find at least one endpoint from real controller")
-      
+
       -- Verify specific endpoints exist
       local found_get_list = false
       local found_post_create = false
@@ -208,7 +231,7 @@ describe("SpringFramework", function()
           found_post_create = true
         end
       end
-      
+
       assert.is_true(found_get_list, "Should find GET /users/list endpoint")
       assert.is_true(found_post_create, "Should find POST /users endpoint")
     end)
