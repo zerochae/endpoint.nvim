@@ -1,6 +1,4 @@
--- Integration tests that test the full endpoint.nvim functionality
-local EndpointManager = require "endpoint.manager.EndpointManager"
-local config = require "endpoint.config"
+local EndpointManager = require "endpoint.EndpointManager"
 
 describe("Endpoint.nvim Integration Tests", function()
   local endpoint_manager
@@ -222,52 +220,39 @@ describe("Endpoint.nvim Integration Tests", function()
 
   describe("Cache Functionality", function()
     it("should cache and retrieve endpoints", function()
-      -- Test cache functionality without changing directory
-      local cache_manager = endpoint_manager.cache_manager
+      local cache = endpoint_manager.cache
 
-      -- Clear cache first
-      cache_manager:clear()
+      cache:clear()
 
-      -- Test cache operations
       local test_endpoints = {
         { method = "GET", endpoint_path = "/test", file_path = "test.java", line_number = 1, framework = "spring" },
       }
 
-      -- Save to cache
-      cache_manager:save_endpoints(test_endpoints, "GET")
+      cache:save_endpoints(test_endpoints, "GET")
 
-      -- Retrieve from cache
-      local cached_endpoints = cache_manager:get_endpoints "GET"
+      local cached_endpoints = cache:get_endpoints "GET"
 
-      -- Results should be the same
       assert.equals(#test_endpoints, #cached_endpoints, "Cached results should match original results")
     end)
 
     it("should respect force refresh", function()
-      -- Test force refresh functionality
-      local cache_manager = endpoint_manager.cache_manager
+      local cache = endpoint_manager.cache
 
-      -- Clear cache first
-      cache_manager:clear()
+      cache:clear()
 
-      -- Test cache operations
       local test_endpoints = {
         { method = "GET", endpoint_path = "/test", file_path = "test.java", line_number = 1, framework = "spring" },
       }
 
-      -- Save to cache
-      cache_manager:save_endpoints(test_endpoints, "GET")
+      cache:save_endpoints(test_endpoints, "GET")
 
-      -- Test cache validity
-      local is_valid_result = cache_manager:is_valid "GET"
+      local is_valid_result = cache:is_valid "GET"
       assert.is_not_nil(is_valid_result, "is_valid should return a boolean value")
       assert.is_true(is_valid_result, "Cache should be valid after saving")
 
-      -- Clear cache
-      cache_manager:clear()
+      cache:clear()
 
-      -- Cache should be invalid after clearing
-      local is_invalid_result = cache_manager:is_valid "GET"
+      local is_invalid_result = cache:is_valid "GET"
       assert.is_not_nil(is_invalid_result, "is_valid should return a boolean value")
       assert.is_false(is_invalid_result, "Cache should be invalid after clearing")
     end)
