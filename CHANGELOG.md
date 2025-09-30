@@ -1,5 +1,25 @@
 # Changelog
 
+## [2.6.0](https://github.com/zerochae/endpoint.nvim/compare/v2.5.0...v2.6.0) (2025-09-30)
+
+
+### Features
+
+* add comprehensive Symfony multiline Route annotation support ([2f7d48b](https://github.com/zerochae/endpoint.nvim/commit/2f7d48b6645b9d9bea1fc315d99084637064b4dc))
+* enhance Symfony multiline Route detection and parsing ([545f145](https://github.com/zerochae/endpoint.nvim/commit/545f14581f88ff75d23486adf8108deff06e0766))
+* Improve endpoint duplicate filtering for monorepo and microservice support ([dd93120](https://github.com/zerochae/endpoint.nvim/commit/dd93120e4e8476c617dfabf0e7864683166922b3))
+* improve endpoint duplicate filtering for monorepo support ([1bb6d59](https://github.com/zerochae/endpoint.nvim/commit/1bb6d595baa7a6bec8d3ac5e37d8e4da4a210707))
+* update vim ui select picker and related documentation ([2a66f25](https://github.com/zerochae/endpoint.nvim/commit/2a66f255197302c4abc77f76fc4493de15d0b369))
+
+
+### Bug Fixes
+
+* improve DocBlock multiline annotation highlighting ([8316d1f](https://github.com/zerochae/endpoint.nvim/commit/8316d1fcf82f9fa6a973fbf29c99ba2a35ffeb39))
+* improve vim_ui_select picker prompt configuration and error handling ([413dd01](https://github.com/zerochae/endpoint.nvim/commit/413dd0159e206a20c9217927e9577764d9f450d5))
+* remove duplicated get_event_manager method ([4dc0137](https://github.com/zerochae/endpoint.nvim/commit/4dc0137465a8e4a3a2fa9b77deaa4c932c779fb3))
+* resolve Lua syntax errors in Symfony multiline test strings ([9f58dfb](https://github.com/zerochae/endpoint.nvim/commit/9f58dfb9cf67a41566fce0d457ae3e8437b147cf))
+* update integration test to match refactored architecture ([40d6a7e](https://github.com/zerochae/endpoint.nvim/commit/40d6a7ee7cb3263c82a7b2f758c6580d8566f1f8))
+
 ## [2.5.0](https://github.com/zerochae/endpoint.nvim/compare/v2.4.0...v2.5.0) (2025-09-24)
 
 
