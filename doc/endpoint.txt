@@ -294,7 +294,8 @@ endpoint.nvim uses a modern Object-Oriented architecture with:
   • Framework: Base class for all framework implementations
   • Parser: Handles endpoint parsing specific to each framework
   • Detector: Unified detection system (integrated into Framework)
-  • EndpointManager: Manages all registered frameworks
+  • Endpoint: Main orchestrator managing all components
+  • FrameworkRegistry: Manages framework registration and detection
 
 Framework Detection:~
 
@@ -364,7 +365,7 @@ The plugin uses a modern OOP architecture. Each framework consists of:
 1. Framework Class (inherits from base Framework)
 2. Parser Class (inherits from base Parser)
 
-Framework classes must be registered in EndpointManager.lua.
+Framework classes are automatically registered in FrameworkRegistry.
 
 See wiki/Adding-New-Frameworks.md for detailed implementation guide.
 
@@ -389,7 +390,7 @@ A: Verify detection files exist:
    • Spring: pom.xml, build.gradle, or application config files
    • Rails: Gemfile, config/routes.rb, or app/controllers/
    • Express: package.json with express dependency
-   • Check EndpointManager registration for your framework
+   • Check FrameworkRegistry for your framework registration
 
 Q: Icons not displaying
 A: Ensure:
@@ -412,7 +413,7 @@ A: Consider:
 
 Debug Information:~
     View current config: `lua print(vim.inspect(require("endpoint").get_config()))`
-    Check framework detection: `lua print(vim.inspect(require("endpoint.manager.EndpointManager"):new():get_detected_frameworks()))`
+    Check framework detection: `lua print(vim.inspect(require("endpoint").detect_frameworks()))`
     Clear cache and retry: `:Endpoint ClearCache`
     Enable framework debugging: `lua vim.g.endpoint_debug = true`
 
