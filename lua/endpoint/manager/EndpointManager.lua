@@ -1,6 +1,7 @@
 local class = require "endpoint.lib.middleclass"
 local log = require "endpoint.utils.log"
-local EventManager = require "endpoint.manager.EventManager"
+local EventBus = require "endpoint.core.EventBus"
+local FrameworkRegistry = require "endpoint.core.FrameworkRegistry"
 local CacheManager = require "endpoint.manager.CacheManager"
 local config = require "endpoint.config"
 local PickerManager = require "endpoint.manager.PickerManager"
@@ -19,12 +20,17 @@ local ReactRouterFramework = require "endpoint.frameworks.react_router"
 ---@class endpoint.EndpointManager
 local EndpointManager = class('EndpointManager')
 
-function EndpointManager:initialize()
-  self.registered_frameworks = {}
-  self.event_manager = EventManager:new()
-  self.cache_manager = CacheManager:new()
-  self.picker_manager = PickerManager:new()
+function EndpointManager:initialize(dependencies)
+  dependencies = dependencies or {}
+
+  self.framework_registry = dependencies.framework_registry or FrameworkRegistry:new()
+  self.cache_manager = dependencies.cache_manager or CacheManager:new()
+  self.picker_manager = dependencies.picker_manager or PickerManager:new()
   self._initialized = false
+end
+
+function EndpointManager:get_event_manager()
+  return EventBus.get_instance()
 end
 
 ---Setup the endpoint manager with configuration and register all frameworks
@@ -79,70 +85,40 @@ function EndpointManager:register_framework(framework_instance)
     error "Invalid framework instance provided"
   end
 
-  local framework_name = framework_instance:get_name()
+  self.framework_registry:register(framework_instance)
 
-  -- Check if framework is already registered
-  for _, existing_framework in ipairs(self.registered_frameworks) do
-    if existing_framework:get_name() == framework_name then
-      log.framework_debug("Framework already registered: " .. framework_name)
-      return
-    end
-  end
-
-  table.insert(self.registered_frameworks, framework_instance)
-  log.framework_debug("Registered framework: " .. framework_name)
-
-  -- Emit framework registration event
-  self.event_manager:emit_event(EventManager.EVENT_TYPES.FRAMEWORK_DETECTED, {
-    framework_name = framework_name,
+  local EventManager = require "endpoint.manager.EventManager"
+  self:get_event_manager():emit_event(EventManager.EVENT_TYPES.FRAMEWORK_DETECTED, {
+    framework_name = framework_instance:get_name(),
     framework_instance = framework_instance,
   })
 end
 
 ---Unregisters a framework from the endpoint manager
 function EndpointManager:unregister_framework(framework_name)
-  for framework_index, registered_framework in ipairs(self.registered_frameworks) do
-    if registered_framework:get_name() == framework_name then
-      table.remove(self.registered_frameworks, framework_index)
-      log.framework_debug("Unregistered framework: " .. framework_name)
-      return true
-    end
-  end
-  return false
+  return self.framework_registry:unregister(framework_name)
 end
 
 ---Gets all registered frameworks
 function EndpointManager:get_registered_frameworks()
-  return vim.deepcopy(self.registered_frameworks)
+  return self.framework_registry:get_all()
 end
 
 ---Detects which frameworks are present in the current project
 function EndpointManager:detect_project_frameworks()
-  local detected_frameworks = {}
-
-  for _, framework_instance in ipairs(self.registered_frameworks) do
-    local framework_name = framework_instance:get_name()
-    log.framework_debug("Checking framework detection: " .. framework_name)
-
-    if framework_instance:detect() then
-      table.insert(detected_frameworks, framework_instance)
-      log.framework_debug("Framework detected: " .. framework_name)
-    else
-      log.framework_debug("Framework not detected: " .. framework_name)
-    end
-  end
-
-  return detected_frameworks
+  return self.framework_registry:detect_all()
 end
 
 ---Scans for endpoints using all detected frameworks
 function EndpointManager:scan_all_endpoints(scan_options)
   scan_options = scan_options or {}
 
-  -- Emit scan started event
-  self.event_manager:emit_event(EventManager.EVENT_TYPES.SCAN_STARTED, {
+  local EventManager = require "endpoint.manager.EventManager"
+  local event_manager = self:get_event_manager()
+
+  event_manager:emit_event(EventManager.EVENT_TYPES.SCAN_STARTED, {
     scan_options = scan_options,
-    registered_framework_count = #self.registered_frameworks,
+    registered_framework_count = #self.framework_registry:get_all(),
   })
 
   local all_discovered_endpoints = {}
@@ -162,8 +138,7 @@ function EndpointManager:scan_all_endpoints(scan_options)
     local framework_endpoints = framework_instance:scan(scan_options)
 
     for _, discovered_endpoint in ipairs(framework_endpoints) do
-      -- Emit endpoint discovery event
-      self.event_manager:emit_event(EventManager.EVENT_TYPES.ENDPOINT_DISCOVERED, {
+      event_manager:emit_event(EventManager.EVENT_TYPES.ENDPOINT_DISCOVERED, {
         endpoint = discovered_endpoint,
         framework_name = framework_name,
       })
@@ -174,8 +149,7 @@ function EndpointManager:scan_all_endpoints(scan_options)
     log.framework_debug(string.format("Found %d endpoints with %s", #framework_endpoints, framework_name))
   end
 
-  -- Emit scan completed event
-  self.event_manager:emit_event(EventManager.EVENT_TYPES.SCAN_COMPLETED, {
+  event_manager:emit_event(EventManager.EVENT_TYPES.SCAN_COMPLETED, {
     total_endpoints_found = #all_discovered_endpoints,
     frameworks_used = detected_frameworks,
   })
@@ -189,13 +163,7 @@ end
 function EndpointManager:scan_with_framework(framework_name, scan_options)
   scan_options = scan_options or {}
 
-  local target_framework = nil
-  for _, framework_instance in ipairs(self.registered_frameworks) do
-    if framework_instance:get_name() == framework_name then
-      target_framework = framework_instance
-      break
-    end
-  end
+  local target_framework = self.framework_registry:get_by_name(framework_name)
 
   if not target_framework then
     log.framework_debug("Framework not found: " .. framework_name)
@@ -213,47 +181,27 @@ end
 
 ---Gets the event manager instance for external event handling
 function EndpointManager:get_event_manager()
-  return self.event_manager
+  return EventBus.get_instance()
 end
 
 ---Adds an event listener for endpoint management events
 function EndpointManager:add_event_listener(event_type, listener_callback, listener_priority)
-  self.event_manager:add_event_listener(event_type, listener_callback, listener_priority)
+  self:get_event_manager():add_event_listener(event_type, listener_callback, listener_priority)
 end
 
 ---Removes an event listener
 function EndpointManager:remove_event_listener(event_type, listener_callback)
-  return self.event_manager:remove_event_listener(event_type, listener_callback)
+  return self:get_event_manager():remove_event_listener(event_type, listener_callback)
 end
 
 ---Gets information about all registered frameworks
 function EndpointManager:get_framework_info()
-  local framework_info_list = {}
-
-  for _, framework_instance in ipairs(self.registered_frameworks) do
-    local framework_config = framework_instance:get_config()
-    local is_framework_detected = framework_instance:detect()
-
-    table.insert(framework_info_list, {
-      name = framework_instance:get_name(),
-      detected = is_framework_detected,
-      file_extensions = framework_config.file_extensions,
-      exclude_patterns = framework_config.exclude_patterns,
-      pattern_count = framework_config.patterns and #vim.tbl_keys(framework_config.patterns) or 0,
-    })
-  end
-
-  return framework_info_list
+  return self.framework_registry:get_info()
 end
 
 ---Clears all registered frameworks
 function EndpointManager:clear_all_frameworks()
-  local removed_framework_count = #self.registered_frameworks
-  self.registered_frameworks = {}
-
-  log.framework_debug(string.format("Cleared %d registered frameworks", removed_framework_count))
-
-  return removed_framework_count
+  return self.framework_registry:clear()
 end
 
 ---Main function to find and show endpoints with UI
@@ -261,28 +209,7 @@ function EndpointManager:find(opts)
   self:_ensure_initialized()
   opts = opts or {}
 
-  local endpoints
-
-  -- Check cache first (if caching is enabled)
-  local cache_config = config.get().cache
-  local cache_enabled = cache_config.mode ~= "none"
-
-  -- Set cache mode
-  if self.cache_manager then
-    self.cache_manager:set_mode(cache_config.mode)
-  end
-
-  if not opts.force_refresh and cache_enabled and self.cache_manager and self.cache_manager:is_valid(opts.method) then
-    endpoints = self.cache_manager:get_endpoints(opts.method)
-  else
-    -- Scan if no cache
-    endpoints = self:scan_all_endpoints(opts)
-
-    -- Save to cache (if caching is enabled)
-    if cache_enabled and self.cache_manager then
-      self.cache_manager:save_endpoints(endpoints, opts.method)
-    end
-  end
+  local endpoints = self:_resolve_endpoints(opts)
 
   if #endpoints == 0 then
     local method_msg = opts.method and (" " .. opts.method) or ""
@@ -291,6 +218,45 @@ function EndpointManager:find(opts)
   end
 
   self:_show_with_picker(endpoints, opts)
+end
+
+---Resolves endpoints from cache or by scanning
+---@private
+function EndpointManager:_resolve_endpoints(opts)
+  if not opts.force_refresh and self:_should_use_cache(opts.method) then
+    return self.cache_manager:get_endpoints(opts.method)
+  end
+
+  local endpoints = self:scan_all_endpoints(opts)
+  self:_update_cache_if_enabled(endpoints, opts.method)
+
+  return endpoints
+end
+
+---Checks if cache should be used
+---@private
+function EndpointManager:_should_use_cache(method)
+  local cache_config = config.get().cache
+  if cache_config.mode == "none" then
+    return false
+  end
+
+  if self.cache_manager then
+    self.cache_manager:set_mode(cache_config.mode)
+    return self.cache_manager:is_valid(method)
+  end
+
+  return false
+end
+
+---Updates cache if caching is enabled
+---@private
+function EndpointManager:_update_cache_if_enabled(endpoints, method)
+  local cache_config = config.get().cache
+  if cache_config.mode ~= "none" and self.cache_manager then
+    self.cache_manager:set_mode(cache_config.mode)
+    self.cache_manager:save_endpoints(endpoints, method)
+  end
 end
 
 -- Legacy _handle_cache function - now integrated into find()
