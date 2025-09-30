@@ -1,8 +1,7 @@
 local Parser = require "endpoint.core.Parser"
 
 ---@class endpoint.KtorParser
-local KtorParser = setmetatable({}, { __index = Parser })
-KtorParser.__index = KtorParser
+local KtorParser = Parser:extend()
 
 -- ========================================
 -- PUBLIC METHODS
@@ -10,13 +9,11 @@ KtorParser.__index = KtorParser
 
 ---Creates a new KtorParser instance
 function KtorParser:new()
-  local ktor_parser = Parser:new {
+  KtorParser.super.new(self, {
     parser_name = "ktor_parser",
     framework_name = "ktor",
     language = "kotlin",
-  }
-  setmetatable(ktor_parser, self)
-  return ktor_parser
+  })
 end
 
 ---Extracts base path from Ktor routing file

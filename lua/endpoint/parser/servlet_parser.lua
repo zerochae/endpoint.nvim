@@ -1,8 +1,7 @@
 local Parser = require "endpoint.core.Parser"
 
 ---@class endpoint.ServletParser
-local ServletParser = setmetatable({}, { __index = Parser })
-ServletParser.__index = ServletParser
+local ServletParser = Parser:extend()
 
 -- ========================================
 -- PUBLIC METHODS
@@ -10,13 +9,11 @@ ServletParser.__index = ServletParser
 
 ---Creates a new ServletParser instance
 function ServletParser:new()
-  local servlet_parser = Parser:new {
+  ServletParser.super.new(self, {
     parser_name = "servlet_parser",
     framework_name = "servlet",
     language = "java",
-  }
-  setmetatable(servlet_parser, self)
-  return servlet_parser
+  })
 end
 
 ---Extracts base path from Servlet file

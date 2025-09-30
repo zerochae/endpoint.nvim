@@ -20,9 +20,9 @@ function PickerManager:_register_default_pickers()
   local SnacksPicker = require "endpoint.pickers.snacks"
 
   self.available_pickers = {
-    telescope = TelescopePicker:new(),
-    vim_ui_select = VimUiSelectPicker:new(),
-    snacks = SnacksPicker:new(),
+    telescope = TelescopePicker(),
+    vim_ui_select = VimUiSelectPicker(),
+    snacks = SnacksPicker(),
   }
 end
 

@@ -1,8 +1,7 @@
 local Parser = require "endpoint.core.Parser"
 
 ---@class endpoint.SymfonyParser
-local SymfonyParser = setmetatable({}, { __index = Parser })
-SymfonyParser.__index = SymfonyParser
+local SymfonyParser = Parser:extend()
 
 -- ========================================
 -- PUBLIC METHODS
@@ -10,13 +9,11 @@ SymfonyParser.__index = SymfonyParser
 
 ---Creates a new SymfonyParser instance
 function SymfonyParser:new()
-  local symfony_parser = Parser:new {
+  SymfonyParser.super.new(self, {
     parser_name = "symfony_parser",
     framework_name = "symfony",
     language = "php",
-  }
-  setmetatable(symfony_parser, self)
-  return symfony_parser
+  })
 end
 
 ---Extracts base path from Symfony controller file

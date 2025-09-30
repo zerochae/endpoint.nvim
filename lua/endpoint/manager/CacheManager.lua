@@ -53,7 +53,7 @@ function CacheManager:is_valid(method)
     return loaded_data ~= nil and #loaded_data > 0
   else
     local cache_key = self:_get_cache_key(method)
-    return self.cached_endpoints[cache_key] and #self.cached_endpoints[cache_key] > 0
+    return self.cached_endpoints[cache_key] ~= nil and #self.cached_endpoints[cache_key] > 0
   end
 end
 

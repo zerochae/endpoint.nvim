@@ -74,7 +74,7 @@ function EndpointManager:register_all_frameworks()
   }
 
   for _, framework_class in ipairs(framework_classes) do
-    local framework_instance = framework_class:new()
+    local framework_instance = framework_class()
     self:register_framework(framework_instance)
   end
 

@@ -1,8 +1,7 @@
 local Parser = require "endpoint.core.Parser"
 
 ---@class endpoint.ReactRouterParser
-local ReactRouterParser = setmetatable({}, { __index = Parser })
-ReactRouterParser.__index = ReactRouterParser
+local ReactRouterParser = Parser:extend()
 
 -- ========================================
 -- PUBLIC METHODS
@@ -10,13 +9,11 @@ ReactRouterParser.__index = ReactRouterParser
 
 ---Creates a new ReactRouterParser instance
 function ReactRouterParser:new()
-  local react_router_parser = Parser:new {
+  ReactRouterParser.super.new(self, {
     parser_name = "react_router_parser",
     framework_name = "react_router",
     language = "javascript",
-  }
-  setmetatable(react_router_parser, self)
-  return react_router_parser
+  })
 end
 
 ---Extracts base path from React Router file

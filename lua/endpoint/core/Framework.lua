@@ -1,17 +1,19 @@
----@class endpoint.Framework
-local Framework = {}
-Framework.__index = Framework
-
+local Class = require "endpoint.lib.classic"
 local log = require "endpoint.utils.log"
 
+---@class endpoint.Framework
+local Framework = Class:extend()
+
 ---Creates a new Framework instance
-function Framework:new(name, config)
-  local framework = setmetatable({}, self)
-  framework.name = name
-  framework.config = config or {}
-  framework:_validate_config()
-  framework:_setup_detector_and_parser()
-  return framework
+function Framework:new(fields)
+  if fields then
+    for key, value in pairs(fields) do
+      self[key] = value
+    end
+  end
+
+  self:_validate_config()
+  self:_setup_detector_and_parser()
 end
 
 ---Validates the framework configuration
@@ -41,7 +43,7 @@ function Framework:_setup_detector_and_parser()
   end
 
   if self.config.parser then
-    self.parser = self.config.parser:new()
+    self.parser = self.config.parser()
   end
 end
 
@@ -261,11 +263,7 @@ function Framework:_post_process_endpoints(endpoints)
   local unique_endpoints = {}
 
   for _, endpoint in ipairs(endpoints) do
-    local key = string.format("%s:%s:%s",
-      endpoint.method or "",
-      endpoint.endpoint_path or "",
-      endpoint.file_path or ""
-    )
+    local key = string.format("%s:%s:%s", endpoint.method or "", endpoint.endpoint_path or "", endpoint.file_path or "")
 
     if not seen[key] then
       seen[key] = true

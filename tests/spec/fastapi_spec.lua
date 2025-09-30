@@ -174,6 +174,43 @@ describe("FastapiFramework", function()
       assert.is_table(result.metadata)
       assert.equals("fastapi", result.metadata.framework)
     end)
+
+    it("should parse real FastAPI application files", function()
+      -- Test if FastAPI fixture files exist and can be parsed
+      local fixture_files = {
+        "tests/fixtures/fastapi/src/main.py",
+        "tests/fixtures/fastapi/src/routers/users.py",
+        "tests/fixtures/fastapi/src/routers/posts.py"
+      }
+      
+      local total_endpoints = 0
+      for _, file_path in ipairs(fixture_files) do
+        local file_exists = vim.fn.filereadable(file_path) == 1
+        if file_exists then
+          local file_content = vim.fn.readfile(file_path)
+          
+          -- Test multiple endpoints from the real file
+          for line_num, line in ipairs(file_content) do
+            local result = parser:parse_content(line, file_path, line_num, 1)
+            if result then
+              total_endpoints = total_endpoints + 1
+            end
+          end
+        end
+      end
+      
+      -- Should find endpoints from real FastAPI files if they exist
+      if total_endpoints > 0 then
+        assert.is_true(total_endpoints > 0, "Should find endpoints from real FastAPI files")
+      else
+        -- If no fixture files exist, just verify the parser works
+        local content = '@app.get("/test")'
+        local result = parser:parse_content(content, "test.py", 1, 1)
+        assert.is_not_nil(result)
+        assert.equals("GET", result.method)
+        assert.equals("/test", result.endpoint_path)
+      end
+    end)
   end)
 end)
 

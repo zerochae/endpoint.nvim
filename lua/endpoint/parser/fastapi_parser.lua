@@ -1,8 +1,7 @@
 local Parser = require "endpoint.core.Parser"
 
 ---@class endpoint.FastApiParser
-local FastApiParser = setmetatable({}, { __index = Parser })
-FastApiParser.__index = FastApiParser
+local FastApiParser = Parser:extend()
 
 -- ========================================
 -- PUBLIC METHODS
@@ -10,13 +9,11 @@ FastApiParser.__index = FastApiParser
 
 ---Creates a new FastApiParser instance
 function FastApiParser:new()
-  local fastapi_parser = Parser:new {
+  FastApiParser.super.new(self, {
     parser_name = "fastapi_parser",
     framework_name = "fastapi",
     language = "python",
-  }
-  setmetatable(fastapi_parser, self)
-  return fastapi_parser
+  })
 end
 
 ---Extracts base path from FastAPI router file

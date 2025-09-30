@@ -3,19 +3,16 @@ local Highlighter = require "endpoint.core.Highlighter"
 local Themes = require "endpoint.core.Themes"
 
 ---@class endpoint.TelescopePicker : endpoint.Picker
-local TelescopePicker = setmetatable({}, { __index = Picker })
-TelescopePicker.__index = TelescopePicker
+local TelescopePicker = Picker:extend()
 
 ---Creates a new TelescopePicker instance
 function TelescopePicker:new()
-  local telescope_picker = setmetatable({
+  TelescopePicker.super.new(self, {
     name = "telescope",
     themes = Themes:new(),
     telescope_available = pcall(require, "telescope"),
     highlighter = Highlighter:new "endpoint_telescope_highlight",
-  }, self)
-
-  return telescope_picker
+  })
 end
 
 ---Check if Telescope is available
@@ -170,10 +167,13 @@ end
 ---Set cursor position and center in preview window
 function TelescopePicker:_set_preview_cursor(picker_self, preview_line, preview_col)
   if picker_self.state.winid and vim.api.nvim_win_is_valid(picker_self.state.winid) then
-    local target_line = preview_line or 1
+    local bufnr = vim.api.nvim_win_get_buf(picker_self.state.winid)
+    local line_count = vim.api.nvim_buf_line_count(bufnr)
+
+    local target_line = math.min(preview_line or 1, line_count)
     local target_col = math.max(0, (preview_col or 1) - 1)
 
-    vim.api.nvim_win_set_cursor(picker_self.state.winid, { target_line, target_col })
+    pcall(vim.api.nvim_win_set_cursor, picker_self.state.winid, { target_line, target_col })
 
     -- Center the line in the window
     vim.defer_fn(function()

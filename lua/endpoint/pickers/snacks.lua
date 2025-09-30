@@ -4,19 +4,16 @@ local Themes = require "endpoint.core.Themes"
 local log = require "endpoint.utils.log"
 
 ---@class endpoint.SnacksPicker : endpoint.Picker
-local SnacksPicker = setmetatable({}, { __index = Picker })
-SnacksPicker.__index = SnacksPicker
+local SnacksPicker = Picker:extend()
 
 ---Creates a new SnacksPicker instance
 function SnacksPicker:new()
-  local snacks_picker = setmetatable({
+  SnacksPicker.super.new(self, {
     name = "snacks",
     themes = Themes:new(),
     snacks_available = pcall(require, "snacks"),
-    highlighter = Highlighter:new "endpoint_snacks_highlight",
-  }, self)
-
-  return snacks_picker
+    highlighter = Highlighter:new("endpoint_snacks_highlight"),
+  })
 end
 
 ---Check if Snacks is available
@@ -74,23 +71,18 @@ function SnacksPicker:_create_item(endpoint)
   -- Calculate highlight length for method part
   local highlight_length = self.highlighter:calculate_highlight_length(endpoint, method_icon, method_text)
 
+  -- Validate positions against actual file
+  local validated_pos = self:_validate_position(endpoint)
+
   local item = {
     text = display_text,
     value = endpoint, -- Store endpoint data in value
     file = endpoint.file_path, -- Required for file preview
-    -- Use snacks internal pos format: [row, col] - adjust col to 0-based for extmark
-    pos = { endpoint.line_number, endpoint.column - 1 },
+    pos = validated_pos.start_pos,
   }
 
-  -- Add multiline range highlighting support
-  if endpoint.end_line_number and endpoint.end_line_number > endpoint.line_number then
-    -- Multiline annotation: highlight from start to end line
-    item.end_pos = { endpoint.end_line_number, endpoint.end_column or 0 }
-  else
-    -- Single line: calculate end column
-    local end_col = self:_calculate_end_column(endpoint)
-    item.end_pos = { endpoint.line_number, end_col }
-  end
+  -- Add end position for highlighting
+  item.end_pos = validated_pos.end_pos
 
   -- Add highlighting for the picker list (method highlighting)
   -- Use snacks.nvim extmark-based highlighting - flat array format
@@ -101,6 +93,67 @@ function SnacksPicker:_create_item(endpoint)
   end
 
   return item
+end
+
+---Validate position against actual file to prevent out-of-bounds errors
+function SnacksPicker:_validate_position(endpoint)
+  local default_result = {
+    start_pos = { endpoint.line_number, math.max(0, endpoint.column - 1) },
+    end_pos = { endpoint.line_number, math.max(0, endpoint.column - 1 + 10) },
+  }
+
+  if not endpoint.file_path then
+    return default_result
+  end
+
+  local file = io.open(endpoint.file_path, "r")
+  if not file then
+    return default_result
+  end
+
+  local lines = {}
+  for line in file:lines() do
+    table.insert(lines, line)
+  end
+  file:close()
+
+  local total_lines = #lines
+  if total_lines == 0 then
+    return default_result
+  end
+
+  -- Validate start line
+  local start_line = math.min(endpoint.line_number, total_lines)
+  local start_col = math.max(0, endpoint.column - 1)
+
+  -- Clamp start_col to actual line length
+  if lines[start_line] then
+    start_col = math.min(start_col, #lines[start_line])
+  end
+
+  -- Validate end position
+  local end_line, end_col
+  if endpoint.end_line_number and endpoint.end_line_number > endpoint.line_number then
+    -- Multiline: clamp end_line to file bounds
+    end_line = math.min(endpoint.end_line_number, total_lines)
+    end_col = endpoint.end_column or 0
+    if lines[end_line] then
+      end_col = math.min(end_col, #lines[end_line])
+    end
+  else
+    -- Single line: use actual line length
+    end_line = start_line
+    if lines[start_line] then
+      end_col = #lines[start_line]
+    else
+      end_col = start_col + 10
+    end
+  end
+
+  return {
+    start_pos = { start_line, start_col },
+    end_pos = { end_line, end_col },
+  }
 end
 
 ---Calculate end column for highlighting by reading actual file

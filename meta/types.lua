@@ -1,6 +1,20 @@
 ---@meta
 
 -- ========================================
+-- LIBRARY TYPES
+-- ========================================
+
+-- Classic OOP Library (rxi/classic)
+---@class Class
+---@field super Class|nil Parent class
+---@field new fun(self: Class, ...)
+---@field extend fun(self: Class): Class Create a new class that inherits from this class
+---@field implement fun(self: Class, ...: Class) Add methods from other classes
+---@field is fun(self: Class, T: Class): boolean Check if instance is of specific type
+---@field __tostring fun(self: Class): string
+---@field __call fun(self: Class, ...: any): Class
+
+-- ========================================
 -- CORE TYPES
 -- ========================================
 
@@ -93,14 +107,14 @@
 -- ========================================
 
 -- Base Framework Class
----@class Framework : endpoint.Framework
----@class endpoint.Framework
+---@class endpoint.Framework : Class
+---@field super Class Parent class reference
 ---@field name string Framework name
----@field protected config table Framework configuration
----@field protected detector endpoint.Detector
----@field protected parser endpoint.Parser
----@field protected config.controller_extractors? endpoint.controller_extractor[] Extractors for controller names from file paths
----@field new fun(self: endpoint.Framework, name: string, config?: table): endpoint.Framework
+---@field config table Framework configuration
+---@field detector endpoint.Detector
+---@field parser endpoint.Parser
+---@field controller_extractors? endpoint.controller_extractor[] Extractors for controller names from file paths
+---@field new fun(self: endpoint.Framework, fields?: table)
 ---@field _validate_config fun(self: endpoint.Framework)
 ---@field _initialize fun(self: endpoint.Framework)
 ---@field detect fun(self: endpoint.Framework): boolean
@@ -118,11 +132,11 @@
 ---@alias endpoint.framework_base endpoint.Framework
 
 -- Base Picker Class
----@class Picker : endpoint.Picker
----@class endpoint.Picker
----@field protected name string
----@field protected themes endpoint.Themes
----@field new fun(self: endpoint.Picker, name?: string): endpoint.Picker
+---@class endpoint.Picker : Class
+---@field super Class Parent class reference
+---@field name string
+---@field themes? table
+---@field new fun(self: endpoint.Picker, fields?: table)
 ---@field is_available fun(self: endpoint.Picker): boolean
 ---@field show fun(self: endpoint.Picker, endpoints?: endpoint.entry[], opts?: table)
 ---@field get_name fun(self: endpoint.Picker): string
@@ -137,9 +151,9 @@
 
 -- Detection Pattern
 ---@class endpoint.Detector
----@field protected detection_name string
----@field private required_dependencies? string[]
----@field private manifest_files? string[]
+---@field detection_name string
+---@field required_dependencies? string[]
+---@field manifest_files? string[]
 ---@field new fun(self: endpoint.Detector, detection_name: string, fields: table?): endpoint.Detector
 ---@field new_dependency_detector fun(self: endpoint.Detector, required_dependencies: string[], manifest_files: string[], name?: string): endpoint.Detector
 ---@field is_target_detected fun(self: endpoint.Detector): boolean
@@ -155,11 +169,12 @@
 
 
 -- Parsing Pattern
----@class endpoint.Parser
----@field protected parser_name? string
----@field protected framework_name? string
----@field protected language? string
----@field new fun(self: endpoint.Parser, fields?: table): endpoint.Parser
+---@class endpoint.Parser : Class
+---@field super Class Parent class reference
+---@field parser_name? string
+---@field framework_name? string
+---@field language? string
+---@field new fun(self: endpoint.Parser, fields?: table)
 ---@field extract_base_path fun(self: endpoint.Parser, file_path: string, line_number: number): string
 ---@field extract_endpoint_path fun(self: endpoint.Parser, content: string, file_path?: string, line_number?: number): string|nil
 ---@field extract_method fun(self: endpoint.Parser, content: string): string|nil
@@ -172,31 +187,31 @@
 
 
 ---@class endpoint.RailsParser : endpoint.Parser
----@field private _extract_http_method fun(self: endpoint.RailsParser, content: string): string|nil
----@field private _is_valid_route_line fun(self: endpoint.RailsParser, content: string): boolean
----@field private _is_private_helper_method fun(self: endpoint.RailsParser, action_name: string): boolean
----@field private _process_controller_action fun(self: endpoint.RailsParser, content: string, file_path: string, line_number: number, column: number): endpoint.entry|nil
----@field private _process_resources_route fun(self: endpoint.RailsParser, content: string, file_path: string, line_number: number, column: number): endpoint.entry[]|nil
----@field private _process_nested_routes fun(self: endpoint.RailsParser, content: string, file_path: string, line_number: number, column: number): endpoint.entry[]|nil
----@field private _find_namespace_prefix fun(self: endpoint.RailsParser, file_path: string, line_number: number): string
----@field private _find_parent_resource fun(self: endpoint.RailsParser, file_path: string, line_number: number): string|nil
----@field private _find_controller_action fun(self: endpoint.RailsParser, resource_name: string, action_name: string): table|nil
----@field private _is_private_method fun(self: endpoint.RailsParser, file_path: string, line_number: number): boolean
----@field private _is_rails_content fun(self: endpoint.RailsParser, content: string): boolean
+---@field _extract_http_method fun(self: endpoint.RailsParser, content: string): string|nil
+---@field _is_valid_route_line fun(self: endpoint.RailsParser, content: string): boolean
+---@field _is_private_helper_method fun(self: endpoint.RailsParser, action_name: string): boolean
+---@field _process_controller_action fun(self: endpoint.RailsParser, content: string, file_path: string, line_number: number, column: number): endpoint.entry|nil
+---@field _process_resources_route fun(self: endpoint.RailsParser, content: string, file_path: string, line_number: number, column: number): endpoint.entry[]|nil
+---@field _process_nested_routes fun(self: endpoint.RailsParser, content: string, file_path: string, line_number: number, column: number): endpoint.entry[]|nil
+---@field _find_namespace_prefix fun(self: endpoint.RailsParser, file_path: string, line_number: number): string
+---@field _find_parent_resource fun(self: endpoint.RailsParser, file_path: string, line_number: number): string|nil
+---@field _find_controller_action fun(self: endpoint.RailsParser, resource_name: string, action_name: string): table|nil
+---@field _is_private_method fun(self: endpoint.RailsParser, file_path: string, line_number: number): boolean
+---@field _is_rails_content fun(self: endpoint.RailsParser, content: string): boolean
 
 ---@class endpoint.SpringParser : endpoint.Parser
----@field private _read_file_lines fun(self: endpoint.SpringParser, file_path: string, line_number: number): string[]|nil
----@field private _find_class_level_request_mapping fun(self: endpoint.SpringParser, lines: string[], line_number: number): string
----@field private _extract_request_mapping_path fun(self: endpoint.SpringParser, annotation_line: string): string|nil
----@field private _is_class_level_request_mapping fun(self: endpoint.SpringParser, content: string): boolean
----@field private _extract_path_from_specific_mapping fun(self: endpoint.SpringParser, content: string): string|nil
----@field private _extract_path_from_request_mapping_with_method fun(self: endpoint.SpringParser, content: string): string|nil
----@field private _is_root_path_mapping fun(self: endpoint.SpringParser, content: string): boolean
----@field private _extract_method_from_specific_mapping fun(self: endpoint.SpringParser, content: string): string|nil
----@field private _extract_method_from_request_mapping fun(self: endpoint.SpringParser, content: string): string|nil
----@field private _extract_methods_from_request_mapping fun(self: endpoint.SpringParser, content: string): string[]
----@field private _looks_like_incomplete_spring_annotation fun(self: endpoint.SpringParser, content: string): boolean
----@field private _get_extended_annotation_content fun(self: endpoint.SpringParser, file_path: string, start_line: number): string|nil, number|nil, number|nil
+---@field _read_file_lines fun(self: endpoint.SpringParser, file_path: string, line_number: number): string[]|nil
+---@field _find_class_level_request_mapping fun(self: endpoint.SpringParser, lines: string[], line_number: number): string
+---@field _extract_request_mapping_path fun(self: endpoint.SpringParser, annotation_line: string): string|nil
+---@field _is_class_level_request_mapping fun(self: endpoint.SpringParser, content: string): boolean
+---@field _extract_path_from_specific_mapping fun(self: endpoint.SpringParser, content: string): string|nil
+---@field _extract_path_from_request_mapping_with_method fun(self: endpoint.SpringParser, content: string): string|nil
+---@field _is_root_path_mapping fun(self: endpoint.SpringParser, content: string): boolean
+---@field _extract_method_from_specific_mapping fun(self: endpoint.SpringParser, content: string): string|nil
+---@field _extract_method_from_request_mapping fun(self: endpoint.SpringParser, content: string): string|nil
+---@field _extract_methods_from_request_mapping fun(self: endpoint.SpringParser, content: string): string[]
+---@field _looks_like_incomplete_spring_annotation fun(self: endpoint.SpringParser, content: string): boolean
+---@field _get_extended_annotation_content fun(self: endpoint.SpringParser, file_path: string, start_line: number): string|nil, number|nil, number|nil
 
 ---@class endpoint.Highlighter
 ---@field highlight_ns number
@@ -217,97 +232,97 @@
 ---@field get_method_text fun(self: endpoint.Themes, method: string, config: table): string
 
 ---@class endpoint.SymfonyParser : endpoint.Parser
----@field private _last_end_line_number number|nil
----@field private _read_file_lines fun(self: endpoint.SymfonyParser, file_path: string, line_number: number): string[]|nil
----@field private _find_controller_level_route fun(self: endpoint.SymfonyParser, lines: string[], line_number: number): string
----@field private _extract_controller_route_path fun(self: endpoint.SymfonyParser, annotation_line: string): string|nil
----@field private _is_controller_level_route fun(self: endpoint.SymfonyParser, content: string): boolean
----@field private _extract_path_from_php8_attributes fun(self: endpoint.SymfonyParser, content: string): string|nil
----@field private _extract_path_from_annotations fun(self: endpoint.SymfonyParser, content: string): string|nil
----@field private _extract_path_from_docblock fun(self: endpoint.SymfonyParser, content: string): string|nil
----@field private _extract_path_single_line fun(self: endpoint.SymfonyParser, content: string): string|nil
----@field private _extract_path_multiline fun(self: endpoint.SymfonyParser, file_path: string, start_line: number, content: string): string|nil, number|nil
----@field private _is_multiline_annotation fun(self: endpoint.SymfonyParser, content: string): boolean
----@field private _extract_methods_multiline fun(self: endpoint.SymfonyParser, content: string, file_path: string, line_number: number): string[]
----@field private _extract_methods_from_annotation fun(self: endpoint.SymfonyParser, content: string): string[]
----@field private _combine_paths fun(self: endpoint.SymfonyParser, base?: string, endpoint?: string): string
----@field private _detect_annotation_type fun(self: endpoint.SymfonyParser, content: string): string
----@field private _calculate_annotation_column fun(self: endpoint.SymfonyParser, content: string, file_path: string, line_number: number, ripgrep_column: number): number
----@field private _is_symfony_route_content fun(self: endpoint.SymfonyParser, content: string): boolean
+---@field _last_end_line_number number|nil
+---@field _read_file_lines fun(self: endpoint.SymfonyParser, file_path: string, line_number: number): string[]|nil
+---@field _find_controller_level_route fun(self: endpoint.SymfonyParser, lines: string[], line_number: number): string
+---@field _extract_controller_route_path fun(self: endpoint.SymfonyParser, annotation_line: string): string|nil
+---@field _is_controller_level_route fun(self: endpoint.SymfonyParser, content: string): boolean
+---@field _extract_path_from_php8_attributes fun(self: endpoint.SymfonyParser, content: string): string|nil
+---@field _extract_path_from_annotations fun(self: endpoint.SymfonyParser, content: string): string|nil
+---@field _extract_path_from_docblock fun(self: endpoint.SymfonyParser, content: string): string|nil
+---@field _extract_path_single_line fun(self: endpoint.SymfonyParser, content: string): string|nil
+---@field _extract_path_multiline fun(self: endpoint.SymfonyParser, file_path: string, start_line: number, content: string): string|nil, number|nil
+---@field _is_multiline_annotation fun(self: endpoint.SymfonyParser, content: string): boolean
+---@field _extract_methods_multiline fun(self: endpoint.SymfonyParser, content: string, file_path: string, line_number: number): string[]
+---@field _extract_methods_from_annotation fun(self: endpoint.SymfonyParser, content: string): string[]
+---@field _combine_paths fun(self: endpoint.SymfonyParser, base?: string, endpoint?: string): string
+---@field _detect_annotation_type fun(self: endpoint.SymfonyParser, content: string): string
+---@field _calculate_annotation_column fun(self: endpoint.SymfonyParser, content: string, file_path: string, line_number: number, ripgrep_column: number): number
+---@field _is_symfony_route_content fun(self: endpoint.SymfonyParser, content: string): boolean
 
 ---@class endpoint.ExpressParser : endpoint.Parser
----@field private _is_express_route_content fun(self: endpoint.ExpressParser, content: string): boolean
----@field private _detect_route_type fun(self: endpoint.ExpressParser, content: string): string
----@field private _extract_app_type fun(self: endpoint.ExpressParser, content: string): string
+---@field _is_express_route_content fun(self: endpoint.ExpressParser, content: string): boolean
+---@field _detect_route_type fun(self: endpoint.ExpressParser, content: string): string
+---@field _extract_app_type fun(self: endpoint.ExpressParser, content: string): string
 
 ---@class endpoint.NestJsParser : endpoint.Parser
----@field private _is_nestjs_decorator_content fun(self: endpoint.NestJsParser, content: string): boolean
----@field private _is_controller_decorator fun(self: endpoint.NestJsParser, content: string): boolean
----@field private _extract_decorator_type fun(self: endpoint.NestJsParser, content: string): string
----@field private _has_http_code_decorator fun(self: endpoint.NestJsParser, content: string): boolean
----@field private _get_controller_path fun(self: endpoint.NestJsParser, file_path: string): string
----@field private _combine_paths fun(self: endpoint.NestJsParser, base?: string, endpoint?: string): string
+---@field _is_nestjs_decorator_content fun(self: endpoint.NestJsParser, content: string): boolean
+---@field _is_controller_decorator fun(self: endpoint.NestJsParser, content: string): boolean
+---@field _extract_decorator_type fun(self: endpoint.NestJsParser, content: string): string
+---@field _has_http_code_decorator fun(self: endpoint.NestJsParser, content: string): boolean
+---@field _get_controller_path fun(self: endpoint.NestJsParser, file_path: string): string
+---@field _combine_paths fun(self: endpoint.NestJsParser, base?: string, endpoint?: string): string
 
 ---@class endpoint.FastApiParser : endpoint.Parser
----@field private _last_end_line_number number|nil
----@field private _is_fastapi_decorator_content fun(self: endpoint.FastApiParser, content: string): boolean
----@field private _extract_path_single_line fun(self: endpoint.FastApiParser, content: string): string|nil
----@field private _extract_path_multiline fun(self: endpoint.FastApiParser, file_path: string, start_line: number, content: string): string|nil, number|nil
----@field private _is_multiline_decorator fun(self: endpoint.FastApiParser, content: string): boolean
----@field private _extract_decorator_type fun(self: endpoint.FastApiParser, content: string): string
----@field private _find_router_prefix fun(self: endpoint.FastApiParser, file_path: string, line_number: number): string
----@field private _infer_prefix_from_path fun(self: endpoint.FastApiParser, file_path: string): string
----@field private _combine_paths fun(self: endpoint.FastApiParser, base?: string, endpoint?: string): string
+---@field _last_end_line_number number|nil
+---@field _is_fastapi_decorator_content fun(self: endpoint.FastApiParser, content: string): boolean
+---@field _extract_path_single_line fun(self: endpoint.FastApiParser, content: string): string|nil
+---@field _extract_path_multiline fun(self: endpoint.FastApiParser, file_path: string, start_line: number, content: string): string|nil, number|nil
+---@field _is_multiline_decorator fun(self: endpoint.FastApiParser, content: string): boolean
+---@field _extract_decorator_type fun(self: endpoint.FastApiParser, content: string): string
+---@field _find_router_prefix fun(self: endpoint.FastApiParser, file_path: string, line_number: number): string
+---@field _infer_prefix_from_path fun(self: endpoint.FastApiParser, file_path: string): string
+---@field _combine_paths fun(self: endpoint.FastApiParser, base?: string, endpoint?: string): string
 
 ---@class endpoint.DotNetParser : endpoint.Parser
----@field private _last_end_line_number number|nil
----@field private _is_dotnet_attribute_content fun(self: endpoint.DotNetParser, content: string): boolean
----@field private _extract_route_info fun(self: endpoint.DotNetParser, content: string, file_path: string, line_number: number): string|nil, string|nil
----@field private _extract_path_from_attributes fun(self: endpoint.DotNetParser, content: string): string|nil
----@field private _extract_path_single_line fun(self: endpoint.DotNetParser, content: string, file_path?: string, line_number?: number): string|nil
----@field private _extract_path_multiline fun(self: endpoint.DotNetParser, file_path: string, start_line: number, content: string): string|nil, number|nil
----@field private _is_multiline_attribute fun(self: endpoint.DotNetParser, content: string): boolean
----@field private _extract_methods_multiline fun(self: endpoint.DotNetParser, content: string, file_path: string, line_number: number): string[]
----@field private _extract_method_from_attributes fun(self: endpoint.DotNetParser, content: string): string|nil
----@field private _extract_method_from_surrounding_lines fun(self: endpoint.DotNetParser, file_path: string, line_number: number): string|nil
----@field private _detect_attribute_type fun(self: endpoint.DotNetParser, content: string): string
----@field private _has_route_template fun(self: endpoint.DotNetParser, content: string): boolean
----@field private _get_controller_base_path fun(self: endpoint.DotNetParser, file_path: string, line_number: number): string
----@field private _replace_controller_token fun(self: endpoint.DotNetParser, route_path: string, file_path: string, line_number: number): string
----@field private _calculate_attribute_column fun(self: endpoint.DotNetParser, content: string, file_path: string, line_number: number, ripgrep_column: number): number
----@field private _is_commented_code fun(self: endpoint.DotNetParser, content: string, file_path?: string, line_number?: number): boolean
----@field private _clean_multiline_content fun(self: endpoint.DotNetParser, content: string): string
----@field private _contains_unwanted_artifacts fun(self: endpoint.DotNetParser, content: string): boolean
----@field private _is_class_level_route fun(self: endpoint.DotNetParser, content: string, file_path?: string, line_number?: number): boolean
----@field private _combine_paths fun(self: endpoint.DotNetParser, base?: string, endpoint?: string): string
+---@field _last_end_line_number number|nil
+---@field _is_dotnet_attribute_content fun(self: endpoint.DotNetParser, content: string): boolean
+---@field _extract_route_info fun(self: endpoint.DotNetParser, content: string, file_path: string, line_number: number): string|nil, string|nil
+---@field _extract_path_from_attributes fun(self: endpoint.DotNetParser, content: string): string|nil
+---@field _extract_path_single_line fun(self: endpoint.DotNetParser, content: string, file_path?: string, line_number?: number): string|nil
+---@field _extract_path_multiline fun(self: endpoint.DotNetParser, file_path: string, start_line: number, content: string): string|nil, number|nil
+---@field _is_multiline_attribute fun(self: endpoint.DotNetParser, content: string): boolean
+---@field _extract_methods_multiline fun(self: endpoint.DotNetParser, content: string, file_path: string, line_number: number): string[]
+---@field _extract_method_from_attributes fun(self: endpoint.DotNetParser, content: string): string|nil
+---@field _extract_method_from_surrounding_lines fun(self: endpoint.DotNetParser, file_path: string, line_number: number): string|nil
+---@field _detect_attribute_type fun(self: endpoint.DotNetParser, content: string): string
+---@field _has_route_template fun(self: endpoint.DotNetParser, content: string): boolean
+---@field _get_controller_base_path fun(self: endpoint.DotNetParser, file_path: string, line_number: number): string
+---@field _replace_controller_token fun(self: endpoint.DotNetParser, route_path: string, file_path: string, line_number: number): string
+---@field _calculate_attribute_column fun(self: endpoint.DotNetParser, file_path: string, line_number: number, ripgrep_column: number): number
+---@field _is_commented_code fun(self: endpoint.DotNetParser, content: string, file_path?: string, line_number?: number): boolean
+---@field _clean_multiline_content fun(self: endpoint.DotNetParser, content: string): string
+---@field _contains_unwanted_artifacts fun(self: endpoint.DotNetParser, content: string): boolean
+---@field _is_class_level_route fun(self: endpoint.DotNetParser, content: string, file_path?: string, line_number?: number): boolean
+---@field _combine_paths fun(self: endpoint.DotNetParser, base?: string, endpoint?: string): string
 
 ---@class endpoint.KtorParser : endpoint.Parser
----@field private _is_valid_http_method fun(self: endpoint.KtorParser, method?: string): boolean
----@field private _get_full_path fun(self: endpoint.KtorParser, path: string, file_path?: string, line_number?: number): string
----@field private _extract_base_paths_from_file fun(self: endpoint.KtorParser, file_path: string, target_line: number): string[]
----@field private _extract_path_single_line fun(self: endpoint.KtorParser, content: string): string|nil
----@field private _extract_path_multiline fun(self: endpoint.KtorParser, file_path: string, start_line: number, content: string): string|nil, number|nil
----@field private _is_multiline_routing fun(self: endpoint.KtorParser, content: string): boolean
----@field private _last_end_line_number number|nil
----@field private _looks_like_incomplete_ktor_routing fun(self: endpoint.KtorParser, content: string): boolean
----@field private _get_extended_routing_content fun(self: endpoint.KtorParser, initial_content: string, file_path?: string, start_line?: number): string|nil
+---@field _is_valid_http_method fun(self: endpoint.KtorParser, method?: string): boolean
+---@field _get_full_path fun(self: endpoint.KtorParser, path: string, file_path?: string, line_number?: number): string
+---@field _extract_base_paths_from_file fun(self: endpoint.KtorParser, file_path: string, target_line: number): string[]
+---@field _extract_path_single_line fun(self: endpoint.KtorParser, content: string): string|nil
+---@field _extract_path_multiline fun(self: endpoint.KtorParser, file_path: string, start_line: number, content: string): string|nil, number|nil
+---@field _is_multiline_routing fun(self: endpoint.KtorParser, content: string): boolean
+---@field _last_end_line_number number|nil
+---@field _looks_like_incomplete_ktor_routing fun(self: endpoint.KtorParser, content: string): boolean
+---@field _get_extended_routing_content fun(self: endpoint.KtorParser, initial_content: string, file_path?: string, start_line?: number): string|nil
 
 ---@class endpoint.ServletParser : endpoint.Parser
----@field private _is_servlet_content fun(self: endpoint.ServletParser, content: string): boolean
----@field private _extract_webservlet_path fun(self: endpoint.ServletParser, content: string): string|nil
----@field private _extract_servlet_method fun(self: endpoint.ServletParser, content: string): string|nil
----@field private _detect_servlet_type fun(self: endpoint.ServletParser, content: string): string
----@field private _has_web_xml_mapping fun(self: endpoint.ServletParser, file_path: string): boolean
----@field private _find_servlet_mapping_for_file fun(self: endpoint.ServletParser, java_file_path: string): string[]|nil
----@field private _find_webservlet_annotation_paths_for_file fun(self: endpoint.ServletParser, java_file_path: string): string[]|nil
----@field private _extract_servlet_class_path fun(self: endpoint.ServletParser, content: string): string|nil
+---@field _is_servlet_content fun(self: endpoint.ServletParser, content: string): boolean
+---@field _extract_webservlet_path fun(self: endpoint.ServletParser, content: string): string|nil
+---@field _extract_servlet_method fun(self: endpoint.ServletParser, content: string): string|nil
+---@field _detect_servlet_type fun(self: endpoint.ServletParser, content: string): string
+---@field _has_web_xml_mapping fun(self: endpoint.ServletParser, file_path: string): boolean
+---@field _find_servlet_mapping_for_file fun(self: endpoint.ServletParser, java_file_path: string): string[]|nil
+---@field _find_webservlet_annotation_paths_for_file fun(self: endpoint.ServletParser, java_file_path: string): string[]|nil
+---@field _extract_servlet_class_path fun(self: endpoint.ServletParser, content: string): string|nil
 
 ---@class endpoint.ReactRouterParser : endpoint.Parser
----@field private _is_react_router_content fun(self: endpoint.ReactRouterParser, content: string): boolean
----@field private _extract_route_path fun(self: endpoint.ReactRouterParser, content: string): string|nil
----@field private _extract_component_name fun(self: endpoint.ReactRouterParser, content: string): string|nil
----@field private _detect_route_type fun(self: endpoint.ReactRouterParser, content: string): string
----@field private _find_component_file fun(self: endpoint.ReactRouterParser, component_name?: string): string|nil
+---@field _is_react_router_content fun(self: endpoint.ReactRouterParser, content: string): boolean
+---@field _extract_route_path fun(self: endpoint.ReactRouterParser, content: string): string|nil
+---@field _extract_component_name fun(self: endpoint.ReactRouterParser, content: string): string|nil
+---@field _detect_route_type fun(self: endpoint.ReactRouterParser, content: string): string
+---@field _find_component_file fun(self: endpoint.ReactRouterParser, component_name?: string): string|nil
 
 -- ========================================
 -- MANAGER CLASSES
@@ -315,8 +330,8 @@
 
 -- Cache Manager (OOP)
 ---@class endpoint.CacheManager
----@field private cached_endpoints endpoint.entry[]
----@field private cache_timestamp number
+---@field cached_endpoints endpoint.entry[]
+---@field cache_timestamp number
 ---@field new fun(self: endpoint.CacheManager): endpoint.CacheManager
 ---@field is_valid fun(self: endpoint.CacheManager, method: string?): boolean
 ---@field get_endpoints fun(self: endpoint.CacheManager, method: string?): endpoint.entry[]
@@ -326,7 +341,7 @@
 
 -- Event Manager (Observer Pattern)
 ---@class endpoint.EventManager
----@field private event_listeners table<string, endpoint.EventListener[]>
+---@field event_listeners table<string, endpoint.EventListener[]>
 ---@field new fun(self: endpoint.EventManager): endpoint.EventManager
 ---@field add_event_listener fun(self: endpoint.EventManager, event_type: string, listener_callback: function, listener_priority?: number)
 ---@field emit_event fun(self: endpoint.EventManager, event_type: string, event_data?: any): table[]
@@ -343,7 +358,7 @@
 
 -- Picker Manager (Factory Pattern)
 ---@class endpoint.PickerManager
----@field private available_pickers table<string, table>
+---@field available_pickers table<string, table>
 ---@field new fun(self: endpoint.PickerManager): endpoint.PickerManager
 ---@field _register_default_pickers fun(self: endpoint.PickerManager)
 ---@field get_picker fun(self: endpoint.PickerManager, picker_name: string): endpoint.Picker|nil
@@ -354,11 +369,11 @@
 
 -- Endpoint Manager (Main Orchestrator)
 ---@class endpoint.EndpointManager
----@field private registered_frameworks endpoint.Framework[]
----@field private event_manager endpoint.EventManager
----@field private cache_manager endpoint.CacheManager
----@field private picker_manager endpoint.PickerManager
----@field private _initialized boolean
+---@field registered_frameworks endpoint.Framework[]
+---@field event_manager endpoint.EventManager
+---@field cache_manager endpoint.CacheManager
+---@field picker_manager endpoint.PickerManager
+---@field _initialized boolean
 ---@field new fun(self: endpoint.EndpointManager): endpoint.EndpointManager
 ---@field setup fun(self: endpoint.EndpointManager, user_config: table?)
 ---@field register_all_frameworks fun(self: endpoint.EndpointManager)
@@ -420,10 +435,13 @@
 ---@class endpoint.TelescopePicker : endpoint.Picker
 ---@field telescope_available boolean
 ---@field highlighter endpoint.Highlighter
+---@field new fun(self: endpoint.TelescopePicker)
+---@field _set_preview_cursor fun(self: endpoint.TelescopePicker, picker_self: table, preview_line: number, preview_col: number)
 
 ---@class endpoint.SnacksPicker : endpoint.Picker
 ---@field snacks_available boolean
 ---@field highlighter endpoint.Highlighter
+---@field _validate_position fun(self: endpoint.SnacksPicker, endpoint: endpoint.entry): {start_pos: number[], end_pos: number[]}
 
 ---@class endpoint.VimUiSelectPicker : endpoint.Picker
 ---@field highlighter endpoint.Highlighter

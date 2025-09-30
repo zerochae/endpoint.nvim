@@ -1,8 +1,7 @@
 local Parser = require "endpoint.core.Parser"
 
 ---@class endpoint.NestJsParser
-local NestJsParser = setmetatable({}, { __index = Parser })
-NestJsParser.__index = NestJsParser
+local NestJsParser = Parser:extend()
 
 -- ========================================
 -- PUBLIC METHODS
@@ -10,13 +9,11 @@ NestJsParser.__index = NestJsParser
 
 ---Creates a new NestJsParser instance
 function NestJsParser:new()
-  local nestjs_parser = Parser:new {
+  NestJsParser.super.new(self, {
     parser_name = "nestjs_parser",
     framework_name = "nestjs",
     language = "typescript",
-  }
-  setmetatable(nestjs_parser, self)
-  return nestjs_parser
+  })
 end
 
 ---Extracts base path from NestJS controller file

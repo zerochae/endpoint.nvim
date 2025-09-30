@@ -121,6 +121,42 @@ describe("ExpressFramework", function()
       assert.equals("GET", result.method)
       assert.equals("/users", result.endpoint_path)
     end)
+
+    it("should parse complex Express routes with middleware", function()
+      local content = 'app.get("/api/v1/users/:id/posts/:postId", authenticateUser, checkPermissions, (req, res) => {})'
+      local result = parser:parse_content(content, "routes.js", 1, 1)
+
+      assert.is_not_nil(result)
+      assert.equals("GET", result.method)
+      assert.equals("/api/v1/users/:id/posts/:postId", result.endpoint_path)
+    end)
+
+    it("should parse Express routes with destructured parameters", function()
+      local content = 'app.get("/users/:id", ({ params: { id } }) => {})'
+      local result = parser:parse_content(content, "routes.js", 1, 1)
+
+      assert.is_not_nil(result)
+      assert.equals("GET", result.method)
+      assert.equals("/users/:id", result.endpoint_path)
+    end)
+
+    it("should parse Express routes with async/await", function()
+      local content = 'app.get("/users", async (req, res) => {})'
+      local result = parser:parse_content(content, "routes.js", 1, 1)
+
+      assert.is_not_nil(result)
+      assert.equals("GET", result.method)
+      assert.equals("/users", result.endpoint_path)
+    end)
+
+    it("should parse Express routes with template literals", function()
+      local content = 'app.get(`/api/v${version}/users`, handler)'
+      local result = parser:parse_content(content, "routes.js", 1, 1)
+
+      assert.is_not_nil(result)
+      assert.equals("GET", result.method)
+      assert.equals("/api/v${version}/users", result.endpoint_path)
+    end)
   end)
 
   describe("Search Command Generation", function()
@@ -170,6 +206,75 @@ describe("ExpressFramework", function()
       assert.equals("express", result.framework)
       assert.is_table(result.metadata)
       assert.equals("express", result.metadata.framework)
+    end)
+
+    it("should parse real Express application file", function()
+      local file_path = "tests/fixtures/express/app.js"
+      local file_content = vim.fn.readfile(file_path)
+      
+      -- Test multiple endpoints from the real file
+      local results = {}
+      for line_num, line in ipairs(file_content) do
+        local result = parser:parse_content(line, file_path, line_num, 1)
+        if result then
+          table.insert(results, result)
+        end
+      end
+      
+      -- Should find multiple endpoints from the real app
+      assert.is_true(#results > 0, "Should find at least one endpoint from real Express app")
+      
+      -- Verify specific endpoints exist
+      local found_root = false
+      local found_users_get = false
+      local found_users_post = false
+      for _, result in ipairs(results) do
+        if result.endpoint_path == "/" and result.method == "GET" then
+          found_root = true
+        end
+        if result.endpoint_path == "/users" and result.method == "GET" then
+          found_users_get = true
+        end
+        if result.endpoint_path == "/users" and result.method == "POST" then
+          found_users_post = true
+        end
+      end
+      
+      assert.is_true(found_root, "Should find GET / endpoint")
+      assert.is_true(found_users_get, "Should find GET /users endpoint")
+      assert.is_true(found_users_post, "Should find POST /users endpoint")
+    end)
+
+    it("should parse real Express router file", function()
+      local file_path = "tests/fixtures/express/routes/users.js"
+      local file_content = vim.fn.readfile(file_path)
+      
+      -- Test multiple endpoints from the real router file
+      local results = {}
+      for line_num, line in ipairs(file_content) do
+        local result = parser:parse_content(line, file_path, line_num, 1)
+        if result then
+          table.insert(results, result)
+        end
+      end
+      
+      -- Should find multiple endpoints from the real router
+      assert.is_true(#results > 0, "Should find at least one endpoint from real Express router")
+      
+      -- Verify router-specific endpoints exist
+      local found_router_get = false
+      local found_router_post = false
+      for _, result in ipairs(results) do
+        if result.endpoint_path == "/" and result.method == "GET" then
+          found_router_get = true
+        end
+        if result.endpoint_path == "/" and result.method == "POST" then
+          found_router_post = true
+        end
+      end
+      
+      assert.is_true(found_router_get, "Should find GET / endpoint in router")
+      assert.is_true(found_router_post, "Should find POST / endpoint in router")
     end)
   end)
 end)
@@ -269,6 +374,39 @@ describe("ExpressParser", function()
     it("should return nil for non-Express content", function()
       local result = parser:parse_content("const users = []", "test.js", 1, 1)
       assert.is_nil(result)
+    end)
+
+    it("should handle incomplete route definitions", function()
+      local result = parser:parse_content('app.get("/users"', "test.js", 1, 1)
+      -- Should either parse successfully or return nil gracefully
+      assert.is_true(result == nil or (result.method == "GET" and result.endpoint_path == "/users"))
+    end)
+
+    it("should handle routes with syntax errors", function()
+      local result = parser:parse_content('app.get("/users", (req, res) => {', "test.js", 1, 1)
+      -- Should handle incomplete arrow function gracefully
+      assert.is_true(result == nil or (result.method == "GET" and result.endpoint_path == "/users"))
+    end)
+
+    it("should handle routes with invalid characters", function()
+      local result = parser:parse_content('app.get("/users\\invalid", handler)', "test.js", 1, 1)
+      -- Should handle escape sequences gracefully
+      assert.is_true(result == nil or (result.method == "GET"))
+    end)
+
+    it("should handle very long route paths", function()
+      local long_path = "/" .. string.rep("a", 1000)
+      local content = 'app.get("' .. long_path .. '", handler)'
+      local result = parser:parse_content(content, "test.js", 1, 1)
+      
+      -- Should handle long paths without crashing
+      assert.is_true(result == nil or (result.method == "GET"))
+    end)
+
+    it("should handle routes with special regex characters", function()
+      local result = parser:parse_content('app.get("/users/:id(\\d+)", handler)', "test.js", 1, 1)
+      -- Should handle regex patterns in route parameters
+      assert.is_true(result == nil or (result.method == "GET"))
     end)
   end)
 end)

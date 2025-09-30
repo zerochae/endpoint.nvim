@@ -1,8 +1,7 @@
 local Parser = require "endpoint.core.Parser"
 
 ---@class endpoint.DotNetParser
-local DotNetParser = setmetatable({}, { __index = Parser })
-DotNetParser.__index = DotNetParser
+local DotNetParser = Parser:extend()
 
 -- ========================================
 -- PUBLIC METHODS
@@ -10,13 +9,11 @@ DotNetParser.__index = DotNetParser
 
 ---Creates a new DotNetParser instance
 function DotNetParser:new()
-  local dotnet_parser = Parser:new {
+  DotNetParser.super.new(self, {
     parser_name = "dotnet_parser",
     framework_name = "dotnet",
     language = "csharp",
-  }
-  setmetatable(dotnet_parser, self)
-  return dotnet_parser
+  })
 end
 
 ---Extracts base path from .NET controller file
@@ -226,7 +223,7 @@ function DotNetParser:parse_content(content, file_path, line_number, column)
   local end_line_number = self._last_end_line_number
 
   -- Calculate correct column position for attribute start
-  local correct_column = self:_calculate_attribute_column(content, file_path, line_number, column)
+  local correct_column = self:_calculate_attribute_column(file_path, line_number, column)
 
   -- Handle path combination logic
   local final_path
@@ -528,7 +525,7 @@ function DotNetParser:_is_commented_code(content, file_path, line_number)
 end
 
 ---Calculates correct column position for attribute start
-function DotNetParser:_calculate_attribute_column(content, file_path, line_number, ripgrep_column)
+function DotNetParser:_calculate_attribute_column(file_path, line_number, ripgrep_column)
   -- ripgrep in multiline mode often returns column 1, so we need to calculate the actual position
   if ripgrep_column and ripgrep_column > 1 then
     return ripgrep_column -- Trust ripgrep if it gives a meaningful column
@@ -948,7 +945,7 @@ function DotNetParser:_replace_controller_token(route_path, file_path, line_numb
     local controller_name = line:match "class%s+(%w+)Controller"
     if controller_name then
       local controller_lower = controller_name:gsub("^%u", string.lower):lower()
-      return route_path:gsub("%[controller%]", controller_lower)
+      return (route_path:gsub("%[controller%]", controller_lower))
     end
   end
 

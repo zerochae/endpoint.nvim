@@ -10,16 +10,32 @@ describe("SpringFramework", function()
   local original_file_contains
   local original_glob
 
-  local function mockFs(has_pom, has_spring_deps)
+  local function mockFs(has_pom, has_gradle, has_spring_deps, has_gradle_deps)
     fs.has_file = function(files)
-      if type(files) == "table" and files[1] == "pom.xml" then
-        return has_pom
+      if type(files) == "table" then
+        for _, file in ipairs(files) do
+          if file == "pom.xml" then
+            return has_pom
+          elseif file == "build.gradle" or file == "build.gradle.kts" then
+            return has_gradle
+          elseif file == "application.properties" or file == "application.yml" or file == "application.yaml" then
+            return has_spring_deps
+          end
+        end
       end
       return false
     end
 
     fs.file_contains = function(filepath, pattern)
       if filepath == "pom.xml" and pattern == "spring-boot" then
+        return has_spring_deps
+      elseif (filepath == "build.gradle" or filepath == "build.gradle.kts") and pattern == "spring-boot" then
+        return has_gradle_deps
+      elseif filepath == "application.properties" and (pattern == "spring-boot" or pattern == "spring-web" or pattern == "spring-webmvc" or pattern == "org.springframework") then
+        return has_spring_deps
+      elseif filepath == "application.yml" and (pattern == "spring-boot" or pattern == "spring-web" or pattern == "spring-webmvc" or pattern == "org.springframework") then
+        return has_spring_deps
+      elseif filepath == "application.yaml" and (pattern == "spring-boot" or pattern == "spring-web" or pattern == "spring-webmvc" or pattern == "org.springframework") then
         return has_spring_deps
       end
       return false
@@ -126,14 +142,28 @@ describe("SpringFramework", function()
     end)
 
     it("should detect Maven project with Spring dependencies", function()
-      mockFs(true, true)
+      mockFs(true, false, true, false)
 
       local detector = framework.detector
       assert.is_true(detector:is_target_detected())
     end)
 
-    it("should return false when no pom.xml exists", function()
-      mockFs(false, false)
+    it("should detect Gradle project with Spring dependencies", function()
+      mockFs(false, true, false, true)
+
+      local detector = framework.detector
+      assert.is_true(detector:is_target_detected())
+    end)
+
+    it("should detect Spring project with application.properties", function()
+      mockFs(false, false, true, false)
+
+      local detector = framework.detector
+      assert.is_true(detector:is_target_detected())
+    end)
+
+    it("should return false when no Spring files exist", function()
+      mockFs(false, false, false, false)
 
       local detector = framework.detector
       assert.is_false(detector:is_target_detected())
@@ -148,6 +178,39 @@ describe("SpringFramework", function()
       assert.is_not_nil(result)
       assert.equals("GET", result.method)
       assert.equals("/users", result.endpoint_path)
+    end)
+
+    it("should parse real Spring controller file", function()
+      local file_path = "tests/fixtures/spring/src/main/java/com/example/UserController.java"
+      local file_content = vim.fn.readfile(file_path)
+      local content = table.concat(file_content, "\n")
+      
+      -- Test multiple endpoints from the real file
+      local results = {}
+      for line_num, line in ipairs(file_content) do
+        local result = parser:parse_content(line, file_path, line_num, 1)
+        if result then
+          table.insert(results, result)
+        end
+      end
+      
+      -- Should find multiple endpoints from the real controller
+      assert.is_true(#results > 0, "Should find at least one endpoint from real controller")
+      
+      -- Verify specific endpoints exist
+      local found_get_list = false
+      local found_post_create = false
+      for _, result in ipairs(results) do
+        if result.endpoint_path == "/users/list" and result.method == "GET" then
+          found_get_list = true
+        end
+        if result.endpoint_path == "/users" and result.method == "POST" then
+          found_post_create = true
+        end
+      end
+      
+      assert.is_true(found_get_list, "Should find GET /users/list endpoint")
+      assert.is_true(found_post_create, "Should find POST /users endpoint")
     end)
 
     it("should parse PostMapping annotations", function()
