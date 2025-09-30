@@ -71,7 +71,6 @@ function EndpointManager:register_all_frameworks()
   }
 
   for _, framework_class in ipairs(framework_classes) do
-    ---@type endpoint.Framework
     local framework_instance = framework_class:new()
     self:register_framework(framework_instance)
   end
@@ -177,11 +176,6 @@ function EndpointManager:scan_with_framework(framework_name, scan_options)
 
   log.framework_debug("Scanning with specific framework: " .. framework_name)
   return target_framework:scan(scan_options)
-end
-
----Gets the event manager instance for external event handling
-function EndpointManager:get_event_manager()
-  return EventBus.get_instance()
 end
 
 ---Adds an event listener for endpoint management events
