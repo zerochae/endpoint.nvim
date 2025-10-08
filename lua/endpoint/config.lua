@@ -8,7 +8,9 @@ local default_config = {
     type = "vim_ui_select", -- "telescope", "vim_ui_select", "snacks"
     options = {
       telescope = {}, -- Telescope-specific options
-      snacks = {}, -- Snacks-specific options
+      snacks = {
+        preview_title_format = "filename", -- "filename", "full"
+      },
       vim_ui_select = {}, -- vim.ui.select-specific options
     },
     -- Previewer configuration

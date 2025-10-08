@@ -75,11 +75,16 @@ function SnacksPicker:_create_item(endpoint)
   -- Validate positions against actual file
   local validated_pos = self:_validate_position(endpoint)
 
+  -- Get preview title format from config
+  local preview_title_format = config.picker.options.snacks.preview_title_format or "filename"
+  local title = self:_format_preview_title(endpoint.file_path, preview_title_format)
+
   local item = {
     text = display_text,
-    value = endpoint, -- Store endpoint data in value
-    file = endpoint.file_path, -- Required for file preview
+    value = endpoint,
+    file = endpoint.file_path,
     pos = validated_pos.start_pos,
+    title = title,
   }
 
   -- Add end position for highlighting
@@ -230,6 +235,24 @@ function SnacksPicker:_create_picker_config(items, opts)
 
   -- Merge user picker_opts with defaults (user options override defaults)
   return vim.tbl_deep_extend("force", default_config, opts or {})
+end
+
+---Format preview title based on user preference
+function SnacksPicker:_format_preview_title(file_path, format)
+  if not file_path then
+    return ""
+  end
+
+  if format == "full" then
+    local cwd = vim.fn.getcwd()
+    local full_path = vim.fn.fnamemodify(file_path, ":p")
+    if full_path:sub(1, #cwd) == cwd then
+      return full_path:sub(#cwd + 2)
+    end
+    return full_path
+  else
+    return vim.fn.fnamemodify(file_path, ":t")
+  end
 end
 
 return SnacksPicker
