@@ -179,6 +179,26 @@ async createNewUser(
         assert.equals("createUser", result.endpoint_path)
       end
     end)
+
+    it("should parse @Query without options on same line", function()
+      local content = '@Query(() => [SomeDto])\n  async getSomething(): Promise<SomeDto[]> {'
+      local result = parser:parse_content(content, "users.resolver.ts", 1, 1)
+
+      if result then
+        assert.equals("QUERY", result.method)
+        assert.equals("getSomething", result.endpoint_path)
+      end
+    end)
+
+    it("should parse @Query with options starting on same line", function()
+      local content = '@Query(() => [SomeDto], {\n    nullable: true,\n  })\n  async getSomething(): Promise<SomeDto[]> {'
+      local result = parser:parse_content(content, "users.resolver.ts", 1, 1)
+
+      if result then
+        assert.equals("QUERY", result.method)
+        assert.equals("getSomething", result.endpoint_path)
+      end
+    end)
   end)
 
   describe("Search Command Generation", function()

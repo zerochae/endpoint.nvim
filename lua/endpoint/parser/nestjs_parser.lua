@@ -412,6 +412,12 @@ function NestJsParser:_looks_like_incomplete_decorator(content)
     end
   end
 
+  -- Special case for GraphQL decorators: @Query(() => Type) or @Mutation(() => Type)
+  -- These need extended content to find the function name
+  if self:_is_graphql_decorator(content) and content:match "^%s*@%w+%s*%(.-%)%s*$" then
+    return true
+  end
+
   -- Special case for decorators that don't close properly
   -- Count parentheses to see if they're balanced
   local open_count = 0
