@@ -202,15 +202,18 @@ function Framework:_parse_result_line(result_line)
     return {}
   end
 
-  -- Parse ripgrep output format: file:line:col:content
-  local source_file_path, source_line_number, source_column_position, line_content =
-    result_line:match "([^:]+):(%d+):(%d+):(.*)"
-  if not source_file_path or not source_line_number or not source_column_position or not line_content then
+  -- Use rg util to parse result line (handles Windows and Unix paths)
+  local rg_util = require "endpoint.utils.rg"
+  local parsed = rg_util.parse_result_line(result_line)
+
+  if not parsed then
     return {}
   end
 
-  local line_num = tonumber(source_line_number) or 1
-  local col_pos = tonumber(source_column_position) or 1
+  local source_file_path = parsed.file_path
+  local line_num = parsed.line_number
+  local col_pos = parsed.column
+  local line_content = parsed.content
 
   local endpoints = {}
   if self.parser then

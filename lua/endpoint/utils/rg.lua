@@ -68,4 +68,39 @@ M.common_file_patterns = {
   react = { "**/*.js", "**/*.jsx", "**/*.ts", "**/*.tsx" },
 }
 
+-- Parse ripgrep result line into components
+-- Handles both Unix and Windows paths
+-- Format: file:line:col:content
+function M.parse_result_line(result_line)
+  if not result_line or result_line == "" then
+    return nil
+  end
+
+  -- Try to parse ripgrep output: file:line:col:content
+  -- Need to handle Windows paths like C:\path\file.java:10:5:content
+  -- And Unix paths like /path/file.java:10:5:content
+
+  -- Match pattern that handles Windows drive letters (C:) and Unix paths
+  local file_path, line_number, column, content
+
+  -- Try Windows path first (C:\...:line:col:content)
+  if result_line:match "^[A-Z]:" then
+    file_path, line_number, column, content = result_line:match "^([A-Z]:[^:]+):(%d+):(%d+):(.*)$"
+  else
+    -- Unix path (/...:line:col:content)
+    file_path, line_number, column, content = result_line:match "^([^:]+):(%d+):(%d+):(.*)$"
+  end
+
+  if not file_path or not line_number or not column or not content then
+    return nil
+  end
+
+  return {
+    file_path = file_path,
+    line_number = tonumber(line_number),
+    column = tonumber(column),
+    content = content,
+  }
+end
+
 return M
