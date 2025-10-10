@@ -1,5 +1,20 @@
 # Changelog
 
+## [2.7.0](https://github.com/zerochae/endpoint.nvim/compare/v2.6.0...v2.7.0) (2025-10-10)
+
+
+### Features
+
+* add configurable preview title format for snacks picker ([da9022d](https://github.com/zerochae/endpoint.nvim/commit/da9022d41cb23b652bf2c172116ad1e0c5ffa873)), closes [#58](https://github.com/zerochae/endpoint.nvim/issues/58)
+
+
+### Bug Fixes
+
+* resolve NestJS GraphQL decorator parsing issue ([7d4630f](https://github.com/zerochae/endpoint.nvim/commit/7d4630f779ea7cb48391373030a9d42a804a612f))
+* resolve NestJS GraphQL decorator parsing issue ([5a30721](https://github.com/zerochae/endpoint.nvim/commit/5a30721fc2f5d033fe1a07bf2eb292e127d331f1))
+* resolve Windows path parsing issue in ripgrep results ([4db0d73](https://github.com/zerochae/endpoint.nvim/commit/4db0d734ca232ccc8d54dad2ab8d45ce582d99e9))
+* resolve Windows path parsing issue in ripgrep results ([12e8591](https://github.com/zerochae/endpoint.nvim/commit/12e8591e79fe8b1985effdc921a15a7d7b733bee))
+
 ## [2.6.0](https://github.com/zerochae/endpoint.nvim/compare/v2.5.0...v2.6.0) (2025-09-30)
 
 
