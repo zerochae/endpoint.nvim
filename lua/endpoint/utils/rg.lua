@@ -30,17 +30,17 @@ function M.create_command(ripgrep_search_options)
 
   -- Add file inclusion patterns
   for _, file_glob_pattern in ipairs(file_globs) do
-    ripgrep_command = ripgrep_command .. " --glob '" .. file_glob_pattern .. "'"
+    ripgrep_command = ripgrep_command .. " --glob " .. vim.fn.shellescape(file_glob_pattern)
   end
 
   -- Add file exclusion patterns
   for _, exclude_glob_pattern in ipairs(exclude_globs) do
-    ripgrep_command = ripgrep_command .. " --glob '!" .. exclude_glob_pattern .. "/**'"
+    ripgrep_command = ripgrep_command .. " --glob " .. vim.fn.shellescape("!" .. exclude_glob_pattern .. "/**")
   end
 
   -- Add all search patterns to command
   for _, search_pattern in ipairs(all_search_patterns) do
-    ripgrep_command = ripgrep_command .. " -e '" .. search_pattern .. "'"
+    ripgrep_command = ripgrep_command .. " -e " .. vim.fn.shellescape(search_pattern)
   end
 
   -- Add search path (current directory)

@@ -83,4 +83,40 @@ describe("Ripgrep Utility", function()
       assert.equals("@Get('/users')", result.content)
     end)
   end)
+
+  describe("create_command", function()
+    it("should escape patterns correctly", function()
+      local options = {
+        method_patterns = { GET = { "app.get" } },
+        file_globs = { "*.js" },
+        exclude_globs = { "node_modules" },
+      }
+      local cmd = rg_util.create_command(options)
+
+      assert.is_truthy(cmd:match "^rg")
+
+      -- Use vim.pesc to escape special characters for Lua pattern matching
+      local expected_glob = vim.fn.shellescape("*.js")
+      assert.is_truthy(cmd:match(vim.pesc(expected_glob)), "File glob should be escaped")
+
+      local expected_exclude = vim.fn.shellescape("!node_modules/**")
+      assert.is_truthy(cmd:match(vim.pesc(expected_exclude)), "Exclude glob should be escaped")
+
+      local expected_pattern = vim.fn.shellescape("app.get")
+      assert.is_truthy(cmd:match(vim.pesc(expected_pattern)), "Search pattern should be escaped")
+    end)
+
+    it("should handle malicious inputs securely", function()
+      local malicious_input = "'; rm -rf /; echo '"
+      local options = {
+        method_patterns = { GET = { "normal" } },
+        file_globs = { malicious_input },
+      }
+      local cmd = rg_util.create_command(options)
+
+      -- Verify that the malicious input is shell-escaped
+      local expected_escaped_input = vim.fn.shellescape(malicious_input)
+      assert.is_truthy(cmd:match(vim.pesc(expected_escaped_input)), "Malicious input should be escaped")
+    end)
+  end)
 end)
