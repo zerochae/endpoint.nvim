@@ -13,7 +13,18 @@ function Framework:initialize(fields)
   end
 
   self:_validate_config()
-  self:_setup_detector_and_parser()
+  -- Setup detector and default parser
+  self:_setup_detector()
+  self:_setup_default_parser()
+  -- Treesitter parser upgrade is checked lazily after config.setup()
+  self._treesitter_checked = false
+end
+
+---Sets up the default (regex) parser
+function Framework:_setup_default_parser()
+  if self.config.parser then
+    self.parser = self.config.parser:new()
+  end
 end
 
 ---Validates the framework configuration
@@ -31,8 +42,39 @@ function Framework:_validate_config()
   end
 end
 
----Sets up detector and parser based on configuration
-function Framework:_setup_detector_and_parser()
+---Check and upgrade to treesitter parser if enabled (called lazily after config.setup)
+function Framework:_check_treesitter_upgrade()
+  if self._treesitter_checked then
+    return
+  end
+  self._treesitter_checked = true
+
+  -- Check if treesitter is enabled and available
+  local config = require "endpoint.config"
+  local cfg = config.get()
+
+  if cfg.treesitter and cfg.treesitter.enabled and self.config.treesitter_parser then
+    local ok, TreeSitterParser = pcall(require, self.config.treesitter_parser)
+    if ok then
+      local ts_parser = TreeSitterParser:new()
+      if ts_parser:is_available() then
+        self.parser = ts_parser
+        log.framework_debug("Upgraded to Tree-sitter parser for: " .. self.name)
+      end
+    end
+  end
+end
+
+---Detects if this framework is present in the current project (unified implementation)
+function Framework:detect()
+  if self.detector then
+    return self.detector:is_target_detected()
+  end
+  return false
+end
+
+---Sets up detector only (called at initialize time)
+function Framework:_setup_detector()
   if self.config.detector then
     local Detector = require "endpoint.core.Detector"
     self.detector = Detector:new(
@@ -41,34 +83,12 @@ function Framework:_setup_detector_and_parser()
       self.config.detector.name or (self.name .. "_detection")
     )
   end
-
-  if self.config.parser then
-    self.parser = self.config.parser:new()
-  end
-end
-
----Initialize framework components (called lazily)
-function Framework:_initialize()
-  self:_setup_detector_and_parser()
-end
-
----Detects if this framework is present in the current project (unified implementation)
-function Framework:detect()
-  if not self.detector then
-    self:_initialize()
-  end
-  if self.detector then
-    return self.detector:is_target_detected()
-  end
-  return false
 end
 
 ---Parses content to extract endpoint information (unified implementation)
 function Framework:parse(content, file_path, line_number, column)
-  -- Ensure parser is initialized
-  if not self.parser then
-    self:_initialize()
-  end
+  -- Ensure parser is initialized (lazy init after config.setup)
+  self:_check_treesitter_upgrade()
 
   if not self.parser then
     return nil
@@ -162,6 +182,9 @@ function Framework:scan(options)
     return {}
   end
 
+  -- Ensure parser is initialized (lazy init after config.setup)
+  self:_check_treesitter_upgrade()
+
   -- Perform search and parse all matching lines
   local discovered_endpoints = self:_search_and_parse(options)
 
@@ -189,6 +212,9 @@ function Framework:scan_async(options, callback)
     end)
     return
   end
+
+  -- Ensure parser is initialized (lazy init after config.setup)
+  self:_check_treesitter_upgrade()
 
   -- Perform async search
   self:_search_and_parse_async(options, function(discovered_endpoints)
@@ -277,6 +303,8 @@ end
 ---Get the parser type string for display
 ---@return string "treesitter" or "ripgrep"
 function Framework:get_parser_type()
+  -- Ensure parser is initialized before checking type
+  self:_check_treesitter_upgrade()
   if self:_is_treesitter_parser() then
     return "treesitter"
   end
