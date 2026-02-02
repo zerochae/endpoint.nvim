@@ -274,6 +274,15 @@ function Framework:_is_treesitter_parser()
   return type(self.parser.extract_endpoints) == "function"
 end
 
+---Get the parser type string for display
+---@return string "treesitter" or "ripgrep"
+function Framework:get_parser_type()
+  if self:_is_treesitter_parser() then
+    return "treesitter"
+  end
+  return "ripgrep"
+end
+
 ---Searches files and parses using Tree-sitter asynchronously
 ---@param options table|nil Scan options
 ---@param callback function Callback function(endpoints) called when search completes

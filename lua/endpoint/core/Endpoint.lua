@@ -92,18 +92,20 @@ function Endpoint:scan_all_endpoints(scan_options)
 
   for framework_index, framework_instance in ipairs(detected_frameworks) do
     local framework_name = framework_instance:get_name()
+    local parser_type = framework_instance:get_parser_type()
     log.framework_debug("Scanning endpoints with framework: " .. framework_name)
 
     -- Update progress
     local percentage = math.floor((framework_index - 1) / total_frameworks * 100)
-    progress.update(progress_handle, string.format("Scanning %s...", framework_name), percentage)
+    progress.update(progress_handle, string.format("Scanning %s (by %s)...", framework_name, parser_type), percentage)
 
     -- Emit progress event
     events:emit_event(Events.static.EVENT_TYPES.SCAN_PROGRESS, {
       current = framework_index,
       total = total_frameworks,
       framework_name = framework_name,
-      message = string.format("Scanning %s (%d/%d)", framework_name, framework_index, total_frameworks),
+      parser_type = parser_type,
+      message = string.format("Scanning %s by %s (%d/%d)", framework_name, parser_type, framework_index, total_frameworks),
     })
 
     local framework_endpoints = framework_instance:scan(scan_options)
@@ -189,16 +191,20 @@ function Endpoint:scan_all_endpoints_async(scan_options, callback)
 
     log.framework_debug("Async scanning endpoints with framework: " .. framework_name)
 
+    -- Get parser type for display
+    local parser_type = framework_instance:get_parser_type()
+
     -- Update progress
     local percentage = math.floor((current_index - 1) / total_frameworks * 100)
-    progress.update(progress_handle, string.format("Scanning %s...", framework_name), percentage)
+    progress.update(progress_handle, string.format("Scanning %s (by %s)...", framework_name, parser_type), percentage)
 
     -- Emit progress event
     events:emit_event(Events.static.EVENT_TYPES.SCAN_PROGRESS, {
       current = current_index,
       total = total_frameworks,
       framework_name = framework_name,
-      message = string.format("Scanning %s (%d/%d)", framework_name, current_index, total_frameworks),
+      parser_type = parser_type,
+      message = string.format("Scanning %s by %s (%d/%d)", framework_name, parser_type, current_index, total_frameworks),
     })
 
     -- Use async scan
