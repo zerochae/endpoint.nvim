@@ -311,38 +311,54 @@ function Framework:get_parser_type()
   return "ripgrep"
 end
 
----Searches files and parses using Tree-sitter asynchronously
+---Searches files and parses using Tree-sitter asynchronously (hybrid approach)
+---Uses ripgrep to find matching files first, then parses only those with Tree-sitter
 ---@param options table|nil Scan options
 ---@param callback function Callback function(endpoints) called when search completes
 function Framework:_search_and_parse_treesitter_async(options, callback)
   options = options or {}
 
-  log.framework_debug("Using Tree-sitter parser for: " .. self.name)
+  log.framework_debug("Using Tree-sitter parser (hybrid) for: " .. self.name)
 
-  -- Use ripgrep to find matching files (not parsing, just file list)
-  local rg = require "endpoint.utils.rg"
-  local file_cmd = rg.create_files_command({
-    file_globs = self.config.file_extensions,
-    exclude_globs = self.config.exclude_patterns,
-  })
+  -- Use ripgrep to find files containing endpoint patterns (not all files!)
+  local search_command = self:get_search_cmd(options.method)
 
-  log.framework_debug("Finding files with: " .. file_cmd)
+  log.framework_debug("Finding matching files with: " .. search_command)
 
-  local cmd = { "sh", "-c", file_cmd }
+  local cmd = { "sh", "-c", search_command }
   local framework = self
 
   vim.system(cmd, { text = true }, function(obj)
     vim.schedule(function()
       if obj.code ~= 0 then
-        log.framework_debug("File search failed: " .. (obj.stderr or "unknown error"))
+        log.framework_debug("Search failed: " .. (obj.stderr or "unknown error"))
         callback({})
         return
       end
 
-      local file_list = vim.split(obj.stdout or "", "\n", { trimempty = true })
+      -- Extract unique file paths from ripgrep results
+      local rg_util = require "endpoint.utils.rg"
+      local result_lines = vim.split(obj.stdout or "", "\n", { trimempty = true })
+      local file_set = {}
+
+      for _, result_line in ipairs(result_lines) do
+        local parsed = rg_util.parse_result_line(result_line)
+        if parsed and parsed.file_path then
+          file_set[parsed.file_path] = true
+        end
+      end
+
+      -- Convert set to list
+      local file_list = {}
+      for file_path in pairs(file_set) do
+        table.insert(file_list, file_path)
+      end
+
+      log.framework_debug(string.format("Found %d files with patterns, parsing with Tree-sitter", #file_list))
+
       local all_endpoints = {}
 
-      -- Parse each file with Tree-sitter
+      -- Parse each matching file with Tree-sitter
       for _, file_path in ipairs(file_list) do
         local endpoints = framework.parser:extract_endpoints(file_path, options)
         if endpoints and #endpoints > 0 then
