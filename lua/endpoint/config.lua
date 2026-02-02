@@ -38,6 +38,15 @@ local default_config = {
     mode = "session", -- "none", "session", "persistent"
   },
 
+  -- Progress notification configuration
+  progress = {
+    enabled = true, -- Enable progress notifications during scan
+    provider = "auto", -- "auto", "fidget", "notify"
+    -- auto: Use fidget.nvim if available, fallback to vim.notify
+    -- fidget: Use fidget.nvim (requires fidget.nvim plugin)
+    -- notify: Use vim.notify
+  },
+
   -- Framework-specific configuration
   frameworks = {
     rails = {

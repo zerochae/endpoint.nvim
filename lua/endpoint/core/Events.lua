@@ -149,6 +149,7 @@ Events.static.EVENT_TYPES = {
   FRAMEWORK_DETECTED = "framework_detected",
   ENDPOINT_DISCOVERED = "endpoint_discovered",
   SCAN_STARTED = "scan_started",
+  SCAN_PROGRESS = "scan_progress",
   SCAN_COMPLETED = "scan_completed",
   PARSING_ERROR = "parsing_error",
   DETECTION_ERROR = "detection_error",
