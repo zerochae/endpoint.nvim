@@ -49,6 +49,30 @@ function M.create_command(ripgrep_search_options)
   return ripgrep_command
 end
 
+-- Generate ripgrep command to list matching files only (no content search)
+function M.create_files_command(ripgrep_file_options)
+  local file_globs = ripgrep_file_options.file_globs or {}
+  local exclude_globs = ripgrep_file_options.exclude_globs or {}
+
+  -- Base ripgrep command with --files flag (list files only)
+  local ripgrep_command = "rg --files --color=never"
+
+  -- Add file inclusion patterns
+  for _, file_glob_pattern in ipairs(file_globs) do
+    ripgrep_command = ripgrep_command .. " --glob " .. vim.fn.shellescape(file_glob_pattern)
+  end
+
+  -- Add file exclusion patterns
+  for _, exclude_glob_pattern in ipairs(exclude_globs) do
+    ripgrep_command = ripgrep_command .. " --glob " .. vim.fn.shellescape("!" .. exclude_glob_pattern .. "/**")
+  end
+
+  -- Add search path (current directory)
+  ripgrep_command = ripgrep_command .. " ."
+
+  return ripgrep_command
+end
+
 -- Common exclude patterns for different project types
 M.common_exclude_patterns = {
   node = { "**/node_modules", "**/dist", "**/build" },

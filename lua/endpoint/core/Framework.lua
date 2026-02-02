@@ -227,6 +227,13 @@ end
 ---@param callback function Callback function(endpoints) called when search completes
 function Framework:_search_and_parse_async(options, callback)
   options = options or {}
+
+  -- Check if parser is a Tree-sitter parser
+  if self.parser and self:_is_treesitter_parser() then
+    self:_search_and_parse_treesitter_async(options, callback)
+    return
+  end
+
   local search_command = self:get_search_cmd(options.method)
 
   log.framework_debug("Executing async search: " .. search_command)
@@ -253,6 +260,65 @@ function Framework:_search_and_parse_async(options, callback)
       end
 
       callback(found_endpoints)
+    end)
+  end)
+end
+
+---Check if the current parser is a Tree-sitter based parser
+---@return boolean
+function Framework:_is_treesitter_parser()
+  if not self.parser then
+    return false
+  end
+  -- Check if parser has extract_endpoints method (Tree-sitter parser signature)
+  return type(self.parser.extract_endpoints) == "function"
+end
+
+---Searches files and parses using Tree-sitter asynchronously
+---@param options table|nil Scan options
+---@param callback function Callback function(endpoints) called when search completes
+function Framework:_search_and_parse_treesitter_async(options, callback)
+  options = options or {}
+
+  log.framework_debug("Using Tree-sitter parser for: " .. self.name)
+
+  -- Use ripgrep to find matching files (not parsing, just file list)
+  local rg = require "endpoint.utils.rg"
+  local file_cmd = rg.create_files_command({
+    file_globs = self.config.file_extensions,
+    exclude_globs = self.config.exclude_patterns,
+  })
+
+  log.framework_debug("Finding files with: " .. file_cmd)
+
+  local cmd = { "sh", "-c", file_cmd }
+  local framework = self
+
+  vim.system(cmd, { text = true }, function(obj)
+    vim.schedule(function()
+      if obj.code ~= 0 then
+        log.framework_debug("File search failed: " .. (obj.stderr or "unknown error"))
+        callback({})
+        return
+      end
+
+      local file_list = vim.split(obj.stdout or "", "\n", { trimempty = true })
+      local all_endpoints = {}
+
+      -- Parse each file with Tree-sitter
+      for _, file_path in ipairs(file_list) do
+        local endpoints = framework.parser:extract_endpoints(file_path, options)
+        if endpoints and #endpoints > 0 then
+          -- Enhance endpoints with framework metadata
+          for _, endpoint in ipairs(endpoints) do
+            endpoint.framework = framework.name
+            framework:_enhance_endpoint(endpoint, file_path)
+          end
+          vim.list_extend(all_endpoints, endpoints)
+        end
+      end
+
+      callback(all_endpoints)
     end)
   end)
 end
