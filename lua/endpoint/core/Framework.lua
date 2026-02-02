@@ -151,7 +151,7 @@ function Framework:get_search_cmd(method)
   return rg.create_command(search_options)
 end
 
----Main template method for scanning endpoints
+---Main template method for scanning endpoints (synchronous)
 function Framework:scan(options)
   options = options or {}
 
@@ -173,7 +173,33 @@ function Framework:scan(options)
   return discovered_endpoints
 end
 
----Searches files and parses matching lines using framework parser
+---Asynchronous scanning using vim.system (Neovim 0.10+)
+---@param options table|nil Scan options
+---@param callback function Callback function(endpoints) called when scan completes
+function Framework:scan_async(options, callback)
+  options = options or {}
+  callback = callback or function() end
+
+  log.framework_debug("Starting async scan with framework: " .. self.name)
+
+  if not self:detect() then
+    log.framework_debug("Framework not detected: " .. self.name)
+    vim.schedule(function()
+      callback({})
+    end)
+    return
+  end
+
+  -- Perform async search
+  self:_search_and_parse_async(options, function(discovered_endpoints)
+    -- Post-process endpoints (remove duplicates, etc.)
+    discovered_endpoints = self:_post_process_endpoints(discovered_endpoints)
+    log.framework_debug(string.format("Found %d endpoints with %s", #discovered_endpoints, self.name))
+    callback(discovered_endpoints)
+  end)
+end
+
+---Searches files and parses matching lines using framework parser (synchronous)
 function Framework:_search_and_parse(options)
   options = options or {}
   local search_command = self:get_search_cmd(options.method)
@@ -194,6 +220,41 @@ function Framework:_search_and_parse(options)
   end
 
   return found_endpoints
+end
+
+---Searches files and parses matching lines asynchronously (Neovim 0.10+)
+---@param options table|nil Scan options
+---@param callback function Callback function(endpoints) called when search completes
+function Framework:_search_and_parse_async(options, callback)
+  options = options or {}
+  local search_command = self:get_search_cmd(options.method)
+
+  log.framework_debug("Executing async search: " .. search_command)
+
+  -- vim.system expects { "cmd", "arg1", "arg2" } format
+  -- Use shell to execute the command string
+  local cmd = { "sh", "-c", search_command }
+
+  local framework = self
+  vim.system(cmd, { text = true }, function(obj)
+    vim.schedule(function()
+      if obj.code ~= 0 then
+        log.framework_debug("Async search command failed: " .. (obj.stderr or "unknown error"))
+        callback({})
+        return
+      end
+
+      local search_result = obj.stdout or ""
+      local result_lines = vim.split(search_result, "\n", { trimempty = true })
+      local found_endpoints = {}
+
+      for _, result_line in ipairs(result_lines) do
+        vim.list_extend(found_endpoints, framework:_parse_result_line(result_line))
+      end
+
+      callback(found_endpoints)
+    end)
+  end)
 end
 
 ---Parses a ripgrep result line using framework parser

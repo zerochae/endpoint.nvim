@@ -1,5 +1,6 @@
 local class = require "endpoint.lib.middleclass"
 local log = require "endpoint.utils.log"
+local progress = require "endpoint.utils.progress"
 local Events = require "endpoint.core.Events"
 local FrameworkRegistry = require "endpoint.core.FrameworkRegistry"
 local Cache = require "endpoint.core.Cache"
@@ -83,11 +84,27 @@ function Endpoint:scan_all_endpoints(scan_options)
     return all_discovered_endpoints
   end
 
-  log.framework_debug(string.format("Scanning with %d detected frameworks", #detected_frameworks))
+  local total_frameworks = #detected_frameworks
+  log.framework_debug(string.format("Scanning with %d detected frameworks", total_frameworks))
 
-  for _, framework_instance in ipairs(detected_frameworks) do
+  -- Create progress handle
+  local progress_handle = progress.create("Scanning endpoints", "Detecting frameworks...")
+
+  for framework_index, framework_instance in ipairs(detected_frameworks) do
     local framework_name = framework_instance:get_name()
     log.framework_debug("Scanning endpoints with framework: " .. framework_name)
+
+    -- Update progress
+    local percentage = math.floor((framework_index - 1) / total_frameworks * 100)
+    progress.update(progress_handle, string.format("Scanning %s...", framework_name), percentage)
+
+    -- Emit progress event
+    events:emit_event(Events.static.EVENT_TYPES.SCAN_PROGRESS, {
+      current = framework_index,
+      total = total_frameworks,
+      framework_name = framework_name,
+      message = string.format("Scanning %s (%d/%d)", framework_name, framework_index, total_frameworks),
+    })
 
     local framework_endpoints = framework_instance:scan(scan_options)
 
@@ -103,6 +120,9 @@ function Endpoint:scan_all_endpoints(scan_options)
     log.framework_debug(string.format("Found %d endpoints with %s", #framework_endpoints, framework_name))
   end
 
+  -- Finish progress
+  progress.finish(progress_handle, string.format("Found %d endpoints", #all_discovered_endpoints))
+
   events:emit_event(Events.static.EVENT_TYPES.SCAN_COMPLETED, {
     total_endpoints_found = #all_discovered_endpoints,
     frameworks_used = detected_frameworks,
@@ -111,6 +131,96 @@ function Endpoint:scan_all_endpoints(scan_options)
   log.framework_debug(string.format("Total endpoints discovered: %d", #all_discovered_endpoints))
 
   return all_discovered_endpoints
+end
+
+---Scans for endpoints using all detected frameworks (asynchronous)
+---@param scan_options table|nil Scan options
+---@param callback function Callback function(endpoints) called when all scans complete
+function Endpoint:scan_all_endpoints_async(scan_options, callback)
+  scan_options = scan_options or {}
+  callback = callback or function() end
+
+  local events = self:get_events()
+
+  events:emit_event(Events.static.EVENT_TYPES.SCAN_STARTED, {
+    scan_options = scan_options,
+    registered_framework_count = #self.framework_registry:get_all(),
+  })
+
+  local all_discovered_endpoints = {}
+  local detected_frameworks = self:detect_project_frameworks()
+
+  if #detected_frameworks == 0 then
+    log.framework_debug "No frameworks detected in project"
+    vim.schedule(function()
+      callback(all_discovered_endpoints)
+    end)
+    return
+  end
+
+  local total_frameworks = #detected_frameworks
+  log.framework_debug(string.format("Async scanning with %d detected frameworks", total_frameworks))
+
+  -- Create progress handle
+  local progress_handle = progress.create("Scanning endpoints", "Detecting frameworks...")
+
+  -- Scan frameworks sequentially but asynchronously
+  local current_index = 0
+
+  local function scan_next_framework()
+    current_index = current_index + 1
+
+    if current_index > total_frameworks then
+      -- All frameworks scanned
+      progress.finish(progress_handle, string.format("Found %d endpoints", #all_discovered_endpoints))
+
+      events:emit_event(Events.static.EVENT_TYPES.SCAN_COMPLETED, {
+        total_endpoints_found = #all_discovered_endpoints,
+        frameworks_used = detected_frameworks,
+      })
+
+      log.framework_debug(string.format("Total endpoints discovered: %d", #all_discovered_endpoints))
+      callback(all_discovered_endpoints)
+      return
+    end
+
+    local framework_instance = detected_frameworks[current_index]
+    local framework_name = framework_instance:get_name()
+
+    log.framework_debug("Async scanning endpoints with framework: " .. framework_name)
+
+    -- Update progress
+    local percentage = math.floor((current_index - 1) / total_frameworks * 100)
+    progress.update(progress_handle, string.format("Scanning %s...", framework_name), percentage)
+
+    -- Emit progress event
+    events:emit_event(Events.static.EVENT_TYPES.SCAN_PROGRESS, {
+      current = current_index,
+      total = total_frameworks,
+      framework_name = framework_name,
+      message = string.format("Scanning %s (%d/%d)", framework_name, current_index, total_frameworks),
+    })
+
+    -- Use async scan
+    framework_instance:scan_async(scan_options, function(framework_endpoints)
+      for _, discovered_endpoint in ipairs(framework_endpoints) do
+        events:emit_event(Events.static.EVENT_TYPES.ENDPOINT_DISCOVERED, {
+          endpoint = discovered_endpoint,
+          framework_name = framework_name,
+        })
+
+        table.insert(all_discovered_endpoints, discovered_endpoint)
+      end
+
+      log.framework_debug(string.format("Found %d endpoints with %s", #framework_endpoints, framework_name))
+
+      -- Continue to next framework
+      scan_next_framework()
+    end)
+  end
+
+  -- Start scanning
+  scan_next_framework()
 end
 
 ---Scans for endpoints using a specific framework
@@ -153,23 +263,40 @@ function Endpoint:clear_all_frameworks()
   return self.framework_registry:clear()
 end
 
----Main function to find and show endpoints with UI
+---Main function to find and show endpoints with UI (async)
 function Endpoint:find(opts)
   self:_ensure_initialized()
   opts = opts or {}
 
-  local endpoints = self:_resolve_endpoints(opts)
+  self:_resolve_endpoints_async(opts, function(endpoints)
+    if #endpoints == 0 then
+      local method_msg = opts.method and (" " .. opts.method) or ""
+      vim.notify("No" .. method_msg .. " endpoints found", vim.log.levels.INFO)
+      return
+    end
 
-  if #endpoints == 0 then
-    local method_msg = opts.method and (" " .. opts.method) or ""
-    vim.notify("No" .. method_msg .. " endpoints found", vim.log.levels.INFO)
+    self:_show_with_picker(endpoints, opts)
+  end)
+end
+
+---Resolves endpoints from cache or by scanning (async)
+---@private
+function Endpoint:_resolve_endpoints_async(opts, callback)
+  if not opts.force_refresh and self:_should_use_cache(opts.method) then
+    local cached_endpoints = self.cache:get_endpoints(opts.method)
+    vim.schedule(function()
+      callback(cached_endpoints)
+    end)
     return
   end
 
-  self:_show_with_picker(endpoints, opts)
+  self:scan_all_endpoints_async(opts, function(endpoints)
+    self:_update_cache_if_enabled(endpoints, opts.method)
+    callback(endpoints)
+  end)
 end
 
----Resolves endpoints from cache or by scanning
+---Resolves endpoints from cache or by scanning (sync, for backward compatibility)
 ---@private
 function Endpoint:_resolve_endpoints(opts)
   if not opts.force_refresh and self:_should_use_cache(opts.method) then
