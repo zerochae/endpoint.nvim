@@ -64,6 +64,7 @@ function ExpressFramework:initialize()
         name = "express_dependency_detection",
       },
       parser = ExpressParser,
+      treesitter_parser = "endpoint.parser.express_treesitter_parser",
     },
   })
 end

@@ -34,6 +34,7 @@ function FastApiFramework:initialize()
         name = "fastapi_dependency_detection",
       },
       parser = FastApiParser,
+      treesitter_parser = "endpoint.parser.fastapi_treesitter_parser",
     },
   })
 end

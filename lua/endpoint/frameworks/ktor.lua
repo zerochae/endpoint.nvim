@@ -34,6 +34,7 @@ function KtorFramework:initialize()
         name = "ktor_dependency_detection",
       },
       parser = KtorParser,
+      treesitter_parser = "endpoint.parser.ktor_treesitter_parser",
     },
   })
 end
