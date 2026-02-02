@@ -96,6 +96,13 @@ require("endpoint").setup({
     mode = "session",   -- "none", "session", "persistent"
   },
 
+  -- Progress notification configuration
+  progress = {
+    enabled = true,     -- Enable progress notifications during scan
+    provider = "auto",  -- "auto", "fidget", "notify"
+    -- auto: Use fidget.nvim if available, fallback to vim.notify
+  },
+
   -- UI configuration
   ui = {
     show_icons = true,
@@ -206,7 +213,14 @@ Use `:EndpointRefresh` to force refresh (bypass cache).
 
 - Neovim >= 0.8.0
 - [ripgrep](https://github.com/BurntSushi/ripgrep)
-- Optional: telescope.nvim or snacks.nvim for enhanced UI
+
+### Optional Dependencies
+
+| Plugin | Purpose |
+|--------|---------|
+| [telescope.nvim](https://github.com/nvim-telescope/telescope.nvim) | Enhanced fuzzy finder UI |
+| [snacks.nvim](https://github.com/folke/snacks.nvim) | Modern picker with preview |
+| [fidget.nvim](https://github.com/j-hui/fidget.nvim) | Progress notifications during scanning |
 
 
 ## 📄 License
