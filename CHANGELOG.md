@@ -1,5 +1,28 @@
 # Changelog
 
+## [2.8.0](https://github.com/zerochae/endpoint.nvim/compare/v2.7.0...v2.8.0) (2026-02-02)
+
+
+### Features
+
+* **async:** add non-blocking async scanning with vim.system ([7b94617](https://github.com/zerochae/endpoint.nvim/commit/7b946178c45b52c41b24d92b6e84176691ea9397))
+* **detector:** add support for gradle multi-module projects ([e4a86a9](https://github.com/zerochae/endpoint.nvim/commit/e4a86a915c43008be4aff0c2a808dc2ce7019260))
+* **progress:** add progress notification during endpoint scanning ([98f5953](https://github.com/zerochae/endpoint.nvim/commit/98f595388e51f2c385b4dea360a7848ed0f5e953))
+* **progress:** show parser type (treesitter/ripgrep) in progress message ([1213e9e](https://github.com/zerochae/endpoint.nvim/commit/1213e9e68e09aaee52264f019bbcfbae9a03473f))
+* **treesitter:** add Tree-sitter based parsing for Spring Boot ([e23f487](https://github.com/zerochae/endpoint.nvim/commit/e23f48732ff9397a0f20d5bcbc8d21f05694c410))
+* **treesitter:** add Tree-sitter parsers for all frameworks ([b2091d4](https://github.com/zerochae/endpoint.nvim/commit/b2091d47cf6b2192f3b5426c26b7ee5520fb3116))
+
+
+### Bug Fixes
+
+* **security:** sanitize shell inputs to prevent injection vulnerability ([1d64744](https://github.com/zerochae/endpoint.nvim/commit/1d647448019960f31ad3f81bcc9479975a5c875b))
+* **treesitter:** lazy check treesitter config after setup ([f5a90d5](https://github.com/zerochae/endpoint.nvim/commit/f5a90d5ba870eb997ae70da2782ef8a79ef377a2))
+
+
+### Performance Improvements
+
+* **treesitter:** use hybrid approach for faster scanning ([99eee37](https://github.com/zerochae/endpoint.nvim/commit/99eee37218bbb5b077fbe93b981903bf06f0569f))
+
 ## [2.7.0](https://github.com/zerochae/endpoint.nvim/compare/v2.6.0...v2.7.0) (2025-10-10)
 
 
