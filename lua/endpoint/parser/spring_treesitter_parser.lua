@@ -2,6 +2,7 @@
 local TreeSitterParser = require "endpoint.core.TreeSitterParser"
 local class = require "endpoint.lib.middleclass"
 local log = require "endpoint.utils.log"
+local java_constant_resolver = require "endpoint.resolver.java_constant_resolver"
 
 ---@class endpoint.SpringTreeSitterParser : endpoint.core.TreeSitterParser
 local SpringTreeSitterParser = class("SpringTreeSitterParser", TreeSitterParser)
@@ -98,8 +99,8 @@ function SpringTreeSitterParser:extract_endpoints(file_path, options)
   local tree = trees[1]
   local root = tree:root()
 
-  -- First, find class-level base path
-  local base_path = self:_find_class_base_path(root, content)
+  -- First, find class-level base path (pass file_path for constant resolution)
+  local base_path = self:_find_class_base_path(root, content, file_path)
 
   -- Find all method-level mapping annotations
   local method_endpoints = self:_find_method_mappings(root, content, file_path, base_path, options)
@@ -111,8 +112,9 @@ end
 ---Find class-level @RequestMapping base path
 ---@param root userdata Tree-sitter root node
 ---@param content string File content
+---@param file_path string|nil File path for constant resolution
 ---@return string base_path
-function SpringTreeSitterParser:_find_class_base_path(root, content)
+function SpringTreeSitterParser:_find_class_base_path(root, content, file_path)
   local query_string = [[
     (class_declaration
       (modifiers
@@ -133,7 +135,7 @@ function SpringTreeSitterParser:_find_class_base_path(root, content)
   for id, node in query:iter_captures(root, content, 0, -1) do
     local name = query.captures[id]
     if name == "anno_args" then
-      local path = self:_extract_path_from_annotation_args(node, content)
+      local path = self:_extract_path_from_annotation_args(node, content, file_path)
       if path then
         return path
       end
@@ -191,7 +193,7 @@ function SpringTreeSitterParser:_find_method_mappings(root, content, file_path, 
         local endpoint_path = ""
 
         if current_anno_args then
-          endpoint_path = self:_extract_path_from_annotation_args(current_anno_args, content) or ""
+          endpoint_path = self:_extract_path_from_annotation_args(current_anno_args, content, file_path) or ""
         end
 
         -- Handle @RequestMapping with method parameter
@@ -263,11 +265,32 @@ function SpringTreeSitterParser:_find_method_mappings(root, content, file_path, 
   return endpoints
 end
 
+---Resolve a constant reference to its string value
+---@param ref_text string Constant reference (e.g., "PathConstants.Student.BASE_V0")
+---@param file_path string|nil Source file for import context
+---@return string|nil resolved_value
+function SpringTreeSitterParser:_resolve_constant(ref_text, file_path)
+  local resolved = java_constant_resolver.resolve(ref_text)
+  if resolved then
+    return resolved
+  end
+
+  if file_path then
+    resolved = java_constant_resolver.resolve_from_file_context(ref_text, file_path)
+    if resolved then
+      return resolved
+    end
+  end
+
+  return nil
+end
+
 ---Extract path from annotation arguments node
 ---@param args_node userdata Annotation arguments node
 ---@param content string File content
+---@param file_path string|nil File path for constant resolution
 ---@return string|nil path
-function SpringTreeSitterParser:_extract_path_from_annotation_args(args_node, content)
+function SpringTreeSitterParser:_extract_path_from_annotation_args(args_node, content, file_path)
   if not args_node then
     return nil
   end
@@ -280,6 +303,13 @@ function SpringTreeSitterParser:_extract_path_from_annotation_args(args_node, co
       -- Direct string: @GetMapping("/path")
       local text = vim.treesitter.get_node_text(child, content)
       return text:gsub('^"', ""):gsub('"$', "")
+    elseif child_type == "field_access" or child_type == "identifier" then
+      -- Constant reference: @GetMapping(PathConstants.Student.GET_ALL)
+      local ref_text = vim.treesitter.get_node_text(child, content)
+      local resolved = self:_resolve_constant(ref_text, file_path)
+      if resolved then
+        return resolved
+      end
     elseif child_type == "element_value_pair" then
       -- Named parameter: @GetMapping(value = "/path")
       local key_node = child:field("key")[1]
@@ -288,8 +318,17 @@ function SpringTreeSitterParser:_extract_path_from_annotation_args(args_node, co
       if key_node and value_node then
         local key = vim.treesitter.get_node_text(key_node, content)
         if key == "value" or key == "path" then
-          local value_text = vim.treesitter.get_node_text(value_node, content)
-          return value_text:gsub('^"', ""):gsub('"$', "")
+          local value_type = value_node:type()
+          if value_type == "string_literal" then
+            local value_text = vim.treesitter.get_node_text(value_node, content)
+            return value_text:gsub('^"', ""):gsub('"$', "")
+          elseif value_type == "field_access" or value_type == "identifier" then
+            local ref_text = vim.treesitter.get_node_text(value_node, content)
+            local resolved = self:_resolve_constant(ref_text, file_path)
+            if resolved then
+              return resolved
+            end
+          end
         end
       end
     end

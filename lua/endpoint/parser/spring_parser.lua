@@ -1,5 +1,6 @@
 local Parser = require "endpoint.core.Parser"
 local class = require "endpoint.lib.middleclass"
+local java_constant_resolver = require "endpoint.resolver.java_constant_resolver"
 
 ---@class endpoint.SpringParser
 local SpringParser = class("SpringParser", Parser)
@@ -24,23 +25,23 @@ function SpringParser:extract_base_path(file_path, line_number)
     return ""
   end
 
-  return self:_find_class_level_request_mapping(lines, line_number)
+  return self:_find_class_level_request_mapping(lines, line_number, file_path)
 end
 
 ---Extracts endpoint path from Spring annotation content
-function SpringParser:extract_endpoint_path(content)
+function SpringParser:extract_endpoint_path(content, file_path)
   -- Skip @RequestMapping unless it has method parameter
   if self:_is_class_level_request_mapping(content) then
     return nil
   end
 
   -- Try different path extraction patterns
-  local path = self:_extract_path_from_specific_mapping(content)
+  local path = self:_extract_path_from_specific_mapping(content, file_path)
   if path then
     return path
   end
 
-  path = self:_extract_path_from_request_mapping_with_method(content)
+  path = self:_extract_path_from_request_mapping_with_method(content, file_path)
   if path then
     return path
   end
@@ -114,7 +115,7 @@ function SpringParser:parse_content(content, file_path, line_number, column)
         -- Create multiple endpoints for each method
         local endpoints = {}
         local base_path = self:extract_base_path(file_path, line_number)
-        local endpoint_path = self:extract_endpoint_path(extended_content)
+        local endpoint_path = self:extract_endpoint_path(extended_content, file_path)
         local full_path = self:combine_paths(base_path, endpoint_path)
 
         for _, method in ipairs(methods) do
@@ -163,7 +164,7 @@ function SpringParser:parse_content(content, file_path, line_number, column)
           -- Create multiple endpoints for each method
           local endpoints = {}
           local base_path = self:extract_base_path(file_path, line_number)
-          local endpoint_path = self:extract_endpoint_path(extended_content)
+          local endpoint_path = self:extract_endpoint_path(extended_content, file_path)
           local full_path = self:combine_paths(base_path, endpoint_path)
 
           for _, method in ipairs(methods) do
@@ -257,7 +258,7 @@ function SpringParser:_read_file_lines(file_path, line_number)
 end
 
 ---Finds class-level @RequestMapping annotation
-function SpringParser:_find_class_level_request_mapping(lines, line_number)
+function SpringParser:_find_class_level_request_mapping(lines, line_number, file_path)
   -- Look backwards for class-level @RequestMapping
   for i = math.min(line_number, #lines), 1, -1 do
     local line = lines[i]
@@ -267,7 +268,7 @@ function SpringParser:_find_class_level_request_mapping(lines, line_number)
       -- Look for @RequestMapping on this class or preceding lines
       for j = math.max(1, i - 5), i do
         local annotation_line = lines[j]
-        local base_path = self:_extract_request_mapping_path(annotation_line)
+        local base_path = self:_extract_request_mapping_path(annotation_line, file_path)
         if base_path then
           return base_path
         end
@@ -279,8 +280,45 @@ function SpringParser:_find_class_level_request_mapping(lines, line_number)
   return ""
 end
 
+---Resolve a constant reference to its string value
+---@param ref_text string Constant reference
+---@param file_path string|nil Source file for import context
+---@return string|nil
+function SpringParser:_resolve_constant(ref_text, file_path)
+  local resolved = java_constant_resolver.resolve(ref_text)
+  if resolved then
+    return resolved
+  end
+  if file_path then
+    resolved = java_constant_resolver.resolve_from_file_context(ref_text, file_path)
+    if resolved then
+      return resolved
+    end
+  end
+  return nil
+end
+
+---Extract a constant reference from annotation argument text
+---@param text string Annotation argument text (e.g., "(PathConstants.Student.BASE)")
+---@return string|nil constant_ref
+function SpringParser:_extract_constant_ref(text)
+  local ref = text:match "%(%s*([%w_%.]+)%s*%)"
+  if ref and not ref:match '^["\']' and ref:match "%." then
+    return ref
+  end
+  ref = text:match "value%s*=%s*([%w_%.]+)"
+  if ref and not ref:match '^["\']' and ref:match "%." then
+    return ref
+  end
+  ref = text:match "path%s*=%s*([%w_%.]+)"
+  if ref and not ref:match '^["\']' and ref:match "%." then
+    return ref
+  end
+  return nil
+end
+
 ---Extracts path from @RequestMapping annotation
-function SpringParser:_extract_request_mapping_path(annotation_line)
+function SpringParser:_extract_request_mapping_path(annotation_line, file_path)
   -- @RequestMapping("/path")
   local base_path = annotation_line:match "@RequestMapping%s*%(%s*[\"']([^\"']+)[\"']"
   if base_path then
@@ -299,6 +337,18 @@ function SpringParser:_extract_request_mapping_path(annotation_line)
     return base_path
   end
 
+  -- Constant reference: @RequestMapping(PathConstants.Student.BASE_V0)
+  local mapping_args = annotation_line:match "@RequestMapping(%b())"
+  if mapping_args then
+    local ref = self:_extract_constant_ref(mapping_args)
+    if ref then
+      local resolved = self:_resolve_constant(ref, file_path)
+      if resolved then
+        return resolved
+      end
+    end
+  end
+
   return nil
 end
 
@@ -308,7 +358,7 @@ function SpringParser:_is_class_level_request_mapping(content)
 end
 
 ---Extracts path from specific mapping annotations (@GetMapping, @PostMapping, etc.)
-function SpringParser:_extract_path_from_specific_mapping(content)
+function SpringParser:_extract_path_from_specific_mapping(content, file_path)
   -- Handle multiline patterns by removing line breaks and extra spaces
   local normalized_content = content:gsub("%s+", " "):gsub("[\r\n]+", " ")
 
@@ -330,11 +380,25 @@ function SpringParser:_extract_path_from_specific_mapping(content)
     return path
   end
 
+  -- Constant reference: @GetMapping(PathConstants.Student.GET_ALL)
+  if not normalized_content:match "@RequestMapping" then
+    local mapping_args = normalized_content:match "@%w+Mapping(%b())"
+    if mapping_args then
+      local ref = self:_extract_constant_ref(mapping_args)
+      if ref then
+        local resolved = self:_resolve_constant(ref, file_path)
+        if resolved then
+          return resolved
+        end
+      end
+    end
+  end
+
   return nil
 end
 
 ---Extracts path from @RequestMapping with method parameter
-function SpringParser:_extract_path_from_request_mapping_with_method(content)
+function SpringParser:_extract_path_from_request_mapping_with_method(content, file_path)
   -- Handle multiline patterns by normalizing whitespace
   local normalized_content = content:gsub("%s+", " "):gsub("[\r\n]+", " ")
 
@@ -358,6 +422,23 @@ function SpringParser:_extract_path_from_request_mapping_with_method(content)
   path = normalized_content:match "@RequestMapping%s*%(%s*[\"']([^\"']+)[\"']"
   if path then
     return path
+  end
+
+  -- Constant reference in value/path parameter
+  local ref = normalized_content:match "@RequestMapping%s*%([^%)]*value%s*=%s*([%w_%.]+)"
+  if ref and ref:match "%." then
+    local resolved = self:_resolve_constant(ref, file_path)
+    if resolved then
+      return resolved
+    end
+  end
+
+  ref = normalized_content:match "@RequestMapping%s*%([^%)]*path%s*=%s*([%w_%.]+)"
+  if ref and ref:match "%." then
+    local resolved = self:_resolve_constant(ref, file_path)
+    if resolved then
+      return resolved
+    end
   end
 
   return nil
