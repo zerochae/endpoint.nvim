@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.9.0](https://github.com/zerochae/endpoint.nvim/compare/v2.8.0...v2.9.0) (2026-04-03)
+
+
+### Features
+
+* **#65:** resolve Java constant references in Spring endpoint annotations ([82c52f8](https://github.com/zerochae/endpoint.nvim/commit/82c52f8903eae86fe3355dc569adbdf50d6a9810))
+
 ## [2.8.0](https://github.com/zerochae/endpoint.nvim/compare/v2.7.0...v2.8.0) (2026-02-02)
 
 
