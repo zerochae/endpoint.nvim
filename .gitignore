@@ -4,3 +4,4 @@ trg/
 dist
 .DS_Store
 .omc
+*.class
