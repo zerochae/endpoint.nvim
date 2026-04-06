@@ -5,3 +5,7 @@ dist
 .DS_Store
 .omc
 *.class
+.project
+.classpath
+.settings/
+.gradle/
