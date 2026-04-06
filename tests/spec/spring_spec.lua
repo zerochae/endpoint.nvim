@@ -424,93 +424,34 @@ describe("SpringParser", function()
       java_constant_resolver.clear_cache()
     end)
 
-    it("should parse controller with constant base path", function()
-      local file_path = "tests/fixtures/spring/src/main/java/com/example/ConstantController.java"
-      local file_content = vim.fn.readfile(file_path)
-
-      local results = {}
-      for line_num, line in ipairs(file_content) do
-        local result = parser:parse_content(line, file_path, line_num, 1)
-        if result then
-          if type(result) == "table" and result.method then
-            table.insert(results, result)
-          elseif type(result) == "table" then
-            for _, r in ipairs(result) do
-              table.insert(results, r)
-            end
-          end
-        end
-      end
-
-      assert.is_true(#results > 0, "Should find endpoints from constant controller")
-
-      local found_get_root = false
-      local found_get_all = false
-      local found_get_by_id = false
-      local found_post_create = false
-      local found_get_search = false
-      local found_delete = false
-
-      for _, result in ipairs(results) do
-        if result.method == "GET" and result.endpoint_path == "/api/v0/students" then
-          found_get_root = true
-        end
-        if result.method == "GET" and result.endpoint_path == "/api/v0/students/all" then
-          found_get_all = true
-        end
-        if result.method == "GET" and result.endpoint_path == "/api/v0/students/{id}" then
-          found_get_by_id = true
-        end
-        if result.method == "POST" and result.endpoint_path == "/api/v0/students/create" then
-          found_post_create = true
-        end
-        if result.method == "GET" and result.endpoint_path == "/api/v0/students/search" then
-          found_get_search = true
-        end
-        if result.method == "DELETE" and result.endpoint_path == "/api/v0/students/{id}" then
-          found_delete = true
-        end
-      end
-
-      assert.is_true(found_get_root, "Should find GET /api/v0/students")
-      assert.is_true(found_get_all, "Should find GET /api/v0/students/all")
-      assert.is_true(found_get_by_id, "Should find GET /api/v0/students/{id}")
-      assert.is_true(found_post_create, "Should find POST /api/v0/students/create")
-      assert.is_true(found_get_search, "Should find GET /api/v0/students/search")
-      assert.is_true(found_delete, "Should find DELETE /api/v0/students/{id}")
-    end)
-
-    it("should resolve constant in @GetMapping", function()
-      java_constant_resolver.get_all_constants("tests/fixtures/spring")
+    it("should return constant ref as path (deferred resolution)", function()
       local content = '@GetMapping(PathConstants.Student.GET_ALL)'
       local file_path = "tests/fixtures/spring/src/main/java/com/example/ConstantController.java"
       local result = parser:parse_content(content, file_path, 1, 1)
 
       assert.is_not_nil(result)
       assert.equals("GET", result.method)
-      assert.equals("/all", result.endpoint_path)
+      assert.equals("PathConstants.Student.GET_ALL", result.endpoint_path)
     end)
 
-    it("should resolve constant in @PostMapping", function()
-      java_constant_resolver.get_all_constants("tests/fixtures/spring")
+    it("should return constant ref for @PostMapping", function()
       local content = '@PostMapping(PathConstants.Student.CREATE)'
       local file_path = "tests/fixtures/spring/src/main/java/com/example/ConstantController.java"
       local result = parser:parse_content(content, file_path, 1, 1)
 
       assert.is_not_nil(result)
       assert.equals("POST", result.method)
-      assert.equals("/create", result.endpoint_path)
+      assert.equals("PathConstants.Student.CREATE", result.endpoint_path)
     end)
 
-    it("should resolve constant in value parameter", function()
-      java_constant_resolver.get_all_constants("tests/fixtures/spring")
+    it("should return constant ref for value parameter", function()
       local content = '@DeleteMapping(value = PathConstants.Student.GET_BY_ID)'
       local file_path = "tests/fixtures/spring/src/main/java/com/example/ConstantController.java"
       local result = parser:parse_content(content, file_path, 1, 1)
 
       assert.is_not_nil(result)
       assert.equals("DELETE", result.method)
-      assert.equals("/{id}", result.endpoint_path)
+      assert.equals("PathConstants.Student.GET_BY_ID", result.endpoint_path)
     end)
 
     it("should still parse string literals normally", function()
@@ -521,6 +462,60 @@ describe("SpringParser", function()
       assert.is_not_nil(result)
       assert.equals("GET", result.method)
       assert.equals("/search", result.endpoint_path)
+    end)
+
+    it("should resolve constants in post-processing", function()
+      java_constant_resolver.clear_cache()
+      local Framework = require "endpoint.core.Framework"
+      local fw = Framework:new {
+        name = "test_spring",
+        config = {
+          file_extensions = { "*.java" },
+          exclude_patterns = {},
+        },
+      }
+
+      local endpoints = {
+        {
+          method = "GET",
+          endpoint_path = "PathConstants.Student.BASE_V0",
+          file_path = "tests/fixtures/spring/src/main/java/com/example/ConstantController.java",
+          display_value = "GET PathConstants.Student.BASE_V0",
+        },
+        {
+          method = "GET",
+          endpoint_path = "PathConstants.Student.BASE_V0/PathConstants.Student.GET_ALL",
+          file_path = "tests/fixtures/spring/src/main/java/com/example/ConstantController.java",
+          display_value = "GET PathConstants.Student.BASE_V0/PathConstants.Student.GET_ALL",
+        },
+        {
+          method = "GET",
+          endpoint_path = "/api/users",
+          file_path = "tests/fixtures/spring/src/main/java/com/example/UserController.java",
+          display_value = "GET /api/users",
+        },
+      }
+
+      local resolved = fw:_post_process_endpoints(endpoints)
+
+      local found_base = false
+      local found_combined = false
+      local found_normal = false
+      for _, ep in ipairs(resolved) do
+        if ep.endpoint_path == "/api/v0/students" then
+          found_base = true
+        end
+        if ep.endpoint_path == "/api/v0/students/all" then
+          found_combined = true
+        end
+        if ep.endpoint_path == "/api/users" then
+          found_normal = true
+        end
+      end
+
+      assert.is_true(found_base, "Should resolve PathConstants.Student.BASE_V0 to /api/v0/students")
+      assert.is_true(found_combined, "Should resolve combined constant path")
+      assert.is_true(found_normal, "Should keep normal paths unchanged")
     end)
   end)
 

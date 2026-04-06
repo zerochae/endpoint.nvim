@@ -27,6 +27,21 @@ describe("JavaConstantResolver", function()
       assert.equals("/enroll", constants["PathConstants.Course.ENROLL"])
     end)
 
+    it("should parse constants from interface-style file", function()
+      local constants = java_constant_resolver._parse_constants_from_file(
+        fixtures_root .. "/src/main/java/com/example/constants/ApiRoutes.java"
+      )
+
+      assert.is_not_nil(constants)
+      assert.equals("/api", constants["ApiRoutes.API_PREFIX"])
+      assert.equals("/api/v1/users", constants["ApiRoutes.Users.BASE"])
+      assert.equals("/list", constants["ApiRoutes.Users.FIND_ALL"])
+      assert.equals("/{id}", constants["ApiRoutes.Users.FIND_BY_ID"])
+      assert.equals("/create", constants["ApiRoutes.Users.CREATE"])
+      assert.equals("/api/v1/products", constants["ApiRoutes.Products.BASE"])
+      assert.equals("/search", constants["ApiRoutes.Products.SEARCH"])
+    end)
+
     it("should return empty table for non-existent file", function()
       local constants = java_constant_resolver._parse_constants_from_file("nonexistent.java")
       assert.same({}, constants)

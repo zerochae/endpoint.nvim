@@ -439,8 +439,74 @@ function Framework:_parse_result_line(result_line)
   return endpoints
 end
 
+---Check if a path segment looks like a Java constant reference
+---@param segment string
+---@return boolean
+local function _is_constant_ref(segment)
+  return segment:match "^[A-Z][%w_]*%." ~= nil
+end
+
+---Resolve Java constant references in endpoint paths (batch, after scanning)
+---@param endpoints table[] endpoints to process
+---@return table[] endpoints with resolved paths
+function Framework:_resolve_constant_refs(endpoints)
+  local needs_resolution = false
+  for _, endpoint in ipairs(endpoints) do
+    if endpoint.endpoint_path and _is_constant_ref(endpoint.endpoint_path) then
+      needs_resolution = true
+      break
+    end
+    local path = endpoint.endpoint_path or ""
+    for segment in path:gmatch "[^/]+" do
+      if _is_constant_ref(segment) then
+        needs_resolution = true
+        break
+      end
+    end
+    if needs_resolution then
+      break
+    end
+  end
+
+  if not needs_resolution then
+    return endpoints
+  end
+
+  local ok, resolver = pcall(require, "endpoint.resolver.java_constant_resolver")
+  if not ok then
+    return endpoints
+  end
+
+  log.framework_debug "Resolving Java constant references in endpoint paths"
+
+  for _, endpoint in ipairs(endpoints) do
+    local path = endpoint.endpoint_path or ""
+    local resolved_path = path
+
+    for ref in path:gmatch "([A-Z][%w_]*%.[A-Z][%w_.]*)" do
+      local value = resolver.resolve(ref)
+      if not value then
+        value = resolver.resolve_from_file_context(ref, endpoint.file_path)
+      end
+      if value then
+        resolved_path = resolved_path:gsub(vim.pesc(ref), value)
+      end
+    end
+
+    if resolved_path ~= path then
+      resolved_path = resolved_path:gsub("//+", "/")
+      endpoint.endpoint_path = resolved_path
+      endpoint.display_value = endpoint.method .. " " .. resolved_path
+    end
+  end
+
+  return endpoints
+end
+
 ---Post-processes endpoints to remove duplicates and clean up
 function Framework:_post_process_endpoints(endpoints)
+  endpoints = self:_resolve_constant_refs(endpoints)
+
   -- Remove duplicates based on method + path + file (preserve endpoints from different files)
   local seen = {}
   local unique_endpoints = {}

@@ -11,7 +11,10 @@ local _cache = {}
 local _cache_project_root = nil
 
 local function _find_java_files(project_root)
-  local cmd = string.format("find %s -name '*.java' -not -path '*/target/*' -not -path '*/build/*' -not -path '*/.gradle/*' 2>/dev/null", vim.fn.shellescape(project_root))
+  local cmd = string.format(
+    "rg -l --type java --glob '!**/target/**' --glob '!**/build/**' --glob '!**/.gradle/**' -e 'final String' -e '^\\s*String\\s+[A-Z_]' %s 2>/dev/null",
+    vim.fn.shellescape(project_root)
+  )
   local result = vim.fn.systemlist(cmd)
   if vim.v.shell_error ~= 0 then
     return {}
@@ -66,6 +69,9 @@ local function _parse_constants_from_file(file_path)
     end
     if not field_name then
       field_name, field_value = stripped:match '%s*final%s+static%s+String%s+([%w_]+)%s*=%s*"([^"]*)"'
+    end
+    if not field_name then
+      field_name, field_value = stripped:match '^%s*String%s+([%w_]+)%s*=%s*"([^"]*)"'
     end
 
     if field_name and field_value then

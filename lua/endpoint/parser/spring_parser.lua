@@ -1,6 +1,5 @@
 local Parser = require "endpoint.core.Parser"
 local class = require "endpoint.lib.middleclass"
-local java_constant_resolver = require "endpoint.resolver.java_constant_resolver"
 
 ---@class endpoint.SpringParser
 local SpringParser = class("SpringParser", Parser)
@@ -280,22 +279,11 @@ function SpringParser:_find_class_level_request_mapping(lines, line_number, file
   return ""
 end
 
----Resolve a constant reference to its string value
+---Return constant reference as-is (resolved later in post-processing)
 ---@param ref_text string Constant reference
----@param file_path string|nil Source file for import context
----@return string|nil
-function SpringParser:_resolve_constant(ref_text, file_path)
-  local resolved = java_constant_resolver.resolve(ref_text)
-  if resolved then
-    return resolved
-  end
-  if file_path then
-    resolved = java_constant_resolver.resolve_from_file_context(ref_text, file_path)
-    if resolved then
-      return resolved
-    end
-  end
-  return nil
+---@return string
+function SpringParser:_resolve_constant(ref_text)
+  return ref_text
 end
 
 ---Extract a constant reference from annotation argument text
@@ -342,7 +330,7 @@ function SpringParser:_extract_request_mapping_path(annotation_line, file_path)
   if mapping_args then
     local ref = self:_extract_constant_ref(mapping_args)
     if ref then
-      local resolved = self:_resolve_constant(ref, file_path)
+      local resolved = self:_resolve_constant(ref)
       if resolved then
         return resolved
       end
@@ -386,7 +374,7 @@ function SpringParser:_extract_path_from_specific_mapping(content, file_path)
     if mapping_args then
       local ref = self:_extract_constant_ref(mapping_args)
       if ref then
-        local resolved = self:_resolve_constant(ref, file_path)
+        local resolved = self:_resolve_constant(ref)
         if resolved then
           return resolved
         end
@@ -427,7 +415,7 @@ function SpringParser:_extract_path_from_request_mapping_with_method(content, fi
   -- Constant reference in value/path parameter
   local ref = normalized_content:match "@RequestMapping%s*%([^%)]*value%s*=%s*([%w_%.]+)"
   if ref and ref:match "%." then
-    local resolved = self:_resolve_constant(ref, file_path)
+    local resolved = self:_resolve_constant(ref)
     if resolved then
       return resolved
     end
@@ -435,7 +423,7 @@ function SpringParser:_extract_path_from_request_mapping_with_method(content, fi
 
   ref = normalized_content:match "@RequestMapping%s*%([^%)]*path%s*=%s*([%w_%.]+)"
   if ref and ref:match "%." then
-    local resolved = self:_resolve_constant(ref, file_path)
+    local resolved = self:_resolve_constant(ref)
     if resolved then
       return resolved
     end
