@@ -1,0 +1,5 @@
+{
+  "name": "nestjs-monorepo",
+  "private": true,
+  "workspaces": ["apps/*", "libs/*"]
+}
