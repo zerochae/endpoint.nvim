@@ -25,7 +25,6 @@ function ReactRouterFramework:initialize()
         name = "react_router_dependency_detection",
       },
       parser = ReactRouterParser,
-      treesitter_parser = "endpoint.parser.react_router_treesitter_parser",
     },
   })
 end

@@ -13,11 +13,8 @@ function Framework:initialize(fields)
   end
 
   self:_validate_config()
-  -- Setup detector and default parser
   self:_setup_detector()
   self:_setup_default_parser()
-  -- Treesitter parser upgrade is checked lazily after config.setup()
-  self._treesitter_checked = false
 end
 
 ---Sets up the default (regex) parser
@@ -39,29 +36,6 @@ function Framework:_validate_config()
 
   if not self.config.exclude_patterns then
     self.config.exclude_patterns = {}
-  end
-end
-
----Check and upgrade to treesitter parser if enabled (called lazily after config.setup)
-function Framework:_check_treesitter_upgrade()
-  if self._treesitter_checked then
-    return
-  end
-  self._treesitter_checked = true
-
-  -- Check if treesitter is enabled and available
-  local config = require "endpoint.config"
-  local cfg = config.get()
-
-  if cfg.treesitter and cfg.treesitter.enabled and self.config.treesitter_parser then
-    local ok, TreeSitterParser = pcall(require, self.config.treesitter_parser)
-    if ok then
-      local ts_parser = TreeSitterParser:new()
-      if ts_parser:is_available() then
-        self.parser = ts_parser
-        log.framework_debug("Upgraded to Tree-sitter parser for: " .. self.name)
-      end
-    end
   end
 end
 
@@ -87,9 +61,6 @@ end
 
 ---Parses content to extract endpoint information (unified implementation)
 function Framework:parse(content, file_path, line_number, column)
-  -- Ensure parser is initialized (lazy init after config.setup)
-  self:_check_treesitter_upgrade()
-
   if not self.parser then
     return nil
   end
@@ -182,9 +153,6 @@ function Framework:scan(options)
     return {}
   end
 
-  -- Ensure parser is initialized (lazy init after config.setup)
-  self:_check_treesitter_upgrade()
-
   -- Perform search and parse all matching lines
   local discovered_endpoints = self:_search_and_parse(options)
 
@@ -212,9 +180,6 @@ function Framework:scan_async(options, callback)
     end)
     return
   end
-
-  -- Ensure parser is initialized (lazy init after config.setup)
-  self:_check_treesitter_upgrade()
 
   -- Perform async search
   self:_search_and_parse_async(options, function(discovered_endpoints)
@@ -254,12 +219,6 @@ end
 function Framework:_search_and_parse_async(options, callback)
   options = options or {}
 
-  -- Check if parser is a Tree-sitter parser
-  if self.parser and self:_is_treesitter_parser() then
-    self:_search_and_parse_treesitter_async(options, callback)
-    return
-  end
-
   local search_command = self:get_search_cmd(options.method)
 
   log.framework_debug("Executing async search: " .. search_command)
@@ -286,92 +245,6 @@ function Framework:_search_and_parse_async(options, callback)
       end
 
       callback(found_endpoints)
-    end)
-  end)
-end
-
----Check if the current parser is a Tree-sitter based parser
----@return boolean
-function Framework:_is_treesitter_parser()
-  if not self.parser then
-    return false
-  end
-  -- Check if parser has extract_endpoints method (Tree-sitter parser signature)
-  return type(self.parser.extract_endpoints) == "function"
-end
-
----Get the parser type string for display
----@return string "treesitter" or "ripgrep"
-function Framework:get_parser_type()
-  -- Ensure parser is initialized before checking type
-  self:_check_treesitter_upgrade()
-  if self:_is_treesitter_parser() then
-    return "treesitter"
-  end
-  return "ripgrep"
-end
-
----Searches files and parses using Tree-sitter asynchronously (hybrid approach)
----Uses ripgrep to find matching files first, then parses only those with Tree-sitter
----@param options table|nil Scan options
----@param callback function Callback function(endpoints) called when search completes
-function Framework:_search_and_parse_treesitter_async(options, callback)
-  options = options or {}
-
-  log.framework_debug("Using Tree-sitter parser (hybrid) for: " .. self.name)
-
-  -- Use ripgrep to find files containing endpoint patterns (not all files!)
-  local search_command = self:get_search_cmd(options.method)
-
-  log.framework_debug("Finding matching files with: " .. search_command)
-
-  local cmd = { "sh", "-c", search_command }
-  local framework = self
-
-  vim.system(cmd, { text = true }, function(obj)
-    vim.schedule(function()
-      if obj.code ~= 0 then
-        log.framework_debug("Search failed: " .. (obj.stderr or "unknown error"))
-        callback({})
-        return
-      end
-
-      -- Extract unique file paths from ripgrep results
-      local rg_util = require "endpoint.utils.rg"
-      local result_lines = vim.split(obj.stdout or "", "\n", { trimempty = true })
-      local file_set = {}
-
-      for _, result_line in ipairs(result_lines) do
-        local parsed = rg_util.parse_result_line(result_line)
-        if parsed and parsed.file_path then
-          file_set[parsed.file_path] = true
-        end
-      end
-
-      -- Convert set to list
-      local file_list = {}
-      for file_path in pairs(file_set) do
-        table.insert(file_list, file_path)
-      end
-
-      log.framework_debug(string.format("Found %d files with patterns, parsing with Tree-sitter", #file_list))
-
-      local all_endpoints = {}
-
-      -- Parse each matching file with Tree-sitter
-      for _, file_path in ipairs(file_list) do
-        local endpoints = framework.parser:extract_endpoints(file_path, options)
-        if endpoints and #endpoints > 0 then
-          -- Enhance endpoints with framework metadata
-          for _, endpoint in ipairs(endpoints) do
-            endpoint.framework = framework.name
-            framework:_enhance_endpoint(endpoint, file_path)
-          end
-          vim.list_extend(all_endpoints, endpoints)
-        end
-      end
-
-      callback(all_endpoints)
     end)
   end)
 end

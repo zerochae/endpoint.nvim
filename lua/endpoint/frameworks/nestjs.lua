@@ -60,7 +60,6 @@ function NestJsFramework:initialize()
         name = "nestjs_dependency_detection",
       },
       parser = NestJsParser,
-      treesitter_parser = "endpoint.parser.nestjs_treesitter_parser",
     },
   })
 end

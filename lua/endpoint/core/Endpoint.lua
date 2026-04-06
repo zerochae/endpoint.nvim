@@ -92,7 +92,7 @@ function Endpoint:scan_all_endpoints(scan_options)
 
   for framework_index, framework_instance in ipairs(detected_frameworks) do
     local framework_name = framework_instance:get_name()
-    local parser_type = framework_instance:get_parser_type()
+    local parser_type = "ripgrep"
     log.framework_debug("Scanning endpoints with framework: " .. framework_name)
 
     -- Update progress
@@ -192,7 +192,7 @@ function Endpoint:scan_all_endpoints_async(scan_options, callback)
     log.framework_debug("Async scanning endpoints with framework: " .. framework_name)
 
     -- Get parser type for display
-    local parser_type = framework_instance:get_parser_type()
+    local parser_type = "ripgrep"
 
     -- Update progress
     local percentage = math.floor((current_index - 1) / total_frameworks * 100)

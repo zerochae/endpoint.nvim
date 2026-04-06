@@ -33,7 +33,6 @@ function ServletFramework:initialize()
         },
       },
       parser = ServletParser,
-      treesitter_parser = "endpoint.parser.servlet_treesitter_parser",
     },
   })
 end

@@ -62,7 +62,6 @@ function RailsFramework:initialize()
         name = "rails_dependency_detection",
       },
       parser = RailsParser,
-      treesitter_parser = "endpoint.parser.rails_treesitter_parser",
     },
   })
 end

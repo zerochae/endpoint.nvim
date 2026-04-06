@@ -47,13 +47,6 @@ local default_config = {
     -- notify: Use vim.notify
   },
 
-  -- Tree-sitter configuration (experimental)
-  treesitter = {
-    enabled = false, -- Enable Tree-sitter based parsing (requires nvim-treesitter)
-    -- Tree-sitter provides more accurate AST-based parsing
-    -- Falls back to regex parsing if Tree-sitter is unavailable
-  },
-
   -- Framework-specific configuration
   frameworks = {
     rails = {

@@ -37,7 +37,6 @@ function SpringFramework:initialize()
         name = "spring_dependency_detection",
       },
       parser = SpringParser,
-      treesitter_parser = "endpoint.parser.spring_treesitter_parser",
     },
   })
 end

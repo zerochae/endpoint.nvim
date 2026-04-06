@@ -54,7 +54,6 @@ function SymfonyFramework:initialize()
         name = "symfony_dependency_detection",
       },
       parser = SymfonyParser,
-      treesitter_parser = "endpoint.parser.symfony_treesitter_parser",
     },
   })
 end

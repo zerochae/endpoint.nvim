@@ -29,7 +29,6 @@ function DotNetFramework:initialize()
         name = "dotnet_dependency_detection",
       },
       parser = DotNetParser,
-      treesitter_parser = "endpoint.parser.dotnet_treesitter_parser",
     },
   })
 end
